@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>demotale 0.3.0 visual review</title>
+    <style>
+      :root {
+        --line: #e2e8f0;
+        --muted: #64748b;
+        --accent: #2563eb;
+        --flip: #f97316;
+        --still: #16a34a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: #0f172a;
+        background: #f8fafc;
+      }
+      header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 28px; background: #fff; border-bottom: 1px solid var(--line);
+      }
+      header strong { font-size: 16px; }
+      .account { color: var(--muted); font-size: 13px; }
+      main { padding: 28px; max-width: 1040px; }
+      h1 { font-size: 24px; margin: 0 0 6px; }
+      .lede { color: var(--muted); margin: 0 0 24px; max-width: 62ch; }
+      .panel {
+        border: 1px solid var(--line); border-radius: 12px; background: #fff;
+        padding: 20px 22px; margin-bottom: 20px;
+      }
+      .panel h2 { margin: 0 0 6px; font-size: 17px; }
+      .panel p { margin: 0; color: var(--muted); font-size: 14px; }
+      .panel.flip { border-color: #fdba74; background: #fff7ed; }
+      .panel.flip h2 { color: #c2410c; }
+      .panel.still { border-color: #86efac; background: #f0fdf4; }
+      .panel.still h2 { color: #15803d; }
+      .pill {
+        display: inline-block; margin-top: 10px; padding: 3px 10px; border-radius: 999px;
+        font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+      }
+      .pill.flip { background: #ffedd5; color: #9a3412; }
+      .pill.still { background: #dcfce7; color: #166534; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      input {
+        width: 100%; max-width: 360px; padding: 10px 12px; border: 1px solid var(--line);
+        border-radius: 8px; font: inherit;
+      }
+      button {
+        margin-top: 12px; padding: 10px 18px; border: 0; border-radius: 8px;
+        background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+      }
+      #saved {
+        margin-top: 12px; font-weight: 600; color: var(--still);
+        min-height: 1.5em;
+      }
+      ul.items { margin: 0; padding-left: 20px; }
+      ul.items li { margin: 6px 0; }
+      .spacer { height: 340px; }
+      footer { padding: 0 28px 32px; color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>demotale 0.3.0</strong>
+      <span class="account" data-testid="account">signed in as reviewer@example.com</span>
+    </header>
+
+    <main>
+      <h1>Visual review page</h1>
+      <p class="lede">
+        Made for eyeballing 0.3.0: caption flip, separate video/gif/images commands, and docs stills
+        without the overlay. Everything here is fake.
+      </p>
+
+      <!-- Near the top on purpose: a spotlight here should flip the subtitle to the bottom. -->
+      <section class="panel flip" data-testid="top-target">
+        <h2>Caption flip target</h2>
+        <p>When the spotlight rings this panel, the subtitle should move to the bottom edge.</p>
+        <span class="pill flip">caption flip</span>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Middle panel</h2>
+          <p>Spotlight here: subtitle stays at the top (default).</p>
+        </section>
+        <section class="panel still" data-testid="middle-target">
+          <h2>Lower spotlight</h2>
+          <p>Safe distance from the top caption. Ring should not force a flip.</p>
+        </section>
+      </div>
+
+      <div class="spacer"></div>
+
+      <section class="panel still" data-testid="item-list">
+        <h2>Docs still: list</h2>
+        <ul class="items">
+          <li>01-form-saved.png — form after save, no overlay</li>
+          <li>02-item-list.png — this panel, no overlay</li>
+          <li>03-redaction-check.png — account line still redacted</li>
+        </ul>
+        <span class="pill still">demo.still()</span>
+      </section>
+
+      <form data-testid="note-form" onsubmit="event.preventDefault(); save();">
+        <section class="panel still">
+          <h2>Docs still: form</h2>
+          <label for="note">Short note</label>
+          <input id="note" name="note" placeholder="Type something…" autocomplete="off" />
+          <button type="submit">Save</button>
+          <div id="saved" data-testid="saved"></div>
+        </section>
+      </form>
+    </main>
+
+    <footer>Run <code>npm run visual-030</code> from the repo root, then open the outputs listed in examples/visual-030/README.md.</footer>
+
+    <script>
+      function save() {
+        const value = document.getElementById('note').value.trim() || 'Saved for the still.';
+        document.getElementById('saved').textContent = value;
+      }
+    </script>
+  </body>
+</html>
