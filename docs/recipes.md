@@ -100,12 +100,42 @@ longer matches the application, and the video would have been wrong.
 
 ## A gif for your README
 
+```bash
+npx demotale gif
+```
+
+Or list it in the config if CI should always produce one:
+
 ```ts
 video: { formats: ['mp4', 'gif'], gifWidth: 720, gifFps: 10 },
 ```
 
 A gif of a full 1440-pixel viewport at 15 frames a second comes out around nine megabytes. Capped at
 720 and 10 it is closer to two, which is what a page at the top of a repository can carry.
+
+`demotale gif` reuses the last recording when there is one, so `video` then `gif` does not play the
+click path twice.
+
+## Docs pictures
+
+Mark the moment in the scenario after the assertion that proves the screen is what the docs claim:
+
+```ts
+await expect(page.getByRole('heading', { name: 'Order' })).toBeVisible();
+await demo.still('order-open');
+```
+
+Then ask for exactly that many pictures. The number is a promise: if the run delivered a different
+set, nothing is written.
+
+```bash
+npx demotale images 1
+```
+
+You get `demo/stills/01-order-open.png` (numbering is on by default; `stills.number: false` turns it
+off). That folder belongs in git. The overlay is hidden for the shot; `redact` stays. ffmpeg is not
+needed. During `video` or `record`, `still()` does nothing, so the same scenario can film and
+illustrate.
 
 ## Subtitles and a transcript
 

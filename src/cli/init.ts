@@ -161,7 +161,7 @@ export function init(root = process.cwd(), options: { agent?: boolean; ci?: bool
   say('Next:');
   say('  1. Point baseUrl and webServer in demotale.config.ts at your app');
   say('  2. npx demotale doctor');
-  say('  3. npx demotale record');
+  say('  3. npx demotale video');
   if (!agent) {
     say('');
     say('If an agent writes the demos here, run "demotale init" again (it writes the five lines).');

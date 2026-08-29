@@ -101,6 +101,23 @@ in frame, use `redact` in the config instead: that is applied before the first f
 every navigation. "We do not click on it" is a promise about a script, which someone will edit later.
 Hidden is a fact about the picture.
 
+### Docs pictures
+
+```ts
+await expect(page.getByTestId('result')).toBeVisible();
+await demo.still('parcel-result');
+```
+
+A still is a screenshot of the application as it is at that line, without the overlay. Call it after
+the assertion, not before: the documentation should show the state you just proved. Then:
+
+```bash
+npx demotale images 1
+```
+
+That `1` is a promise. Eight `still()` calls means `demotale images 8`. If the count does not match,
+nothing is written, so a docs folder cannot go out with a hole in it.
+
 ### Long waits
 
 ```ts

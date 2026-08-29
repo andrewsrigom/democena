@@ -19,6 +19,14 @@ describe('slugify', () => {
   it('leaves no leading or trailing dashes', () => {
     expect(slugify('  ...Hello!  ')).toBe('hello');
   });
+
+  it('renames Windows reserved device names so a still can be written on that OS', () => {
+    expect(slugify('CON')).toBe('con-still');
+    expect(slugify('aux')).toBe('aux-still');
+    expect(slugify('com1')).toBe('com1-still');
+    expect(slugify('lpt9')).toBe('lpt9-still');
+    expect(slugify('console')).toBe('console');
+  });
 });
 
 describe('readingTimeMs', () => {

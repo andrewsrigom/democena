@@ -31,6 +31,7 @@ test('A tour of the parcel desk', async ({ page, demo }) => {
     // Stands in for the real thing: a wait worth naming rather than filming.
     await demo.wait('Asking the carrier', page.waitForTimeout(1_200));
     await expect(page.getByTestId('result')).toContainText('Rotterdam');
+    await demo.still('parcel-result');
   });
 
   await demo.step('And the answer comes back where it was asked for.', async () => {

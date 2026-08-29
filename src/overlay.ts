@@ -34,6 +34,35 @@ export interface OverlayBox {
   height: number;
 }
 
+/** Gap kept between the subtitle and the spotlight ring, in pixels. */
+export const CAPTION_RING_GAP = 12;
+
+export function boxesOverlap(a: OverlayBox, b: OverlayBox, gap: number): boolean {
+  return (
+    a.x < b.x + b.width + gap &&
+    b.x < a.x + a.width + gap &&
+    a.y < b.y + b.height + gap &&
+    b.y < a.y + a.height + gap
+  );
+}
+
+/**
+ * Preferred edge unless the ring sits on it; the other edge if that is free; preferred again if
+ * both would cover the ring (a near-full-viewport highlight).
+ */
+export function pickCaptionEdge(
+  preferred: 'top' | 'bottom',
+  preferredBox: OverlayBox,
+  otherBox: OverlayBox,
+  ring: OverlayBox,
+  gap = 12,
+): 'top' | 'bottom' {
+  if (!boxesOverlap(preferredBox, ring, gap)) return preferred;
+  const other: 'top' | 'bottom' = preferred === 'top' ? 'bottom' : 'top';
+  if (!boxesOverlap(otherBox, ring, gap)) return other;
+  return preferred;
+}
+
 /** What the injected script hangs on `window.__demo`. */
 export interface DemoOverlay {
   say(text: string, badge?: string): void;
@@ -43,6 +72,11 @@ export interface DemoOverlay {
   ring(box: OverlayBox | null): void;
   /** A standing label in the corner. `null` takes it away. */
   note(text: string | null): void;
+  /**
+   * Hide every painted overlay piece so a screenshot is the application. Redaction stays: it is a
+   * style rule, not a painted element.
+   */
+  stillClean(on: boolean): void;
   ready(): boolean;
 }
 
@@ -62,12 +96,9 @@ function redactionCss(selectors: readonly string[]): string {
 }
 
 function css(theme: Theme): string {
-  const atTop = theme.captionPosition === 'top';
   // The subtitle slides in towards its edge, so it arrives from off-frame rather than appearing.
-  const edge = atTop
-    ? `top: ${theme.captionOffset}px; transform: translate(-50%, -16px);`
-    : `bottom: ${theme.captionOffset}px; transform: translate(-50%, 16px);`;
-
+  // Two edge classes: the spotlight may flip the caption to the other rim so it does not cover the
+  // ring. The theme's captionPosition is only the preferred rim.
   return `
     #${ID}, #${ID} * { pointer-events: none !important; box-sizing: border-box; }
     #${ID} {
@@ -75,14 +106,16 @@ function css(theme: Theme): string {
       font-family: ${theme.fontFamily};
     }
     #${ID} .demo-caption {
-      position: absolute; left: 50%; ${edge}
+      position: absolute; left: 50%;
       max-width: ${theme.captionMaxWidth}; display: flex; align-items: flex-start; gap: 14px;
       padding: 16px 24px; border-radius: ${theme.radius}px;
       background: ${theme.surface}; color: ${theme.text};
       font-size: ${theme.captionFontSize}px; line-height: 1.45; font-weight: 500;
       box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
-      opacity: 0; transition: opacity 260ms ease, transform 260ms ease;
+      opacity: 0; transition: opacity 260ms ease, transform 260ms ease, top 260ms ease, bottom 260ms ease;
     }
+    #${ID} .demo-caption.edge-top { top: ${theme.captionOffset}px; bottom: auto; transform: translate(-50%, -16px); }
+    #${ID} .demo-caption.edge-bottom { bottom: ${theme.captionOffset}px; top: auto; transform: translate(-50%, 16px); }
     #${ID} .demo-caption.visible { opacity: 1; transform: translate(-50%, 0); }
     #${ID} .demo-badge {
       flex: 0 0 auto; min-width: 30px; height: 30px; border-radius: 15px;
@@ -108,12 +141,22 @@ function css(theme: Theme): string {
     #${ID} .demo-ring.visible { opacity: 1; }
     /* Opposite the subtitle, so a standing note never collides with the line being read. */
     #${ID} .demo-note {
-      position: absolute; left: 24px; ${atTop ? 'bottom: 24px;' : 'top: 24px;'}
+      position: absolute; left: 24px;
       max-width: 40%; padding: 8px 14px; border-radius: ${theme.radius}px;
       background: ${theme.surface}; color: ${theme.text};
       font-size: ${Math.round(theme.captionFontSize * 0.7)}px; line-height: 1.4; font-weight: 500;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-      opacity: 0; transition: opacity 260ms ease;
+      opacity: 0; transition: opacity 260ms ease, top 260ms ease, bottom 260ms ease;
+    }
+    #${ID} .demo-note.note-bottom { bottom: 24px; top: auto; }
+    #${ID} .demo-note.note-top { top: 24px; bottom: auto; }
+    #${ID}.still-clean .demo-caption,
+    #${ID}.still-clean .demo-cursor,
+    #${ID}.still-clean .demo-ring,
+    #${ID}.still-clean .demo-note,
+    #${ID}.still-clean .demo-card,
+    #${ID}.still-clean .demo-pulse {
+      opacity: 0 !important; visibility: hidden !important;
     }
     #${ID} .demo-note.visible { opacity: 1; }
     #${ID} .demo-card {
@@ -150,9 +193,33 @@ export function overlayScript(theme: Theme, redact: readonly string[] = []): str
   const CSS = ${JSON.stringify(css(theme) + redactionCss(redact))};
   const SHOW_BADGE = ${theme.badge ? 'true' : 'false'};
   const CARD_SURFACE = ${JSON.stringify(theme.cardSurface)};
+  const PREFERRED = ${JSON.stringify(theme.captionPosition)};
+  const RING_GAP = ${CAPTION_RING_GAP};
+  const OFFSET = ${theme.captionOffset};
   const COVER_KEY = '__demotale_cover';
   const COVER_STYLE_ID = '__demo-cover-style';
   const state = {};
+  const boxesOverlap = ${boxesOverlap.toString()};
+  const pickCaptionEdge = ${pickCaptionEdge.toString()};
+
+  function captionBox(edge, width, height) {
+    return {
+      x: (window.innerWidth - width) / 2,
+      y: edge === 'top' ? OFFSET : window.innerHeight - OFFSET - height,
+      width: width,
+      height: height
+    };
+  }
+
+  function setCaptionEdge(edge) {
+    if (!state.caption) return;
+    state.caption.classList.toggle('edge-top', edge === 'top');
+    state.caption.classList.toggle('edge-bottom', edge === 'bottom');
+    if (!state.note) return;
+    // Note stays opposite the subtitle.
+    state.note.classList.toggle('note-bottom', edge === 'top');
+    state.note.classList.toggle('note-top', edge === 'bottom');
+  }
 
   function dismissed() {
     try { return sessionStorage.getItem(COVER_KEY) === 'off'; } catch { return false; }
@@ -200,7 +267,7 @@ export function overlayScript(theme: Theme, redact: readonly string[] = []): str
     ring.className = 'demo-ring';
 
     const caption = document.createElement('div');
-    caption.className = 'demo-caption';
+    caption.className = 'demo-caption edge-' + PREFERRED;
     const badge = document.createElement('span');
     badge.className = 'demo-badge hidden';
     const text = document.createElement('span');
@@ -208,7 +275,7 @@ export function overlayScript(theme: Theme, redact: readonly string[] = []): str
     caption.append(badge, text);
 
     const note = document.createElement('div');
-    note.className = 'demo-note';
+    note.className = 'demo-note ' + (PREFERRED === 'top' ? 'note-bottom' : 'note-top');
 
     const card = document.createElement('div');
     card.className = dismissed() ? 'demo-card hidden' : 'demo-card';
@@ -294,13 +361,37 @@ export function overlayScript(theme: Theme, redact: readonly string[] = []): str
     },
     ring(box) {
       if (!raise()) return;
-      if (!box) { state.ring.classList.remove('visible'); return; }
+      if (!box) {
+        state.ring.classList.remove('visible');
+        setCaptionEdge(PREFERRED);
+        return;
+      }
       const pad = 6;
       state.ring.style.left = (box.x - pad) + 'px';
       state.ring.style.top = (box.y - pad) + 'px';
       state.ring.style.width = (box.width + pad * 2) + 'px';
       state.ring.style.height = (box.height + pad * 2) + 'px';
       state.ring.classList.add('visible');
+      if (!state.caption.classList.contains('visible')) {
+        setCaptionEdge(PREFERRED);
+        return;
+      }
+      const width = state.caption.offsetWidth;
+      const height = state.caption.offsetHeight;
+      const other = PREFERRED === 'top' ? 'bottom' : 'top';
+      setCaptionEdge(pickCaptionEdge(
+        PREFERRED,
+        captionBox(PREFERRED, width, height),
+        captionBox(other, width, height),
+        { x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 },
+        RING_GAP
+      ));
+    },
+    stillClean(on) {
+      const root = raise();
+      if (!root) return;
+      root.classList.toggle('still-clean', !!on);
+      if (on) clearHtmlCover();
     },
     ready() { return !!ensureRoot(); }
   };

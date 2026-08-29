@@ -31,6 +31,13 @@ export interface CaptionsConfig {
   transcript: boolean;
 }
 
+export interface StillsConfig {
+  /** Directory the docs pictures end up in. Not gitignored: these files are the documentation. */
+  dir: string;
+  /** Prefix files with `01-`, `02-`, … so a person running `images 8` sees eight numbered files. */
+  number: boolean;
+}
+
 export interface Viewport {
   width: number;
   height: number;
@@ -62,6 +69,7 @@ export interface DemotaleConfig {
   video?: Partial<VideoConfig>;
   captions?: Partial<CaptionsConfig>;
   theme?: ThemeInput;
+  stills?: Partial<StillsConfig>;
 }
 
 /** A config with every gap filled in. This is what the fixture and the renderer actually read. */
@@ -79,6 +87,7 @@ export interface ResolvedConfig {
   video: VideoConfig;
   captions: CaptionsConfig;
   theme: Theme;
+  stills: StillsConfig;
 }
 
 export class DemotaleConfigError extends Error {
@@ -99,6 +108,7 @@ const DEFAULTS = {
 
 const DEFAULT_VIDEO: VideoConfig = { fps: 30, crf: 23, formats: ['mp4'], gifWidth: 960, gifFps: 15 };
 const DEFAULT_CAPTIONS: CaptionsConfig = { vtt: true, transcript: true };
+const DEFAULT_STILLS: StillsConfig = { dir: './demo/stills', number: true };
 
 const KNOWN_KEYS: ReadonlySet<string> = new Set([
   'baseUrl',
@@ -114,6 +124,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
   'video',
   'captions',
   'theme',
+  'stills',
 ]);
 
 const VIDEO_FORMATS: ReadonlySet<string> = new Set<VideoFormat>(['mp4', 'gif']);
@@ -235,6 +246,16 @@ export function defineConfig(config: DemotaleConfig = {}): DemotaleConfig {
     }
   }
 
+  if (config.stills !== undefined) {
+    if (config.stills === null || typeof config.stills !== 'object' || Array.isArray(config.stills)) {
+      fail(`"stills" must be an object, got ${show(config.stills)}.`);
+    }
+    if (config.stills.dir !== undefined) text(config.stills.dir, 'stills.dir');
+    if (config.stills.number !== undefined && typeof config.stills.number !== 'boolean') {
+      fail(`"stills.number" must be true or false, got ${show(config.stills.number)}.`);
+    }
+  }
+
   return config;
 }
 
@@ -256,6 +277,7 @@ export function resolveConfig(config: DemotaleConfig = {}): ResolvedConfig {
     video: { ...DEFAULT_VIDEO, ...config.video },
     captions: { ...DEFAULT_CAPTIONS, ...config.captions },
     theme: resolveTheme(config.theme),
+    stills: { ...DEFAULT_STILLS, ...config.stills },
   };
 }
 

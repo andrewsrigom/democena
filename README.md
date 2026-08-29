@@ -65,7 +65,7 @@ npx demotale agent-guide
 ```
 
 The loop is: point the config at your app → write `demo/<thing>.demo.ts` → `npx demotale check`
-(open the frames) → `npx demotale record` once at the end.
+(open the frames) → `npx demotale video` (or `gif` / `images N`). `record` is what CI runs.
 
 ## Write a scenario
 
@@ -88,11 +88,12 @@ It is a Playwright test. Anything you can do in a test, you can do in a scenario
 ## Record it
 
 ```bash
-npx demotale record
+npx demotale video
 ```
 
-You get `demo/output/a-guided-tour.mp4`, plus a `.gif`, a `.vtt` subtitle track and a markdown
-transcript with timestamps.
+You get `demo/output/a-guided-tour.mp4`, plus a `.vtt` subtitle track and a markdown transcript
+with timestamps. For a gif: `npx demotale gif`. For docs pictures, mark moments with `demo.still()`
+and run `npx demotale images 8`.
 
 ## Keep it current in CI
 
@@ -122,6 +123,7 @@ job (`sudo apt-get install -y ffmpeg`) or the recording stays a webm.
 | `click(locator)` | Move the pointer there in steps, pause, click |
 | `type(locator, text)` | Visible keystrokes |
 | `note(text)` / `note()` | A standing label in the corner |
+| `still(name)` | A docs picture of the page as it is now, without the overlay. Only `demotale images` writes it |
 | `wait(label, promise)` | A named long wait; the transcript records how long it really took |
 | `chapter(title)` | A marker for the transcript and the subtitles |
 | `redact(locator)` | Take this element out of the picture |
@@ -140,7 +142,8 @@ export default defineConfig({
   speed: 1,
   redact: ['[aria-label="Account"]', '.org-switcher'],
   video: { formats: ['mp4', 'gif'] },
-  theme: { accent: '#38bdf8', captionPosition: 'top' },
+  theme: { base: 'dark', accent: '#38bdf8' },
+  stills: { dir: './demo/stills', number: true },
 });
 ```
 
@@ -172,13 +175,16 @@ credential; `demotale init` puts it in your `.gitignore` and says why.
 | `demotale agent-guide` | Print the one page of instructions for whatever writes the scenarios |
 | `demotale setup` | Download Chromium when postinstall was skipped, and say whether ffmpeg is available |
 | `demotale check [file]` | Play the click path without filming it. A frame per subtitle, and what the page held when a locator missed |
-| `demotale record [file]` | Record and render. `--headed`, `--speed 1.4`, `--port 3100`, `--base-url <url>` |
+| `demotale video [file]` | Record and write an mp4 (plus subtitles and a transcript) |
+| `demotale gif [file]` | Write a gif. Reuses the last recording when there is one |
+| `demotale images N [file]` | Write exactly N docs pictures from `demo.still()` in the scenario. Nothing is written if the count does not match |
+| `demotale record [file]` | Record and render whatever the config lists. What CI runs |
 | `demotale render` | Re-render what was recorded |
 | `demotale join a.mp4 b.mp4 out.mp4` | Join two parts without re-encoding |
 | `demotale auth <url>` | Save a browser session, once |
 | `demotale doctor` | Check node, ffmpeg, browsers, config, the dev-server command and baseUrl in ten seconds. Installs nothing |
 
-`check`, `record`, `render` and `doctor` take `--json`. One envelope for all four,
+`check`, `record`, `video`, `gif`, `images`, `render` and `doctor` take `--json`. One envelope for all four,
 `{ demotale, command, ok, problems, result }`, with `problems` naming the scenario, the step and the
 locator where there is one. In JSON mode stdout carries the document and nothing else.
 

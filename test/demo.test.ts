@@ -17,7 +17,13 @@ import { Demo } from '../src/demo.js';
 function fakePage(events: string[]): Page {
   const page = {
     addInitScript: async () => {},
-    evaluate: async () => undefined,
+    evaluate: async (fn: (...args: never[]) => unknown) => {
+      const text = String(fn);
+      if (text.includes('stillClean') && text.length < 200) {
+        events.push(text.includes('stillClean(true)') ? 'eval stillClean on' : 'eval stillClean off');
+      }
+      return undefined;
+    },
     waitForTimeout: async () => {},
     title: async () => 'Parcel desk',
     url: () => 'http://localhost:4173/parcels',
@@ -123,5 +129,44 @@ describe('the frame that ends a step', () => {
       ['caption', 'result'],
       ['caption', 'result'],
     ]);
+  });
+});
+
+describe('demo.still', () => {
+  let frameDir = '';
+  let events: string[] = [];
+
+  beforeEach(() => {
+    frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    events = [];
+  });
+
+  afterEach(() => {
+    fs.rmSync(frameDir, { recursive: true, force: true });
+  });
+
+  it('writes a picture in images mode, after hiding the overlay', async () => {
+    const demo = new Demo(fakePage(events), resolveConfig(), { mode: 'images', frameDir });
+    await demo.still('order-open');
+    expect(events.filter((event) => event.startsWith('eval') || event.startsWith('frame'))).toEqual([
+      'eval stillClean on',
+      'frame 01-order-open.png',
+      'eval stillClean off',
+    ]);
+    expect(demo.stillsReport('t', 's').stills).toEqual([
+      { name: 'order-open', file: '01-order-open.png' },
+    ]);
+  });
+
+  it('is a no-op while recording, so the same scenario can film and illustrate', async () => {
+    const demo = new Demo(fakePage(events), resolveConfig(), { mode: 'record', frameDir });
+    await demo.still('order-open');
+    expect(events.filter((event) => event.startsWith('frame'))).toEqual([]);
+    expect(demo.stillsReport('t', 's').stills).toEqual([]);
+  });
+
+  it('rejects a name that cannot become a file name', async () => {
+    const demo = new Demo(fakePage(events), resolveConfig(), { mode: 'images', frameDir });
+    await expect(demo.still('???')).rejects.toThrow(/file name/);
   });
 });

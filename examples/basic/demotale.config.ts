@@ -20,4 +20,6 @@ export default defineConfig({
   // fidelity: full width and 15fps came out at nine megabytes.
   video: { formats: ['mp4', 'gif'], gifWidth: 720, gifFps: 10 },
   captions: { vtt: true, transcript: true },
+  theme: { base: 'dark', accent: '#38bdf8' },
+  stills: { dir: './stills', number: true },
 });

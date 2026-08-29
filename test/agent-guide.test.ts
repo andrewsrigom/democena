@@ -51,6 +51,8 @@ describe('agentGuide', () => {
     ['redacting an internal string you cannot ask about', 'Redaction is reversible'],
     ['the last frame of a step waiting for the step', 'the step has finished'],
     ['recording taking as long as the video', 'plays in real time'],
+    ['stills as a promise', 'demotale images'],
+    ['still after the assertion', "demo.still('order-open')"],
     // From the framework trial: an arm asserted on a heading that renders before the data behind it
     // arrives, so its frame proved a loading spinner and it went looking for a locator bug it did
     // not have. Twice measured now.
@@ -60,7 +62,7 @@ describe('agentGuide', () => {
   });
 
   it('stays a page rather than a manual', () => {
-    expect(guide.split('\n').length).toBeLessThan(110);
+    expect(guide.split('\n').length).toBeLessThan(130);
   });
 });
 

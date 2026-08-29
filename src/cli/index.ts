@@ -14,9 +14,10 @@ import { flagBoolean, parseArgs } from './args.js';
 import { authCommand } from './auth.js';
 import { checkCommand } from './check.js';
 import { doctorCommand } from './doctor.js';
+import { imagesCommand } from './images.js';
 import { init } from './init.js';
 import { joinCommand } from './join.js';
-import { recordCommand } from './record.js';
+import { gifCommand, recordCommand, videoCommand } from './record.js';
 import { renderCommand } from './render.js';
 import { setupCommand } from './setup.js';
 import { say, UserFacingError, warn } from './ui.js';
@@ -30,7 +31,10 @@ const COMMANDS = [
   ['agent-guide', 'Print the instructions for whatever writes the scenarios. One page.'],
   ['setup', 'Download Chromium (and verify ffmpeg) when postinstall was skipped.'],
   ['check [file]', 'Play the click path without filming it, and write a frame per subtitle.'],
-  ['record [file]', 'Play the click path, record it, and render the result.'],
+  ['record [file]', 'Play the click path and render whatever the config lists. For CI.'],
+  ['video [file]', 'Play the click path and write an mp4.'],
+  ['gif [file]', 'Write a gif. Reuses the last recording when there is one.'],
+  ['images N [file]', 'Write N docs pictures from demo.still() in the scenario. Promise: exactly N.'],
   ['render', 'Turn what was recorded into a video.'],
   ['join <a> <b> <out>', 'Put two recordings end to end without re-encoding.'],
   ['auth <url>', 'Sign in once by hand and store the browser session.'],
@@ -44,6 +48,9 @@ const OPTIONS = [
     'record',
     '--headed, --speed <n>, --slow-mo <ms>, --port <n>, --base-url <url>, --no-render, --json',
   ],
+  ['video', '--headed, --speed <n>, --slow-mo <ms>, --port <n>, --base-url <url>, --json'],
+  ['gif', '--headed, --speed <n>, --slow-mo <ms>, --port <n>, --base-url <url>, --json'],
+  ['images', '--headed, --port <n>, --base-url <url>, --json, -- <playwright args>'],
   ['render', '--json'],
   ['doctor', '--json'],
   ['auth', '--out <file>, --verify <url>, --probe <path>, --settle <15s>, --timeout <10m>'],
@@ -91,7 +98,10 @@ async function run(argv: string[]): Promise<number> {
   const BOOLEAN_FLAGS: Record<string, string[]> = {
     init: ['agent', 'ci', 'no-agent'],
     record: ['headed', 'json'],
+    video: ['headed', 'json'],
+    gif: ['headed', 'json'],
     check: ['headed', 'json'],
+    images: ['headed', 'json'],
     render: ['json'],
     doctor: ['json'],
   };
@@ -111,6 +121,12 @@ async function run(argv: string[]): Promise<number> {
       return checkCommand(args);
     case 'record':
       return recordCommand(args);
+    case 'video':
+      return videoCommand(args);
+    case 'gif':
+      return gifCommand(args);
+    case 'images':
+      return imagesCommand(args);
     case 'render':
       return renderCommand(process.cwd(), json);
     case 'join':

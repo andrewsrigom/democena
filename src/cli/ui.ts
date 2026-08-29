@@ -31,5 +31,9 @@ export function megabytes(bytes: number): string {
 }
 
 export function relative(file: string, root = process.cwd()): string {
-  return file.startsWith(root) ? file.slice(root.length).replace(/^[/\\]/, '') : file;
+  const normalisedFile = file.replaceAll('\\', '/');
+  const normalisedRoot = root.replaceAll('\\', '/').replace(/\/$/, '');
+  if (normalisedFile === normalisedRoot) return '';
+  if (!normalisedFile.startsWith(`${normalisedRoot}/`)) return file;
+  return normalisedFile.slice(normalisedRoot.length + 1);
 }

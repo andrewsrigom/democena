@@ -34,7 +34,8 @@ npx demotale agent-guide
 ```
 
 Follow that page. Short version of the loop: point `demotale.config.ts` at the real app → write
-`demo/<thing>.demo.ts` → `npx demotale check --json` → open the frames → `npx demotale record` once.
+`demo/<thing>.demo.ts` → `npx demotale check --json` → open the frames → `npx demotale video`
+(or `gif` / `images N`). `record` is what CI runs.
 
 ## This repository
 

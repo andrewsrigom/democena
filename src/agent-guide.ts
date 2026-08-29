@@ -44,9 +44,13 @@ THE LOOP
   3  write demo/<thing>.demo.ts          one sentence per step
   4  npx demotale check --json           seconds, no video, a frame per subtitle
   5  open the frames                     really open them; a green check proves less than you think
-  6  npx demotale record                 once, at the end
+  6  npx demotale video                once, at the end, if you want an mp4
+     npx demotale gif                  the gif; reuses the last recording when there is one
+     npx demotale images N             docs pictures; N is a promise (exactly N stills)
+     npx demotale record               CI: one play, whatever the config lists
 
 Do 3 to 5 as often as needed. Recording to test a locator is slower and tells you less than \`check\`.
+Ask for the artefact you need. Do not add gif or stills to the config "just in case".
 
 WHAT TO FILM
   Work it out from the repository. Read the branch and the diff: \`git diff\`, the files that changed,
@@ -107,6 +111,14 @@ DATA, AND SAYING WHAT IS NOT REAL
   whole recording. Use it whenever what is on screen is not what it appears to be: mocked, seeded,
   made up. A demo that overstates is worse than no demo, and this is the cheapest way to be honest.
 
+STILLS FOR DOCS
+  A still is a screenshot of the real page, without the overlay. Mark the moment after the assertion:
+      await expect(...).toBeVisible();
+      await demo.still('order-open');
+  \`demotale images 8\` is a promise: exactly eight \`still()\` calls, unique names, or nothing is
+  written. Files land in \`demo/stills/\` (\`01-order-open.png\` by default), which belongs in git.
+  Numbering is a config flag. ffmpeg is not needed. During \`video\`/\`record\`, \`still()\` is a no-op.
+
 CHECKING YOUR OWN WORK
   \`check\` writes a PNG per subtitle: when the subtitle goes up, once a spotlight is drawn, and once
   the step has finished rather than when the click landed, so a step that waits for data shows the
@@ -120,7 +132,8 @@ CHECKING YOUR OWN WORK
   accessible names and test ids. Fix from that list rather than by guessing again.
 
 READING THE OUTPUT AS DATA
-  \`check\`, \`record\`, \`render\` and \`doctor\` all take \`--json\` and all answer the same shape:
+  \`check\`, \`record\`, \`video\`, \`gif\`, \`images\`, \`render\` and \`doctor\` all take \`--json\` and all answer
+  the same shape:
   \`{ demotale, command, ok, problems, result }\`. Start at \`problems\`: each has a stable \`code\`
   (\`locator-no-match\`, \`assertion-failed\`, \`wrong-origin\`, \`missing-ffmpeg\`, ...), the scenario, the
   step, the locator, and a \`fix\` command where a command is the answer. \`result\` has the detail:
@@ -137,7 +150,7 @@ WHEN SOMETHING IS MISSING
 WHEN YOU ARE DONE
   Say what you changed and leave it for the developer to commit. The scenario belongs in the
   repository — thirty lines that CI can run again tomorrow (\`init --ci\` writes the workflow) — and \`demo/output/\` does not; it is a
-  build artefact and \`init\` gitignores it.
+  build artefact and \`init\` gitignores it. \`demo/stills/\` does belong in git when you asked for images.
   Aim for under a minute and five to eight steps: past that a demo stops being watched. \`record\`
   plays in real time and costs about the length of the video; \`check\` takes seconds.
 `;

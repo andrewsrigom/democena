@@ -27,6 +27,7 @@ export type {
   ResolvedConfig,
   LoadedConfig,
   CaptionsConfig,
+  StillsConfig,
   VideoConfig,
   VideoFormat,
   Viewport,
@@ -38,14 +39,17 @@ export type { PlaywrightConfigOptions } from './playwright.js';
 export { defaultTheme, lightTheme, themes, resolveTheme } from './theme.js';
 export type { Theme, ThemeInput, ThemeName } from './theme.js';
 
-export { overlayScript } from './overlay.js';
+export { overlayScript, boxesOverlap, pickCaptionEdge, CAPTION_RING_GAP } from './overlay.js';
 export type { DemoOverlay, OverlayBox } from './overlay.js';
 
 export { render, findRecordings, hasFfmpeg, ffmpegInstallHint } from './render.js';
-export type { Recording, RenderResult, RenderedFile } from './render.js';
+export type { Recording, RenderResult, RenderedFile, RenderOptions } from './render.js';
 
 export { join } from './join.js';
 export type { JoinResult } from './join.js';
 
 export { toVtt, toTranscript } from './captions.js';
 export type { DemoMeta, TimelineEntry, TimelineKind } from './captions.js';
+
+export { planStills, publishStills, stillFileName } from './stills.js';
+export type { TakenStill, StillsReport, StillsPlan, StillsFailure } from './stills.js';

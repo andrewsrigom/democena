@@ -28,6 +28,7 @@ import {
 } from './check.js';
 import { resolveConfig, type DemotaleConfig, type ResolvedConfig } from './config.js';
 import { overlayScript, type OverlayWindow } from './overlay.js';
+import type { StillsReport } from './stills.js';
 
 /** Reading time for a subtitle: about 15 characters per second, with a floor and a ceiling. */
 export function readingTimeMs(text: string): number {
@@ -35,13 +36,17 @@ export function readingTimeMs(text: string): number {
 }
 
 export function slugify(value: string): string {
-  return value
+  const slug = value
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
+
+  // Windows refuses files named CON, PRN, AUX, NUL, COM1–9, LPT1–9, with or without an extension.
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(slug)) return `${slug}-still`;
+  return slug;
 }
 
 /**
@@ -67,8 +72,8 @@ const SCROLL_SETTLE_MS = 450;
 const CHECK_FIRST_WAIT_MS = 1_200;
 const CHECK_TIMEOUT_MS = 4_000;
 
-/** How a `Demo` was started: filming, or the dry run behind `demotale check`. */
-export type DemoMode = 'record' | 'check';
+/** How a `Demo` was started: filming, the dry run behind `demotale check`, or docs pictures. */
+export type DemoMode = 'record' | 'check' | 'images';
 
 export interface DemoRunOptions {
   mode?: DemoMode;
@@ -101,6 +106,8 @@ export class Demo {
   private readonly checkSteps: CheckStep[] = [];
   private readonly pagesSeen: PageSeen[] = [];
   private checkFailure: CheckFailure | undefined;
+  /** Named stills taken in images mode, in the order `still()` was called. */
+  private readonly stillsTaken: { name: string; file: string }[] = [];
 
   /**
    * Everything that was said, and when. The fixture writes it out beside the video, and the renderer
@@ -193,7 +200,7 @@ export class Demo {
    * still. Scaled by `speed`, and skipped entirely by the dry run, which has no viewer.
    */
   async pause(ms: number): Promise<void> {
-    if (this.mode === 'check') return;
+    if (this.mode === 'check' || this.mode === 'images') return;
     await this.page.waitForTimeout(Math.round(ms * this.config.speed));
   }
 
@@ -204,7 +211,7 @@ export class Demo {
    * application than the recording does.
    */
   private async settle(ms: number): Promise<void> {
-    await this.page.waitForTimeout(this.mode === 'check' ? ms : Math.round(ms * this.config.speed));
+    await this.page.waitForTimeout(this.mode === 'record' ? Math.round(ms * this.config.speed) : ms);
   }
 
   /**
@@ -584,10 +591,55 @@ export class Demo {
       .catch(() => {});
   }
 
+  /**
+   * Take a docs picture of the page as it is now, without the overlay.
+   *
+   * The name becomes the file name (`order-open` → `01-order-open.png` when numbering is on). Call
+   * this after the assertion that proves the screen is what the documentation claims. Only
+   * `demotale images N` writes the files; during a recording this is a no-op so the same scenario
+   * can film and illustrate.
+   */
+  async still(name: string): Promise<void> {
+    const slug = slugify(name);
+    if (slug === '') {
+      throw new Error(
+        `demotale: still() needs a name that can become a file name, got ${JSON.stringify(name)}.`,
+      );
+    }
+
+    if (this.mode !== 'images') return;
+
+    await this.revealIfCovering();
+    await this.ensureOverlay();
+    await this.page
+      .evaluate(() => (window as OverlayWindow).__demo?.stillClean(true))
+      .catch(() => {});
+
+    const file = `${String(this.stillsTaken.length + 1).padStart(2, '0')}-${slug}.png`;
+    try {
+      fs.mkdirSync(this.frameDir, { recursive: true });
+      await this.page.screenshot({
+        path: path.join(this.frameDir, file),
+        animations: 'disabled',
+        caret: 'initial',
+      });
+      this.stillsTaken.push({ name: slug, file });
+    } finally {
+      await this.page
+        .evaluate(() => (window as OverlayWindow).__demo?.stillClean(false))
+        .catch(() => {});
+    }
+  }
+
+  /** What `demotale images` collects from this run. */
+  stillsReport(title: string, scenario: string): StillsReport {
+    return { title, scenario, stills: this.stillsTaken.map((still) => ({ ...still })) };
+  }
+
   /** Type with visible keystrokes instead of filling the field in one go. */
   async type(locator: Locator, text: string, delay = 55): Promise<void> {
     await this.click(locator, { settleMs: 150 });
-    await locator.pressSequentially(text, { delay: this.mode === 'check' ? 0 : delay });
+    await locator.pressSequentially(text, { delay: this.mode === 'record' ? delay : 0 });
     await this.settle(350);
   }
 
@@ -651,6 +703,16 @@ export const test = base.extend<DemotaleOptions & DemotaleFixtures>({
       fs.mkdirSync(testInfo.outputDir, { recursive: true });
       fs.writeFileSync(
         path.join(testInfo.outputDir, 'check.json'),
+        `${JSON.stringify(report, null, 2)}\n`,
+      );
+      return;
+    }
+
+    if (demotaleMode === 'images') {
+      const report = demo.stillsReport(testInfo.title, path.relative(process.cwd(), testInfo.file));
+      fs.mkdirSync(testInfo.outputDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(testInfo.outputDir, 'stills.json'),
         `${JSON.stringify(report, null, 2)}\n`,
       );
       return;

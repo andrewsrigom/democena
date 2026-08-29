@@ -50,10 +50,31 @@ export function hasFfmpeg(): boolean {
 }
 
 /** The OS command that puts ffmpeg on PATH. */
+export function ffmpegInstallHintFor(platform: NodeJS.Platform): string {
+  switch (platform) {
+    case 'darwin':
+      return 'brew install ffmpeg';
+    case 'win32':
+      return 'winget install ffmpeg';
+    case 'linux':
+    case 'aix':
+    case 'freebsd':
+    case 'openbsd':
+    case 'sunos':
+    case 'android':
+    case 'haiku':
+    case 'cygwin':
+    case 'netbsd':
+      return 'apt install ffmpeg';
+    default: {
+      const _never: never = platform;
+      return _never;
+    }
+  }
+}
+
 export function ffmpegInstallHint(): string {
-  if (os.platform() === 'darwin') return 'brew install ffmpeg';
-  if (os.platform() === 'win32') return 'winget install ffmpeg';
-  return 'apt install ffmpeg';
+  return ffmpegInstallHintFor(os.platform());
 }
 
 /** What to tell a person (or an agent) when ffmpeg is missing. */
