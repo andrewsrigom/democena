@@ -176,7 +176,7 @@ credential; `demotale init` puts it in your `.gitignore` and says why.
 | `demotale setup` | Download Chromium when postinstall was skipped, and say whether ffmpeg is available |
 | `demotale check [file]` | Play the click path without filming it. A frame per subtitle, and what the page held when a locator missed |
 | `demotale video [file]` | Record and write an mp4 (plus subtitles and a transcript) |
-| `demotale gif [file]` | Write a gif. Reuses the last recording when there is one |
+| `demotale gif [file]` | Write a gif. Reuses the last recording unless you name a scenario file |
 | `demotale images N [file]` | Write exactly N docs pictures from `demo.still()` in the scenario. Nothing is written if the count does not match |
 | `demotale record [file]` | Record and render whatever the config lists. What CI runs |
 | `demotale render` | Re-render what was recorded |
@@ -184,7 +184,7 @@ credential; `demotale init` puts it in your `.gitignore` and says why.
 | `demotale auth <url>` | Save a browser session, once |
 | `demotale doctor` | Check node, ffmpeg, browsers, config, the dev-server command and baseUrl in ten seconds. Installs nothing |
 
-`check`, `record`, `video`, `gif`, `images`, `render` and `doctor` take `--json`. One envelope for all four,
+`check`, `record`, `video`, `gif`, `images`, `render` and `doctor` take `--json`. Same envelope:
 `{ demotale, command, ok, problems, result }`, with `problems` naming the scenario, the step and the
 locator where there is one. In JSON mode stdout carries the document and nothing else.
 

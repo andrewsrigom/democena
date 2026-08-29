@@ -45,7 +45,7 @@ THE LOOP
   4  npx demotale check --json           seconds, no video, a frame per subtitle
   5  open the frames                     really open them; a green check proves less than you think
   6  npx demotale video                once, at the end, if you want an mp4
-     npx demotale gif                  the gif; reuses the last recording when there is one
+     npx demotale gif                  the gif; reuses the last recording unless you name a file
      npx demotale images N             docs pictures; N is a promise (exactly N stills)
      npx demotale record               CI: one play, whatever the config lists
 

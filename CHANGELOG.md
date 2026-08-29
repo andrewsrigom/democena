@@ -6,8 +6,8 @@ Notable changes, newest first. This project follows [semantic versioning](https:
 ## 0.3.0 — 2026-08-29
 
 Ask for the artefact you want. `demotale video` writes an mp4, `demotale gif` a gif (reuses the last
-recording when there is one), `demotale images N` docs pictures. `record` stays the CI umbrella: one
-play, whatever the config lists. Files you did not ask for are not written.
+recording unless you name a scenario file), `demotale images N` docs pictures. `record` stays the CI
+umbrella: one play, whatever the config lists. Files you did not ask for are not written.
 
 `demo.still('order-open')` marks a moment in the Playwright test. `demotale images 8` is a promise:
 exactly eight unique stills, or nothing is written to `demo/stills/`. Pictures are the application

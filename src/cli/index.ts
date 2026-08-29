@@ -33,7 +33,7 @@ const COMMANDS = [
   ['check [file]', 'Play the click path without filming it, and write a frame per subtitle.'],
   ['record [file]', 'Play the click path and render whatever the config lists. For CI.'],
   ['video [file]', 'Play the click path and write an mp4.'],
-  ['gif [file]', 'Write a gif. Reuses the last recording when there is one.'],
+  ['gif [file]', 'Write a gif. Reuses the last recording unless you name a scenario file.'],
   ['images N [file]', 'Write N docs pictures from demo.still() in the scenario. Promise: exactly N.'],
   ['render', 'Turn what was recorded into a video.'],
   ['join <a> <b> <out>', 'Put two recordings end to end without re-encoding.'],

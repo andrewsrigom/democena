@@ -114,7 +114,7 @@ A gif of a full 1440-pixel viewport at 15 frames a second comes out around nine 
 720 and 10 it is closer to two, which is what a page at the top of a repository can carry.
 
 `demotale gif` reuses the last recording when there is one, so `video` then `gif` does not play the
-click path twice.
+click path twice. Name a scenario file and it records that one instead of reusing.
 
 ## Docs pictures
 
@@ -125,8 +125,8 @@ await expect(page.getByRole('heading', { name: 'Order' })).toBeVisible();
 await demo.still('order-open');
 ```
 
-Then ask for exactly that many pictures. The number is a promise: if the run delivered a different
-set, nothing is written.
+Then ask for exactly that many pictures. The number is a promise: a different count or a repeated
+name writes nothing, so a docs folder cannot go out with a hole in it.
 
 ```bash
 npx demotale images 1
@@ -160,8 +160,9 @@ theme: {
 ```
 
 Two themes ship, `dark` and `light`. Both are ordinary objects, so you can also import one and spread
-it. `captionPosition: 'bottom'` exists, but think twice: on a dashboard the bottom is where new rows
-appear, and the subtitle then covers what it is pointing at.
+it. `captionPosition` is the preferred edge. When a spotlight would sit under that bar, the overlay
+flips to the other side until the ring clears. `bottom` exists, but on a dashboard that is where new
+rows appear.
 
 ## Recording against a different port
 
