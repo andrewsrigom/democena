@@ -20,7 +20,7 @@ and runs check for frame-by-frame review.
 | --- | --- | --- |
 | mp4 | `output/*.mp4` | Full recording with overlay; spotlight on the orange panel should flip the subtitle to the bottom |
 | gif | `output/*.gif` | Same tour, gif-sized; only this file was asked for by `demotale gif` |
-| stills | `stills/01-form-saved.png` … `03-redaction-check.png` | Application only — no subtitle, ring, or cursor; account line redacted |
+| stills | `stills/01-item-list.png` … `03-redaction-check.png` | Three different viewports: list, form after save, header with account redacted; no overlay |
 | check frames | `output/check/**/frame*.png` | One frame per subtitle; compare the top-panel step (caption at bottom) with the middle step (caption at top) |
 | check report | `output/check/**/report.txt` | Dry-run summary; confirms which frames belong to which step |
 
@@ -30,7 +30,7 @@ After `demotale images 3`, exactly three png files land in `stills/` — not two
 ## Scenario highlights
 
 - **Caption flip** — spotlight on `[data-testid="top-target"]` while the theme prefers top captions.
-- **`demo.still()`** — three named moments, written only by `demotale images 3`.
+- **`demo.still()`** — three named moments at three scroll positions, written only by `demotale images 3`.
 - **Redaction in stills** — `[data-testid="account"]` is hidden in video and in png stills.
 - **Separate commands** — `video`, `gif`, and `images` each write only what was asked for.
 
