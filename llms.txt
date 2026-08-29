@@ -1,8 +1,8 @@
 # demotale
 
-> Automated product demos that stay in sync with your UI. Playwright drives the click path, text
-> overlays explain each step, ffmpeg ships mp4/gif/subtitles/transcript. Built for humans and coding
-> agents. Re-record in CI. No microphone, no account, no upload.
+> Product demos that don't go stale. Write the walkthrough once. Ship a video, a gif, or pictures
+> for the docs. CI films it again when the UI changes. Playwright walks the clicks, text on screen
+> explains each step. Fully local, no account, no upload.
 
 demotale is an npm CLI (`@pesuto/demotale`). A scenario is a Playwright test in `demo/*.demo.ts`.
  Agents should run `npx demotale agent-guide` after install and follow that page — not invent steps

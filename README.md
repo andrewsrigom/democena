@@ -10,30 +10,32 @@
 
 # demotale
 
-demotale records a narrated demo of your running web app, then re-records it in CI when the UI
-changes, so the video does not go stale the first time someone moves a button.
+Product demos that don't go stale.
 
-Playwright plays a scripted click path, text overlays explain each step, and ffmpeg writes an mp4, a
-gif, a subtitle track and a transcript. You type one sentence to the AI you already use; that agent
-writes the scenario. No microphone, no account, no upload.
+Write the walkthrough once. Ship a video for the pitch, a gif for the README, or pictures for the
+docs. When someone moves a button, CI films the same path again. On your machine. No account.
 
 <!-- Made by demotale from examples/basic, which CI records on every push. -->
-![A demo recorded by demotale](https://cdn.jsdelivr.net/gh/pesuto-dev/demotale@v0.1.1/docs/media/example.gif)
+![A walkthrough recorded by demotale](https://cdn.jsdelivr.net/gh/pesuto-dev/demotale@v0.1.1/docs/media/example.gif)
 
-That gif was not screen-captured. It is `examples/basic/demo/parcel-desk.demo.ts`, recorded by this
-package, the same path CI runs on every push.
+Not a screen grab. A walkthrough CI can run again. That gif is
+`examples/basic/demo/parcel-desk.demo.ts`, recorded by this package, the same path CI runs on every
+push.
 
 ## Why
 
-- **In git, re-recorded by CI.** Same scenario, same `demotale record`. The demo stays current
-  without a hand-filmed remake.
-- **No microphone, no editor.** The explanation is text on screen, so a UI change costs you one
-  command instead of another afternoon of re-recording.
+- **One walkthrough. Three things you can ship.** A video for the pitch, a gif for the README, or
+  pictures of the real UI with no overlay. Same scenario; you pick the artefact (`video`, `gif`,
+  `images`).
+- **CI films the same path again.** `demotale record` in CI, so the demo stays current without a
+  hand-filmed remake.
+- **Text on screen, no microphone.** A UI change costs you one command instead of another afternoon
+  of re-recording.
 - **For the agent you already have.** After `init`, five lines in `AGENTS.md` point at
   `demotale agent-guide`. The agent writes the scenario; demotale is the motor and the feedback
-  (`check`, then one `record`).
-- **Runs on your machine, free.** Playwright and Chromium come with the package. ffmpeg is a
-  system install, or `ffmpeg-static` if you add it. No account, no upload, no service.
+  (`check`, then one `video` / `gif` / `images`).
+- **On your machine. No account.** Playwright and Chromium come with the package. ffmpeg is a
+  system install, or `ffmpeg-static` if you add it. No upload, no service.
 - **Honest by default.** `note()` puts "seeded data, no real customer" on screen and keeps it there,
   and `redact` guarantees an element is never in frame. Both exist so the video is one you dare show
   a customer.

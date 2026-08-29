@@ -1,6 +1,6 @@
 # Getting started
 
-From nothing to a video, in the order it actually happens.
+From nothing to a video, a gif, or pictures, in the order it actually happens.
 
 ## What you need
 
