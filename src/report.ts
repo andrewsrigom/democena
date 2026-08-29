@@ -17,7 +17,7 @@ import type { ResolvedConfig } from './config.js';
 /** Resolved from dist/, which puts the package root one level up. */
 const version = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
-export type CommandName = 'check' | 'record' | 'render' | 'doctor';
+export type CommandName = 'check' | 'record' | 'render' | 'doctor' | 'video' | 'gif' | 'images';
 
 /**
  * One thing that is wrong and, where such a thing exists, the command that would fix it.
@@ -51,7 +51,10 @@ export type ProblemCode =
   | 'node-too-old'
   | 'missing-agent-guide'
   | 'missing-ci-workflow'
-  | 'environment';
+  | 'environment'
+  | 'stills-count'
+  | 'stills-duplicate'
+  | 'stills-missing';
 
 export interface Problem {
   code: ProblemCode;

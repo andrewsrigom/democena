@@ -47,9 +47,10 @@ webServer: {
 },
 ```
 
-`reuseExistingServer: false` is deliberate. A recording made against an environment somebody left
-running is a recording against unknown data, and that has produced a video of an application
-correctly refusing to do the thing the video was about.
+`reuseExistingServer: false` is deliberate. A recording or stills run made against an environment
+somebody left running is a take against unknown data, and that has produced a video of an
+application correctly refusing to do the thing the video was about. `check` reuses whatever is
+already listening.
 
 ## Check the machine
 
@@ -65,7 +66,7 @@ CI is `npx demotale init --ci`.
 ## Record
 
 ```bash
-npx demotale record
+npx demotale video
 ```
 
 It starts your app, plays the scenario, and renders. You end up with:
@@ -78,12 +79,14 @@ demo/output/
   a-first-recording.md      transcript with timestamps
 ```
 
-Add `gif` to `video.formats` in the config for a gif as well.
+`npx demotale gif` adds a gif (reuses this recording). `npx demotale images N` writes docs pictures
+from `demo.still()` into `demo/stills/`, which belongs in git. `npx demotale record` is what CI runs:
+one play, whatever `video.formats` lists.
 
 ## Watch it being made
 
 ```bash
-npx demotale record --headed
+npx demotale video --headed
 ```
 
 The browser is visible while it works. Useful the first few times, and for finding out which of your
@@ -94,6 +97,6 @@ selectors does not match what you thought.
 - [Writing a scenario](writing-a-scenario.md) for what to put in the file.
 - [Recipes](recipes.md) if your app needs a login, or if the demo has a long wait in the middle.
 
-CI is the same `demotale record` as locally. `doctor` will tell you if the workflow is missing;
+CI is the same `demotale record` as the umbrella locally. `doctor` will tell you if the workflow is missing;
 `npx demotale init --ci` writes it. A UI change that breaks the click path then turns the job red
 instead of shipping a stale video.

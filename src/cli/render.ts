@@ -6,6 +6,7 @@
  * everything except ffmpeg should not go red over a file format.
  */
 import { loadConfig } from '../config.js';
+import type { VideoFormat } from '../config.js';
 import { ffmpegMissingFix } from '../ffmpeg.js';
 import { render } from '../render.js';
 import { emitJson, jsonReport, type Problem } from '../report.js';
@@ -23,9 +24,10 @@ export interface RenderPayload {
 /** The work, without deciding how to say it. Shared with `record`, which renders at the end. */
 export async function runRender(
   root: string,
+  options: { formats?: VideoFormat[]; captions?: boolean } = {},
 ): Promise<{ ok: boolean; problems: Problem[]; payload: RenderPayload }> {
   const { config } = await loadConfig(root);
-  const result = render(config, root);
+  const result = render(config, root, options);
 
   const payload: RenderPayload = {
     files: result.files.map((file) => ({ file: file.file, bytes: file.bytes })),
@@ -41,7 +43,7 @@ export async function runRender(
     return {
       ok: false,
       problems: [
-        { code: 'no-recording', message: 'No recording found to render.', fix: 'npx demotale record' },
+        { code: 'no-recording', message: 'No recording found to render.', fix: 'npx demotale video' },
       ],
       payload,
     };
@@ -65,8 +67,12 @@ export async function runRender(
   return { ok: true, problems: [], payload };
 }
 
-export async function renderCommand(root = process.cwd(), json = false): Promise<number> {
-  const { ok, problems, payload } = await runRender(root);
+export async function renderCommand(
+  root = process.cwd(),
+  json = false,
+  options: { formats?: VideoFormat[]; captions?: boolean } = {},
+): Promise<number> {
+  const { ok, problems, payload } = await runRender(root, options);
 
   if (json) {
     emitJson(jsonReport('render', ok, problems, payload));
@@ -74,7 +80,7 @@ export async function renderCommand(root = process.cwd(), json = false): Promise
   }
 
   if (payload.recordings.length === 0) {
-    warn('demotale: no recording found. Run "demotale record" first.');
+    warn('demotale: no recording found. Run "demotale video" or "demotale record" first.');
     return 1;
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { overlayScript } from '../src/overlay.js';
+import { overlayScript, pickCaptionEdge, boxesOverlap } from '../src/overlay.js';
 import { defaultTheme, lightTheme } from '../src/theme.js';
 
 /**
@@ -29,14 +29,14 @@ describe('overlayScript', () => {
   });
 
   it('puts the subtitle at the top by default, away from where new rows appear', () => {
-    expect(script).toContain('top: 64px');
-    expect(script).not.toContain('bottom: 64px');
+    expect(script).toContain('edge-top { top: 64px');
+    expect(script).not.toContain('PREFERRED = "bottom"');
   });
 
   it('moves the subtitle to the bottom when the theme says so', () => {
     const bottom = overlayScript({ ...defaultTheme, captionPosition: 'bottom' });
-    expect(bottom).toContain('bottom: 64px');
-    expect(bottom).not.toContain('top: 64px');
+    expect(bottom).toContain('PREFERRED = "bottom"');
+    expect(bottom).toContain('edge-bottom { bottom: 64px');
   });
 
   it('takes its colours from the theme rather than from a constant', () => {
@@ -68,5 +68,41 @@ describe('overlayScript', () => {
   it('survives a theme value containing a quote instead of breaking the script', () => {
     const script = overlayScript({ ...defaultTheme, fontFamily: `"Escape's Font", sans-serif` });
     expect(() => new Function(script)).not.toThrow();
+  });
+
+  it('can hide the painted overlay so a docs still is the application', () => {
+    expect(script).toContain('still-clean');
+    expect(script).toContain('stillClean(on)');
+  });
+
+  it('flips the subtitle off a spotlight that would cover it', () => {
+    expect(script).toContain('pickCaptionEdge');
+    expect(script).toContain('captionBox');
+    expect(script).not.toContain('getBoundingClientRect');
+  });
+});
+
+describe('pickCaptionEdge', () => {
+  const captionTop = { x: 200, y: 64, width: 400, height: 60 };
+  const captionBottom = { x: 200, y: 780, width: 400, height: 60 };
+  const ringLow = { x: 100, y: 700, width: 200, height: 80 };
+  const ringHigh = { x: 200, y: 50, width: 300, height: 80 };
+  const ringTall = { x: 0, y: 0, width: 800, height: 900 };
+
+  it('keeps the preferred edge when the ring is elsewhere', () => {
+    expect(pickCaptionEdge('top', captionTop, captionBottom, ringLow)).toBe('top');
+  });
+
+  it('flips when the ring sits on the preferred edge and the other is free', () => {
+    expect(pickCaptionEdge('top', captionTop, captionBottom, ringHigh)).toBe('bottom');
+  });
+
+  it('stays put when both edges would cover the ring', () => {
+    expect(pickCaptionEdge('top', captionTop, captionBottom, ringTall)).toBe('top');
+  });
+
+  it('treats a gap as overlap, so the subtitle does not graze the frame', () => {
+    expect(boxesOverlap(captionTop, { x: 200, y: 130, width: 10, height: 10 }, 12)).toBe(true);
+    expect(boxesOverlap(captionTop, { x: 200, y: 140, width: 10, height: 10 }, 12)).toBe(false);
   });
 });

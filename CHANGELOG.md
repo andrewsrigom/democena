@@ -3,6 +3,21 @@
 Notable changes, newest first. This project follows [semantic versioning](https://semver.org/) from
 0.1.0 onwards.
 
+## 0.3.0 — 2026-08-29
+
+Ask for the artefact you want. `demotale video` writes an mp4, `demotale gif` a gif (reuses the last
+recording unless you name a scenario file), `demotale images N` docs pictures. `record` stays the CI
+umbrella: one play, whatever the config lists. Files you did not ask for are not written.
+
+`demo.still('order-open')` marks a moment in the Playwright test. `demotale images 8` is a promise:
+exactly eight unique stills, or nothing is written to `demo/stills/`. Pictures are the application
+without the overlay; `redact` stays. Numbered files (`01-order-open.png`) are the default. ffmpeg is
+not required. `init` writes `theme` and `stills` as visible settings. Images wait like a recording
+(twenty-second expect, fresh `webServer`), not like `check`.
+
+When a spotlight would sit under the subtitle, the caption flips to the other edge until the ring
+clears.
+
 ## 0.2.2 — 2026-08-18
 
 Simplify install. `init` writes the agent block in AGENTS.md by default (`--no-agent` skips it)

@@ -36,7 +36,8 @@ and fixes it permanently.
 it. Otherwise the subtitle swallows the click meant for the button underneath.
 
 **The subtitle belongs at the top.** On a dashboard the bottom is exactly where new rows appear, and
-then the subtitle covers what it is pointing at.
+then the subtitle covers what it is pointing at. When a spotlight would sit under that bar, the
+overlay flips the caption to the other edge for as long as the ring is up.
 
 **You have to draw the cursor yourself.** Playwright's video does not capture the operating system's
 pointer. Draw it from real `mousemove` events, with a pulse on `mousedown`.
@@ -77,8 +78,9 @@ interface.
 recording against unknown data. One such run had an order already open for the demo record, so the
 application correctly refused to start a second one, and the video showed a refusal.
 
-→ demotale passes Playwright's `webServer` through, so the application is stood up per recording. The
-docs call that a condition rather than tidiness.
+→ demotale passes Playwright's `webServer` through, so the application is stood up per recording and
+per stills run. The docs call that a condition rather than tidiness. `check` reuses whatever is
+already listening, because it is looking at locators rather than writing a picture.
 
 **Check everything that can be missing in the first ten seconds.** ffmpeg, browsers, reachability,
 credentials. One recording failed after the setup and part one, twenty minutes in. That is what

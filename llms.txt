@@ -34,7 +34,8 @@ Requires Node >= 22.12. Chromium comes with the package. Put ffmpeg on PATH, or
 2. Point `demotale.config.ts` at the real app
 3. Write `demo/<thing>.demo.ts`
 4. `npx demotale check --json` — open the PNG frames
-5. `npx demotale record` once at the end
+5. `npx demotale video` (mp4), `gif`, or `images N` — ask for the artefact you need
+   `npx demotale record` is what CI runs: one play, whatever the config lists
 
 ## Docs
 

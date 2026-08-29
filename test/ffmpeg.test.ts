@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { ffmpegInstallHint, ffmpegMissingFix, ffmpegSourceDetail } from '../src/ffmpeg.js';
+import { ffmpegInstallHint, ffmpegInstallHintFor, ffmpegMissingFix, ffmpegSourceDetail } from '../src/ffmpeg.js';
+
+describe('ffmpegInstallHintFor', () => {
+  it('names the install a person on that OS would actually run', () => {
+    expect(ffmpegInstallHintFor('darwin')).toBe('brew install ffmpeg');
+    expect(ffmpegInstallHintFor('win32')).toBe('winget install ffmpeg');
+    expect(ffmpegInstallHintFor('linux')).toBe('apt install ffmpeg');
+  });
+});
 
 describe('ffmpegMissingFix', () => {
   it('names a system install and ffmpeg-static, not demotale setup', () => {

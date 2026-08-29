@@ -1,17 +1,18 @@
 /**
  * `demotale record` — run the scenarios and turn the result into a video.
  *
- * This is a thin wrapper around Playwright on purpose: everything that makes a recording work sits in
- * the generated Playwright config, not in flags here. What this adds is the tempo knobs, and the fact
- * that it renders afterwards, so a first recording is one command rather than two.
+ * `video` and `gif` are the same play, asking for one artefact so a person does not get files they
+ * did not ask for. `record` is the CI umbrella: one play, whatever the config lists.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadConfig } from '../config.js';
+import type { VideoFormat } from '../config.js';
 import { resolvePlaywright } from '../playwright-resolve.js';
-import { emitJson, jsonReport } from '../report.js';
+import { findRecordings } from '../render.js';
+import { emitJson, jsonReport, type CommandName } from '../report.js';
 import { flagBoolean, flagNumber, flagString, type Args } from './args.js';
 import { renderCommand, runRender } from './render.js';
 import { say, UserFacingError } from './ui.js';
@@ -77,7 +78,11 @@ export function resolveBaseUrl(args: Args, configured: string): string | undefin
   return port === undefined ? undefined : withPort(configured, port);
 }
 
-export async function recordCommand(args: Args, root = process.cwd()): Promise<number> {
+export async function playScenarios(
+  args: Args,
+  root: string,
+  extraEnv: NodeJS.ProcessEnv = {},
+): Promise<{ status: number; output: string }> {
   const { config } = await loadConfig(root);
   const playwrightConfig = findPlaywrightConfig(root);
   const cli = resolvePlaywrightCli(root);
@@ -86,7 +91,7 @@ export async function recordCommand(args: Args, root = process.cwd()): Promise<n
   const slowMo = flagNumber(args, 'slow-mo');
   const baseUrl = resolveBaseUrl(args, config.baseUrl);
 
-  const env: NodeJS.ProcessEnv = { ...process.env };
+  const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
   if (speed !== undefined) env['DEMOTALE_SPEED'] = String(speed);
   if (slowMo !== undefined) env['DEMOTALE_SLOWMO'] = String(slowMo);
   if (baseUrl !== undefined) env['DEMOTALE_BASE_URL'] = baseUrl;
@@ -102,27 +107,35 @@ export async function recordCommand(args: Args, root = process.cwd()): Promise<n
     ...args.rest,
   ];
 
-  // In JSON mode Playwright's output would land in front of the document and make it unparseable,
-  // so it is captured and handed back inside the document instead.
   const json = flagBoolean(args, 'json');
   const result = spawnSync(process.execPath, playwrightArgs, {
     stdio: json ? ['inherit', 'pipe', 'pipe'] : 'inherit',
-    // Playwright colours its output even into a pipe, and escape codes inside a JSON string are
-    // noise to the only reader that asked for JSON.
     env: json ? { ...env, NO_COLOR: '1', FORCE_COLOR: '0' } : env,
     cwd: root,
   });
 
-  const noRender = flagString(args, 'render') === 'false' || flagBoolean(args, 'no-render');
+  return {
+    status: result.status ?? 1,
+    output: `${result.stdout ?? ''}${result.stderr ?? ''}`.toString().trimEnd(),
+  };
+}
+
+async function reportPlay(
+  command: CommandName,
+  args: Args,
+  played: { status: number; output: string },
+  root: string,
+  renderOpts: { formats?: VideoFormat[]; captions?: boolean } | undefined,
+  noRender: boolean,
+): Promise<number> {
+  const json = flagBoolean(args, 'json');
 
   if (json) {
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.toString().trimEnd();
-    const recorded = result.status === 0;
-    const rendered = recorded && !noRender ? await runRender(root) : undefined;
-
+    const recorded = played.status === 0;
+    const rendered = recorded && !noRender ? await runRender(root, renderOpts ?? {}) : undefined;
     emitJson(
       jsonReport(
-        'record',
+        command,
         recorded && (rendered?.ok ?? true),
         [
           ...(recorded
@@ -140,18 +153,17 @@ export async function recordCommand(args: Args, root = process.cwd()): Promise<n
           ...(rendered?.problems ?? []),
         ],
         {
-          playwright: { exitCode: result.status ?? 1, output },
+          playwright: { exitCode: played.status, output: played.output },
           rendered: rendered?.payload,
         },
       ),
     );
-    return result.status ?? (rendered?.ok === false && rendered.payload.recordings.length === 0 ? 1 : 0);
+    if (played.status !== 0) return played.status;
+    if (rendered?.ok === false && rendered.payload.recordings.length === 0) return 1;
+    return 0;
   }
 
-  if (result.status !== 0) {
-    // Playwright has already said what went wrong, in more detail than this could.
-    return result.status ?? 1;
-  }
+  if (played.status !== 0) return played.status;
 
   if (noRender) {
     say('');
@@ -160,5 +172,41 @@ export async function recordCommand(args: Args, root = process.cwd()): Promise<n
   }
 
   say('');
-  return renderCommand(root);
+  return renderCommand(root, false, renderOpts);
+}
+
+export async function recordCommand(args: Args, root = process.cwd()): Promise<number> {
+  const noRender = flagString(args, 'render') === 'false' || flagBoolean(args, 'no-render');
+  const played = await playScenarios(args, root);
+  return reportPlay('record', args, played, root, undefined, noRender);
+}
+
+/** An mp4, and nothing else. */
+export async function videoCommand(args: Args, root = process.cwd()): Promise<number> {
+  const played = await playScenarios(args, root);
+  return reportPlay('video', args, played, root, { formats: ['mp4'] }, false);
+}
+
+/**
+ * A gif. Reuses the last recording when one is already there, so `video` then `gif` does not play
+ * the click path twice.
+ */
+export async function gifCommand(args: Args, root = process.cwd()): Promise<number> {
+  const { config } = await loadConfig(root);
+  const existing = findRecordings(path.join(root, config.output, 'raw'));
+  const opts = { formats: ['gif'] as VideoFormat[], captions: false };
+
+  if (existing.length === 0 || args.positional[0] !== undefined) {
+    const played = await playScenarios(args, root);
+    return reportPlay('gif', args, played, root, opts, false);
+  }
+
+  const json = flagBoolean(args, 'json');
+  if (json) {
+    const rendered = await runRender(root, opts);
+    emitJson(jsonReport('gif', rendered.ok, rendered.problems, { rendered: rendered.payload }));
+    return rendered.payload.recordings.length === 0 ? 1 : 0;
+  }
+
+  return renderCommand(root, false, opts);
 }

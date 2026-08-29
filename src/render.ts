@@ -41,6 +41,13 @@ export interface RenderResult {
   missingFfmpeg: boolean;
 }
 
+export interface RenderOptions {
+  /** Override `config.video.formats` for this run, so `demotale gif` does not also write an mp4. */
+  formats?: VideoFormat[];
+  /** Write vtt/transcript. Default: yes when an mp4 is being produced. */
+  captions?: boolean;
+}
+
 /** Every directory under the raw output that holds a webm, newest first. */
 export function findRecordings(rawDir: string): Recording[] {
   if (!fs.existsSync(rawDir)) return [];
@@ -148,9 +155,15 @@ export function uniqueNames(recordings: readonly Recording[]): string[] {
 /**
  * Renders every recording found under `<output>/raw`.
  */
-export function render(config: ResolvedConfig, rootDir = process.cwd()): RenderResult {
+export function render(
+  config: ResolvedConfig,
+  rootDir = process.cwd(),
+  options: RenderOptions = {},
+): RenderResult {
   const outputDir = path.resolve(rootDir, config.output);
   const recordings = findRecordings(path.join(outputDir, 'raw'));
+  const formats = options.formats ?? config.video.formats;
+  const captions = options.captions ?? formats.includes('mp4');
 
   if (recordings.length === 0) return { recordings, files: [], missingFfmpeg: false };
   if (!hasFfmpeg()) return { recordings, files: [], missingFfmpeg: true };
@@ -163,13 +176,13 @@ export function render(config: ResolvedConfig, rootDir = process.cwd()): RenderR
   for (const [index, recording] of recordings.entries()) {
     const base = names[index] ?? recording.name;
 
-    for (const format of config.video.formats) {
+    for (const format of formats) {
       const target = path.join(outputDir, `${base}.${format}`);
       RENDERERS[format](recording.webm, target, config);
       files.push({ file: target, bytes: fs.statSync(target).size });
     }
 
-    files.push(...writeCaptions(recording, path.join(outputDir, base), config));
+    if (captions) files.push(...writeCaptions(recording, path.join(outputDir, base), config));
   }
 
   return { recordings, files, missingFfmpeg: false };

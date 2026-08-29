@@ -32,4 +32,16 @@ export default defineConfig({
 
   video: { fps: 30, crf: 23, formats: ['mp4'] },
   captions: { vtt: true, transcript: true },
+
+  // Overlay colours. `base` is "dark" or "light"; `accent` is the badge, cursor and spotlight.
+  theme: {
+    base: 'dark',
+    accent: '#38bdf8',
+  },
+
+  // Docs pictures from `demotale images N`. Numbered files (01-name.png); this folder belongs in git.
+  stills: {
+    dir: './demo/stills',
+    number: true,
+  },
 });

@@ -14,7 +14,7 @@ import { resolve } from 'node:path';
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 
 import { resolveConfig, type DemotaleConfig } from './config.js';
-import type { DemotaleOptions } from './demo.js';
+import type { DemoMode, DemotaleOptions } from './demo.js';
 
 /**
  * Moves a configured webServer to the same port the browser was told to use.
@@ -43,10 +43,10 @@ function webServerOn(
 }
 
 /**
- * A recording insists on a freshly started application, because leftover state is the most common
- * reason a demo lies. A dry run is checking locators, not filming, and restarting an application
- * that takes twenty seconds to boot would cost more than the check itself. So check reuses whatever
- * is already running, and the report says so.
+ * A recording and a stills run insist on a freshly started application, because leftover state is
+ * the most common reason a demo lies. A dry run is checking locators, not filming, and restarting
+ * an application that takes twenty seconds to boot would cost more than the check itself. So check
+ * reuses whatever is already running, and the report says so.
  */
 function reusableFor(
   webServer: NonNullable<DemotaleConfig['webServer']>,
@@ -78,6 +78,27 @@ export interface PlaywrightConfigOptions {
   rootDir?: string;
 }
 
+function runMode(): DemoMode {
+  if (process.env['DEMOTALE_CHECK'] === '1') return 'check';
+  if (process.env['DEMOTALE_IMAGES'] === '1') return 'images';
+  return 'record';
+}
+
+function outputKind(mode: DemoMode): 'check' | 'images' | 'raw' {
+  switch (mode) {
+    case 'check':
+      return 'check';
+    case 'images':
+      return 'images';
+    case 'record':
+      return 'raw';
+    default: {
+      const _never: never = mode;
+      return _never;
+    }
+  }
+}
+
 export function definePlaywrightConfig(
   config: DemotaleConfig = {},
   options: PlaywrightConfigOptions = {},
@@ -87,13 +108,15 @@ export function definePlaywrightConfig(
   const { viewport } = resolved;
 
   /**
-   * The dry run behind `demotale check`. Set by the CLI, never by a user's config file, because it
-   * is a property of this run rather than of this project.
+   * Which kind of run this is. Set by the CLI, never by a user's config file, because it is a
+   * property of this run rather than of this project.
    *
    * Its own `outputDir` is not tidiness. Playwright empties a test's output directory before every
    * run, so a check that shared one with the recorder would delete the video that was there.
    */
-  const check = process.env['DEMOTALE_CHECK'] === '1';
+  const demotaleMode = runMode();
+  const check = demotaleMode === 'check';
+  const filming = demotaleMode === 'record';
 
   /**
    * A session stored earlier by `demotale auth`. Absent is a supported state: everything that films
@@ -103,13 +126,14 @@ export function definePlaywrightConfig(
 
   return defineConfig<DemotaleOptions>({
     testDir: resolve(root, resolved.scenarios),
-    outputDir: resolve(root, resolved.output, check ? 'check' : 'raw'),
+    outputDir: resolve(root, resolved.output, outputKind(demotaleMode)),
     fullyParallel: false,
     workers: 1,
     retries: 0,
     timeout: resolved.timeout,
     // A dry run is supposed to come back in seconds, and an assertion that is going to fail should
-    // not spend twenty of them proving it.
+    // not spend twenty of them proving it. Images wait like a recording: the stills are the docs,
+    // and a locator that would have appeared at six seconds must not fail the promise.
     expect: { timeout: check ? 5_000 : 20_000 },
     reporter: [['list']],
     ...(resolved.webServer ? { webServer: reusableFor(resolved.webServer, check) } : {}),
@@ -120,13 +144,14 @@ export function definePlaywrightConfig(
       viewport,
       // The dry run drops the per-action delay that makes a click watchable. It is the second
       // biggest reason a check is quick, and the second biggest way it differs from the recording.
-      launchOptions: { slowMo: check ? 0 : resolved.slowMo },
+      // Images skip it too: stills are snapshots after the assertion, not a film.
+      launchOptions: { slowMo: filming ? resolved.slowMo : 0 },
       trace: 'off',
       screenshot: 'off',
       ...(existsSync(storageState) ? { storageState } : {}),
       // Read back by the demo fixture, so a scenario never loads the config file itself.
       demotale: resolved,
-      demotaleMode: check ? 'check' : 'record',
+      demotaleMode,
     },
     projects: [
       {
@@ -143,7 +168,9 @@ export function definePlaywrightConfig(
         use: {
           ...devices['Desktop Chrome'],
           viewport,
-          ...(check ? { video: 'off' as const } : { video: { mode: 'on' as const, size: viewport } }),
+          ...(filming
+            ? { video: { mode: 'on' as const, size: viewport } }
+            : { video: 'off' as const }),
         },
       },
     ],

@@ -6,7 +6,24 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { flagBoolean, flagNumber, flagString, parseArgs, parseDuration } from '../src/cli/args.js';
+import { parseImagesCount, shouldWriteStills } from '../src/cli/images.js';
 import { init } from '../src/cli/init.js';
+import { relative } from '../src/cli/ui.js';
+
+describe('relative', () => {
+  it('strips a POSIX root', () => {
+    expect(relative('/tmp/demo/stills/01-home.png', '/tmp')).toBe('demo/stills/01-home.png');
+  });
+
+  it('strips a Windows root whether the separators are slashes or backslashes', () => {
+    expect(relative('C:\\proj\\demo\\stills\\01-home.png', 'C:\\proj')).toBe('demo/stills/01-home.png');
+    expect(relative('C:/proj/demo/stills/01-home.png', 'C:/proj')).toBe('demo/stills/01-home.png');
+  });
+
+  it('does not treat a similarly prefixed path as inside the root', () => {
+    expect(relative('/tmp/demo-other/a.png', '/tmp/demo')).toBe('/tmp/demo-other/a.png');
+  });
+});
 
 describe('parseArgs', () => {
   it('reads a flag with a value', () => {
@@ -68,6 +85,31 @@ describe('parseDuration', () => {
   });
 });
 
+describe('parseImagesCount', () => {
+  it('reads the promise from the first positional', () => {
+    expect(parseImagesCount(['8'])).toEqual({ count: 8, filter: undefined });
+    expect(parseImagesCount(['8', 'demo/tour.demo.ts'])).toEqual({
+      count: 8,
+      filter: 'demo/tour.demo.ts',
+    });
+  });
+
+  it('does not treat a scenario file as a count', () => {
+    expect(parseImagesCount(['demo/tour.demo.ts'])).toEqual({
+      count: undefined,
+      filter: 'demo/tour.demo.ts',
+    });
+  });
+});
+
+describe('shouldWriteStills', () => {
+  it('writes only when the play finished and the promise held', () => {
+    expect(shouldWriteStills(0, { ok: true })).toBe(true);
+    expect(shouldWriteStills(1, { ok: true })).toBe(false);
+    expect(shouldWriteStills(0, { ok: false })).toBe(false);
+  });
+});
+
 describe('init', () => {
   let root = '';
 
@@ -81,19 +123,21 @@ describe('init', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('writes the config, the example scenario and a Playwright config', () => {
-    const { written } = init(root);
-    expect(written).toContain('demotale.config.ts');
-    expect(written).toContain(path.join('demo', 'example.demo.ts'));
-    expect(written).toContain('playwright.config.ts');
+  it('writes theme and stills as visible settings, not as hidden defaults', () => {
+    init(root);
+    const config = fs.readFileSync(path.join(root, 'demotale.config.ts'), 'utf8');
+    expect(config).toContain('theme:');
+    expect(config).toContain("base: 'dark'");
+    expect(config).toContain('stills:');
+    expect(config).toContain("dir: './demo/stills'");
   });
 
-  it('prints doctor then record as the next steps', () => {
+  it('prints doctor then video as the next steps', () => {
     init(root);
     const out = vi.mocked(process.stdout.write).mock.calls.map((call) => String(call[0])).join('');
     expect(out).toContain('demotale.config.ts');
     expect(out).toContain('npx demotale doctor');
-    expect(out).toContain('npx demotale record');
+    expect(out).toContain('npx demotale video');
   });
 
   it('never overwrites what is already there', () => {
@@ -134,6 +178,18 @@ describe('init', () => {
     expect(ignored('demo/output/tour.mp4')).toBe(true);
     expect(ignored('test-results/thing.png')).toBe(true);
     expect(ignored('playwright-report/index.html')).toBe(true);
+
+    let stillsIgnored = true;
+    try {
+      stillsIgnored =
+        execFileSync('git', ['check-ignore', '--no-index', 'demo/stills/01-home.png'], {
+          cwd: root,
+          encoding: 'utf8',
+        }).trim() !== '';
+    } catch {
+      stillsIgnored = false;
+    }
+    expect(stillsIgnored).toBe(false);
   });
 
   // Anyone who ran the broken version has `.auth/    # ...` in their .gitignore, which matches

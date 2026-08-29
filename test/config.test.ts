@@ -72,6 +72,7 @@ describe('resolveConfig', () => {
     expect(config.video.formats).toEqual(['mp4']);
     expect(config.redact).toEqual([]);
     expect(config.theme.captionPosition).toBe('top');
+    expect(config.stills).toEqual({ dir: './demo/stills', number: true });
   });
 
   it('merges partial objects instead of replacing them', () => {
@@ -92,5 +93,12 @@ describe('resolveConfig', () => {
 
   it('validates before it resolves', () => {
     expect(() => resolveConfig({ speed: -2 })).toThrow(DemotaleConfigError);
+  });
+
+  it('takes stills overrides without dropping the numbered default', () => {
+    expect(resolveConfig({ stills: { dir: './docs/media' } }).stills).toEqual({
+      dir: './docs/media',
+      number: true,
+    });
   });
 });

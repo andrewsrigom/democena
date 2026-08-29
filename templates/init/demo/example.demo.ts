@@ -14,6 +14,9 @@ test('A first recording', async ({ page, demo }) => {
     await expect(page).toHaveTitle(/./);
   });
 
+  // Docs pictures: mark the moment after the assertion, then `npx demotale images 1`.
+  // await demo.still('home');
+
   // Point at something real and the recording starts being useful:
   //
   // await demo.step('This number comes from our own cache.', async () => {
