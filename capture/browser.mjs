@@ -58,7 +58,7 @@ export async function captureBrowser(plan, output, options = {}) {
     void browser.close();
   }, plan.timeoutMs ?? 120000);
   const recording = path.join(output, 'capture.webm');
-  let firstFrame, lastFrame;
+  let firstFrame, firstFrameMonotonic, lastFrame;
   try {
     context = await browser.newContext({
       viewport,
@@ -152,6 +152,7 @@ export async function captureBrowser(plan, output, options = {}) {
       size: viewport,
       onFrame: (frame) => {
         firstFrame ??= frame.timestamp;
+        firstFrameMonotonic ??= performance.now();
         lastFrame = frame.timestamp;
         receiveFirst();
       },
@@ -171,7 +172,9 @@ export async function captureBrowser(plan, output, options = {}) {
     } finally {
       clearTimeout(firstTimer);
     }
-    const at = () => Math.max(0, (Date.now() - firstFrame) / 1000);
+    // Wall clocks can jump backwards when WSL or the host resynchronizes time. A monotonic clock
+    // keeps action events ordered while the first presented frame remains the recording origin.
+    const at = () => Math.max(0, (performance.now() - firstFrameMonotonic) / 1000);
     for (const [index, step] of plan.steps.entries()) {
       if (timedOut) throw new Error('Capture timed out.');
       let box;

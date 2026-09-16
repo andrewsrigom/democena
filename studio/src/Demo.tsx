@@ -1,5 +1,6 @@
 import { theme } from './theme';
-import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import democenaLogo from '../public/brand/democena-logo.png';
+import { AbsoluteFill, Img, interpolate, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { Project, Scene } from './model';
 import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { SceneContent } from './scenes';
@@ -26,7 +27,7 @@ export function Demo(project: Project) {
       <SceneLayer scene={scene} project={project} first={i === 0} />
     </Sequence>)}
     <div style={{ position: 'absolute', left: 75, top: 45, display: 'flex', alignItems: 'center', gap: 14 }}>
-      <Img src={staticFile('brand/democena-logo.png')} style={{ width: 244, height: 'auto' }} />
+      <Img src={democenaLogo} style={{ width: 244, height: 'auto' }} />
       <span style={{ marginLeft: 22, paddingLeft: 22, borderLeft: '1px solid #e1e6ed', fontSize: 18, color: theme.muted }}>PRODUCT STORIES, IN MOTION</span>
     </div>
     <div style={{ position: 'absolute', left: 88, right: 88, bottom: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>

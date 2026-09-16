@@ -27,7 +27,7 @@ function Chapter({ scene, accent }: { scene: ChapterScene; accent: string }) {
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 30, stiffness: 90 } });
   return <>
-    <div style={{ position: 'absolute', right: 105, top: 150, color: accent, opacity: .08, fontSize: 620, lineHeight: 1, letterSpacing: -45, fontWeight: 700, transform: `translateX(${(1 - enter) * 100}px)` }}>{scene.number}</div>
+    <div style={{ position: 'absolute', right: 105, top: 150, color: accent, opacity: .16, fontSize: 620, lineHeight: 1, letterSpacing: -45, fontWeight: 700, transform: `translateX(${(1 - enter) * 100}px)` }}>{scene.number}</div>
     <div style={{ position: 'absolute', left: 148, top: 334, width: 1330, transform: `translateY(${(1 - enter) * 30}px)` }}>
       <Eyebrow accent={accent}>{`${scene.number} — ${scene.eyebrow}`}</Eyebrow>
       <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: 92, maxWidth: 1300 }} />
