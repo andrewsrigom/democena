@@ -6,7 +6,7 @@ import { AgentService } from './service.js';
 export function createServer(service: AgentService) {
   const server = new McpServer({ name: 'democena', version: '0.1.0-alpha.1' }, { instructions: guide });
   for (const name of Object.keys(inputs) as Operation[]) {
-    const readOnly = ['capabilities', 'list_projects', 'get_project', 'validate_project', 'get_job', 'read_preview'].includes(name);
+    const readOnly = ['capabilities', 'list_projects', 'list_jobs', 'get_project', 'validate_project', 'get_job', 'read_preview'].includes(name);
     server.registerTool(`democena_${name}`, { description: descriptions[name], inputSchema: inputs[name].shape, annotations: { readOnlyHint: readOnly, destructiveHint: ['save_project', 'import_media', 'use_capture', 'start_capture'].includes(name), idempotentHint: readOnly, openWorldHint: name === 'start_capture' } }, async (args: Record<string, unknown>): Promise<CallToolResult> => {
       try {
         const result = await service.call(name, args);

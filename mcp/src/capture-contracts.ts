@@ -126,6 +126,19 @@ export const capturePlanSchema = z
         path: ['steps'],
         message: 'Assert at least one application outcome.',
       });
+    const changesState = new Set(['click', 'fill', 'select', 'press', 'goto']);
+    let lastChange = -1;
+    let lastExpectation = -1;
+    plan.steps.forEach((step, index) => {
+      if (changesState.has(step.action)) lastChange = index;
+      if (step.action === 'expect') lastExpectation = index;
+    });
+    if (lastChange >= 0 && lastExpectation < lastChange)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['steps'],
+        message: 'Assert an application outcome after the final state-changing action.',
+      });
     const allowed = new Set<string>();
     for (const value of [plan.url, ...(plan.allowedOrigins ?? [])]) {
       try {

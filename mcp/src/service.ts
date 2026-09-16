@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir, readFile, rm, stat } from 'node:fs/promises';
+import { access, copyFile, mkdir, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
@@ -103,6 +103,21 @@ export class AgentService {
     await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); }).catch(async error => { await atomicJson(path.join(dir, 'job.json'), { ...job, status: 'failed', error: String(error) }); throw error; });
     child.unref();
   }
+  async listJobs(projectId?: string, limit = 20) {
+    const entries = await readdir(await this.store.safe('jobs'), { withFileTypes: true });
+    const jobs: Array<Omit<Job, 'capture'>> = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      try {
+        const { capture: _capture, ...job } = await this.getJob(entry.name);
+        if (projectId === undefined || job.projectId === projectId) jobs.push(job);
+      } catch {
+        // Ignore incomplete job directories; get_job remains the diagnostic path for a known ID.
+      }
+    }
+    jobs.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    return { jobs: jobs.slice(0, limit) };
+  }
   async getJob(jobId: string): Promise<Job> {
     const file = await this.store.safe(`jobs/${jobId}/job.json`);
     const job = JSON.parse(await readFile(file, 'utf8').catch((e: NodeJS.ErrnoException) => { if (e.code === 'ENOENT') throw new AgentError('NOT_FOUND', `Job ${jobId} does not exist.`); throw e; })) as Job;
@@ -135,6 +150,7 @@ export class AgentService {
     switch (name) {
       case 'capabilities': inputs.capabilities.parse(value); return capabilities();
       case 'list_projects': inputs.list_projects.parse(value); return this.store.list();
+      case 'list_jobs': { const a = inputs.list_jobs.parse(value); return this.listJobs(a.projectId, a.limit); }
       case 'create_project': { const a = inputs.create_project.parse(value); return this.store.create(a.projectId, a.title, a.accent); }
       case 'get_project': { const a = inputs.get_project.parse(value); return this.store.get(a.projectId); }
       case 'save_project': { const a = inputs.save_project.parse(value); return this.store.save(a.projectId, a.expectedRevision, a.project); }

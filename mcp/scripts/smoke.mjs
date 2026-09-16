@@ -41,7 +41,7 @@ async function inspect(jobId, sceneId) {
 try {
   await connect();
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 12);
+  assert.equal(tools.tools.length, 13);
   assert.equal(tools.tools.find(t => t.name === 'democena_start_capture').annotations.openWorldHint, true);
   await call('capabilities');
   let p = (await call('create_project', { projectId: 'forma-story', title: 'Forma — the spring edit' })).structuredContent;
@@ -50,6 +50,8 @@ try {
   // Real disconnection while the independent worker records the application.
   await client.close();
   await connect();
+  const recovered = (await call('list_jobs', { projectId: p.projectId })).structuredContent.jobs;
+  assert(recovered.some(job => job.jobId === take.jobId));
   const captured = await wait(take.jobId);
   assert.equal(captured.capture.events.length, 15);
   assert.equal(captured.capture.events.filter(e => e.verified).length, 4);
@@ -92,7 +94,7 @@ try {
   const snapshot = JSON.parse(await readFile(path.join(workspace, 'jobs', video.jobId, 'project.json'), 'utf8'));
   assert.equal(snapshot.title, p.project.title);
   assert.equal(video.artifacts.scenes.length, scenes.length);
-  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, snapshotVerified: true, failedCaptureVerified: true, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, artifacts: video.artifacts };
+  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, snapshotVerified: true, failedCaptureVerified: true, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, artifacts: video.artifacts };
   await writeFile(path.join(workspace, 'verification.json'), JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify(result));
 } finally { await client?.close(); await app.close(); }

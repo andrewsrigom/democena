@@ -70,6 +70,22 @@ test('missing jobs and unfinished previews report actionable errors', async t =>
   await assert.rejects(s.getJob('unknown'), { code: 'NOT_FOUND' });
   await assert.rejects(s.call('read_preview', { jobId: '../outside' }));
 });
+test('recent jobs can be recovered and filtered by project', async t => {
+  const s = await fixture(t);
+  for (const job of [
+    { jobId: 'old-job', projectId: 'alpha', revision: 'a'.repeat(64), mode: 'capture', status: 'failed', createdAt: '2026-01-01T00:00:00.000Z', error: 'Expected failure' },
+    { jobId: 'new-job', projectId: 'beta', revision: 'b'.repeat(64), mode: 'preview', status: 'succeeded', createdAt: '2026-01-02T00:00:00.000Z', capture: { private: 'omitted' } },
+  ]) {
+    const dir = path.join(s.store.root, 'jobs', job.jobId);
+    await mkdir(dir);
+    await writeFile(path.join(dir, 'job.json'), JSON.stringify(job));
+  }
+  const all = await s.call('list_jobs', {});
+  assert.deepEqual((all.jobs as any[]).map(job => job.jobId), ['new-job', 'old-job']);
+  assert.equal('capture' in (all.jobs as any[])[0], false);
+  const filtered = await s.call('list_jobs', { projectId: 'alpha', limit: 1 });
+  assert.deepEqual((filtered.jobs as any[]).map(job => job.jobId), ['old-job']);
+});
 test('CLI emits one JSON result and a nonzero exit code for errors', async t => {
   const s = await fixture(t);
   const cli = fileURLToPath(new URL('../src/cli.js', import.meta.url));
@@ -84,7 +100,7 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
   const client = new Client({ name: 'democena-test', version: '1.0.0' });
   t.after(async () => { await client.close(); });
   await client.connect(transport);
-  assert.equal((await client.listTools()).tools.length, 12);
+  assert.equal((await client.listTools()).tools.length, 13);
   assert.equal((await client.listResources()).resources.length, 2);
   assert((await client.readResource({ uri: 'democena://guide' })).contents.length > 0);
   const created = await client.callTool({ name: 'democena_create_project', arguments: { projectId: 'via-mcp', title: 'Agent demo' } });
@@ -125,11 +141,16 @@ test('capture plans require a verified outcome and explicit navigation origins',
     { url: 'not a URL' }, { allowedOrigins: ['not a URL'] }, { url: 'file:///etc/passwd' }, { url: 'https://user:password@example.com' },
     { steps: [{ id: 'wait', action: 'wait', durationMs: 100 }] },
     { steps: [...plan.steps, ...plan.steps] },
+    { steps: [...plan.steps, { id: 'change', action: 'click', target: { testId: 'save' } }] },
     { steps: [...plan.steps, { id: 'away', action: 'goto', url: 'https://other.example' }] },
     { steps: [...plan.steps, { id: 'script', action: 'goto', url: 'javascript:alert(1)' }] },
     { redact: ['body { display:none }'] }, { timeoutMs: 180001 },
   ]) assert.equal(capturePlanSchema.safeParse({ ...plan, ...change }).success, false);
-  assert(capturePlanSchema.safeParse({ ...plan, allowedOrigins: ['https://other.example'], steps: [...plan.steps, { id: 'away', action: 'goto', url: 'https://other.example/path' }] }).success);
+  assert(capturePlanSchema.safeParse({
+    ...plan,
+    allowedOrigins: ['https://other.example'],
+    steps: [...plan.steps, { id: 'away', action: 'goto', url: 'https://other.example/path' }, { id: 'arrived', action: 'expect', target: { testId: 'result' } }],
+  }).success);
 });
 test('capture adoption rejects unfinished jobs and wrong projects without modifying edits', async t => {
   const s = await fixture(t);

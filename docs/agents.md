@@ -54,6 +54,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 | --- | --- |
 | `democena_capabilities` | Discover schemas, all eight scene examples and the authoring workflow. |
 | `democena_list_projects` | List project IDs, titles and current revisions. |
+| `democena_list_jobs` | Recover recent capture and render job IDs after reconnecting. |
 | `democena_create_project` | Create a new text project without overwriting an existing ID. |
 | `democena_get_project` | Read the complete editable manifest, revision, timeline and warnings. |
 | `democena_save_project` | Validate and save the edited manifest with `expectedRevision`. |
@@ -71,7 +72,7 @@ Read-only resources: `democena://guide` and `democena://scenes`. Tool successes 
 
 1. Read capabilities. Explore the application and agree on the outcome the demo must show.
 2. Create a project with an ID such as `catalog-sharing` and a title.
-3. Call `start_capture` with an authorized URL and a plan using real locators and outcome assertions. Poll `get_job`, inspect marker images through `read_preview`, then call `use_capture` with the current project revision. It returns measured event times and focus rectangles, plus viewport and duration from the actual file. Existing recordings can instead be copied to `assets/` and passed to `import_media`.
+3. Call `start_capture` with an authorized URL and a plan using real locators and an outcome assertion after the final state-changing action. Poll `get_job`, inspect marker images through `read_preview`, then call `use_capture` with the current project revision. If the client reconnects, use `list_jobs` to recover the job ID. It returns measured event times and focus rectangles, plus viewport and duration from the actual file. Existing recordings can instead be copied to `assets/` and passed to `import_media`.
 4. Get the project, replace or extend `project.scenes`, then save the full manifest using its `expectedRevision`. The eight examples from capabilities are authoring templates, not evidence of a real application's coordinates or timestamps.
 5. Validate, then start a preview render with the current revision. Poll its job ID at a reasonable interval, for example every 2–5 seconds.
 6. Read and inspect relevant scene previews. Adjust copy, focus and timing based on what is visible. Validation does not prove visual quality or application correctness.
@@ -103,7 +104,7 @@ Start Forma separately with `node examples/basic/serve.mjs`, create a project, t
 }
 ```
 
-Actions: `click`, `fill`, `select` (option label), `press`, `scroll`, `goto`, `wait`, `expect` and `mark`. Targets use `testId`, exact `label`, a supported `role` with exact `name`, or `css`. Plans require unique step IDs and at least one `expect` of text or visibility. `mark` produces a PNG; its ID can be passed as `sceneId` to `read_preview`. Use `capabilities` for all fields and bounds, and `examples/basic/story.mjs` for the complete Forma plan and scene composition.
+Actions: `click`, `fill`, `select` (option label), `press`, `scroll`, `goto`, `wait`, `expect` and `mark`. Targets use `testId`, exact `label`, a supported `role` with exact `name`, or `css`. Plans require unique step IDs and at least one `expect` of text or visibility. A plan that changes application state must also assert an outcome after its final `click`, `fill`, `select`, `press` or `goto`. `mark` produces a PNG; its ID can be passed as `sceneId` to `read_preview`. Use `capabilities` for all fields and bounds, and `examples/basic/story.mjs` for the complete Forma plan and scene composition.
 
 The result includes action `at`/`end` seconds, measured `box` rectangles, verified assertion events, screenshot paths and the recording's clock origin. The clock starts with the first browser-presented screencast frame, but browser sampling and action scheduling still make alignment approximate. Inspect fast interactions in the MP4. A marker verifies what was visible at that point, not the correctness of an entire workflow.
 
@@ -134,7 +135,7 @@ The selected workspace contains `assets/`, `projects/<id>/` and `jobs/<id>/`. Ea
 
 On `REVISION_CONFLICT`, read the project again and reconcile the changes. Do not blindly retry with a fresh revision. `PROJECT_BUSY` indicates another save; retry after reading the latest state. If a process crashed during a save, a `.write-lock` directory can remain: confirm no writer is running before removing that project's lock. Old revisions can be read locally and saved as a new edit; changing media still requires import.
 
-Renders have a 20-minute timeout. Captures default to two minutes and accept a maximum of three. `get_job` reports completed artifacts, rendering failures, and detected worker termination. Jobs and imported media are retained; removing them is an explicit local housekeeping operation. They may contain private application data and should stay outside version control. The repository ignores `.democena-agent/` as a convenient local workspace.
+Renders have a 20-minute timeout. Captures default to two minutes and accept a maximum of three. `list_jobs` returns recent jobs, optionally filtered by project, so a new client can recover their IDs after reconnecting. `get_job` reports completed artifacts, rendering failures, and detected worker termination. Jobs and imported media are retained; removing them is an explicit local housekeeping operation. They may contain private application data and should stay outside version control. The repository ignores `.democena-agent/` as a convenient local workspace.
 
 ## Current boundaries
 

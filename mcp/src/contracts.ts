@@ -23,6 +23,7 @@ const revision = z.string().regex(/^[a-f0-9]{64}$/).describe('Revision returned 
 export const inputs = {
   capabilities: z.strictObject({}),
   list_projects: z.strictObject({}),
+  list_jobs: z.strictObject({ projectId: idSchema.optional(), limit: z.number().int().min(1).max(100).default(20) }),
   create_project: z.strictObject({ projectId: idSchema, title: z.string().min(1), accent: z.string().regex(/^#[\da-f]{6}$/i).default('#215acb') }),
   get_project: z.strictObject({ projectId: idSchema }),
   save_project: z.strictObject({ projectId: idSchema, expectedRevision: revision, project: projectSchema }),
@@ -38,6 +39,7 @@ export type Operation = keyof typeof inputs;
 export const descriptions: Record<Operation, string> = {
   capabilities: 'Discover all eight scene examples, JSON schemas, workflow, coordinate conventions and current limitations.',
   list_projects: 'List saved Democena projects in the configured workspace.',
+  list_jobs: 'List recent capture and render jobs so an agent can recover their IDs after reconnecting.',
   create_project: 'Create a new project with a text opening. Existing projects are never replaced.',
   get_project: 'Read the editable project, revision, timeline and authoring warnings.',
   save_project: 'Validate and atomically save the full edited manifest using optimistic concurrency. Previous revisions are preserved.',
@@ -72,7 +74,7 @@ export function describeProject(value: unknown) {
 }
 export const guide = `Democena agent workflow:
 1. Discover capabilities. Explore the real application before scripting its actions.
-2. Create a project. For app scenes, start_capture with an authorized URL and an assertion-based plan, poll get_job, inspect mark images with read_preview, then use_capture. You may also import_media from the workspace. Never invent screenshots, outcomes, focus coordinates, or source timestamps.
+2. Create a project. For app scenes, start_capture with an authorized URL and a plan that asserts the outcome after its final state-changing action, poll get_job, inspect mark images with read_preview, then use_capture. Use list_jobs to recover a job ID after reconnecting. You may also import_media from the workspace. Never invent screenshots, outcomes, focus coordinates, or source timestamps.
 3. get_project, edit the manifest, and save_project with the returned expectedRevision. On REVISION_CONFLICT, read again and reconcile the changes; do not blindly retry with the new revision.
 4. Source timestamps and focus/note coordinates are in the recording's viewport. Presentation durations and transitions use a separate 30fps clock. Annotations freeze the recording. Camera path times are scene-local.
 5. validate_project, start_render in preview mode, poll get_job, then read_preview for visual inspection. Fix clipping, unreadable copy and inaccurate focus before rendering video.
