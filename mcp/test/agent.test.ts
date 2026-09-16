@@ -12,6 +12,7 @@ import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
 import { capturePlanSchema } from '../src/capture-contracts.js';
 import { capabilities, validate } from '../src/contracts.js';
+import { example } from '../../studio/src/model.js';
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
   const root = await mkdtemp(path.join(tmpdir(), 'democena-agent-'));
@@ -19,6 +20,7 @@ async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
   return new AgentService(await Workspace.open(root));
 }
 test('all eight discoverable examples pass the shared Studio validator', () => {
+  assert.equal(example.branding, undefined);
   const scenes = capabilities().examples.map((s, i) => ({ ...s, id: `scene-${i}` }));
   assert.equal(scenes.length, 8);
   assert.equal(validate({ version: 2, title: 'Demo', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes }).scenes.length, 8);
@@ -26,6 +28,7 @@ test('all eight discoverable examples pass the shared Studio validator', () => {
 test('create, read, save and list preserve revisions and reject stale writes', async t => {
   const s = await fixture(t);
   const created = await s.store.create('demo', 'First', '#215acb');
+  assert.equal(created.project.branding, undefined);
   await assert.rejects(s.store.create('demo', 'Other', '#215acb'), { code: 'ALREADY_EXISTS' });
   const changed = { ...created.project, title: 'Edited' };
   const saved = await s.store.save('demo', created.revision, changed);
@@ -100,7 +103,7 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
   const client = new Client({ name: 'democena-test', version: '1.0.0' });
   t.after(async () => { await client.close(); });
   await client.connect(transport);
-  assert.equal((await client.listTools()).tools.length, 13);
+  assert.equal((await client.listTools()).tools.length, 14);
   assert.equal((await client.listResources()).resources.length, 2);
   assert((await client.readResource({ uri: 'democena://guide' })).contents.length > 0);
   const created = await client.callTool({ name: 'democena_create_project', arguments: { projectId: 'via-mcp', title: 'Agent demo' } });
@@ -122,6 +125,20 @@ test('malformed recordings are rejected without changing project or keeping copi
   await assert.rejects(s.importMedia('demo', p.revision, 'assets/broken.mp4'), { code: 'MEDIA_PROBE_FAILED' });
   assert.equal((await s.store.get('demo')).revision, p.revision);
   assert.deepEqual(await readdir(path.join(s.store.root, 'projects/demo/public/captures')), []);
+});
+test('branding text is editable while logos require a validated import', async t => {
+  const s = await fixture(t);
+  const p = await s.store.create('demo', 'Catalog story', '#215acb', { name: 'CatalogForge', tagline: 'CATALOGS, READY TO SHARE' });
+  assert.equal(p.project.branding?.name, 'CatalogForge');
+  await assert.rejects(s.store.save('demo', p.revision, { ...p.project, branding: { ...p.project.branding, logo: 'branding/manual.png' } }), { code: 'BRAND_CHANGE_REQUIRES_IMPORT' });
+  await writeFile(path.join(s.store.root, 'assets/logo.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6nWQAAAAASUVORK5CYII=', 'base64'));
+  const branded = await s.importBrandLogo('demo', p.revision, 'assets/logo.png');
+  assert.match(branded.project.branding?.logo ?? '', /^branding\/[a-f0-9-]+\.png$/);
+  assert.equal((await readFile(path.join(s.store.root, 'projects/demo/public', branded.project.branding!.logo!))).subarray(1, 4).toString(), 'PNG');
+  const hidden = await s.store.save('demo', branded.revision, { ...branded.project, branding: { name: 'CatalogForge' } });
+  assert.equal(hidden.project.branding?.logo, undefined);
+  await writeFile(path.join(s.store.root, 'assets/fake.png'), 'not an image');
+  await assert.rejects(s.importBrandLogo('demo', hidden.revision, 'assets/fake.png'), { code: 'INVALID_BRAND_ASSET' });
 });
 
 test('invalid creation leaves no broken project and queued previews report not ready', async t => {

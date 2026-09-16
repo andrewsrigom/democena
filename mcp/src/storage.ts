@@ -44,8 +44,8 @@ export class Workspace {
     }
     return { projects: result };
   }
-  async create(id: string, title: string, accent: string) {
-    const project = validate({ version: 2, title, accent, video: '', sourceDuration: 0, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [{ id: 'opening', type: 'text', duration: 5, eyebrow: '', title, body: '', reveal: 'words' }] });
+  async create(id: string, title: string, accent: string, branding?: { name?: string; tagline?: string; footer?: string }) {
+    const project = validate({ version: 2, title, accent, ...(branding ? { branding } : {}), video: '', sourceDuration: 0, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [{ id: 'opening', type: 'text', duration: 5, eyebrow: '', title, body: '', reveal: 'words' }] });
     const dir = await this.projectDir(id);
     await mkdir(dir).catch((e: NodeJS.ErrnoException) => { if (e.code === 'EEXIST') throw new AgentError('ALREADY_EXISTS', `Project ${id} already exists. Choose another ID.`); throw e; });
     await mkdir(path.join(dir, 'public'));
@@ -62,6 +62,7 @@ export class Workspace {
       const current = await this.get(id);
       if (current.revision !== expectedRevision) throw new AgentError('REVISION_CONFLICT', 'The project has changed. Read it again and reconcile your edits.');
       if (project.video !== current.project.video || project.sourceDuration !== current.project.sourceDuration || JSON.stringify(project.viewport) !== JSON.stringify(current.project.viewport)) throw new AgentError('MEDIA_CHANGE_REQUIRES_IMPORT', 'Use import_media to change video, duration or viewport.');
+      if (project.branding?.logo && project.branding.logo !== current.project.branding?.logo) throw new AgentError('BRAND_CHANGE_REQUIRES_IMPORT', 'Use import_brand_logo to add or replace a logo. Remove the logo field to hide an imported logo.');
       await this.commit(id, current.revision, current.project, project);
       return await this.get(id);
     } finally { await rm(lock, { recursive: true, force: true }); }

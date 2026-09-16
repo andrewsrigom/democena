@@ -35,7 +35,7 @@ npm run studio:render
 npm run studio:dev
 ```
 
-Capture produces a clean browser video plus an editable scene manifest. Render creates `studio/output/democena.mp4`. Studio previews the same composition. Change the text, accent and focus points in `studio/project.json`, then render again without replaying the application.
+Capture produces a clean browser video plus an editable scene manifest. Render creates `studio/output/democena.mp4`. Studio previews the same composition. Change the text, accent, project branding and focus points in `studio/project.json`, then render again without replaying the application. Generated projects have no Democena watermark; add a name, tagline, footer or imported logo only when the demo needs them.
 
 Each scene has its own duration and transition. Freeze the recording for an explanation, move between real elements, or compare two recorded states. `npm run studio:preview` exports a still of every scene.
 

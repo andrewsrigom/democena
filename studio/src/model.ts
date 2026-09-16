@@ -26,10 +26,12 @@ export type ResultScene = BaseScene & {
 };
 export type OutroScene = BaseScene & TextOptions & { type: 'outro'; cta?: string };
 export type Scene = TextScene | ChapterScene | OverviewScene | FocusScene | CameraScene | AnnotationScene | ResultScene | OutroScene;
+export type Branding = { logo?: string; name?: string; tagline?: string; footer?: string };
 export type Project = {
   version: 2;
   title: string;
   accent: string;
+  branding?: Branding;
   video: string;
   sourceDuration: number;
   trimBefore: number;

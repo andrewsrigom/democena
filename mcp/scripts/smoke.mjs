@@ -41,10 +41,13 @@ async function inspect(jobId, sceneId) {
 try {
   await connect();
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 13);
+  assert.equal(tools.tools.length, 14);
   assert.equal(tools.tools.find(t => t.name === 'democena_start_capture').annotations.openWorldHint, true);
   await call('capabilities');
-  let p = (await call('create_project', { projectId: 'forma-story', title: 'Forma — the spring edit' })).structuredContent;
+  let p = (await call('create_project', { projectId: 'forma-story', title: 'Forma — the spring edit', branding: { name: 'Forma', tagline: 'COLLECTIONS, IN MOTION', footer: 'YOUR COLLECTION, READY TO SHARE' } })).structuredContent;
+  await writeFile(path.join(workspace, 'assets/forma-logo.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6nWQAAAAASUVORK5CYII=', 'base64'));
+  p = (await call('import_brand_logo', { projectId: p.projectId, expectedRevision: p.revision, source: 'assets/forma-logo.png' })).structuredContent;
+  assert.match(p.project.branding.logo, /^branding\/[a-f0-9-]+\.png$/);
   const initial = p;
   const take = (await call('start_capture', { projectId: p.projectId, expectedRevision: p.revision, plan: formaPlan(app.url) })).structuredContent;
   // Real disconnection while the independent worker records the application.
@@ -94,7 +97,7 @@ try {
   const snapshot = JSON.parse(await readFile(path.join(workspace, 'jobs', video.jobId, 'project.json'), 'utf8'));
   assert.equal(snapshot.title, p.project.title);
   assert.equal(video.artifacts.scenes.length, scenes.length);
-  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, snapshotVerified: true, failedCaptureVerified: true, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, artifacts: video.artifacts };
+  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, brandingVerified: true, snapshotVerified: true, failedCaptureVerified: true, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, artifacts: video.artifacts };
   await writeFile(path.join(workspace, 'verification.json'), JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify(result));
 } finally { await client?.close(); await app.close(); }

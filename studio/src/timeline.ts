@@ -44,6 +44,16 @@ export function prepareProject(value: unknown, fps = FPS): Project {
   requireValue(p.version === 2, 'unsupported version (expected 2)');
   requireValue(text(p.title) && text(p.video) && /^#[0-9a-f]{6}$/i.test(String(p.accent)), 'title, video and a six-digit accent color are required');
   requireValue(!p.video.startsWith('/') && !p.video.includes('\\') && !p.video.includes(':') && !p.video.split('/').includes('..'), 'video must be a relative path inside public');
+  if (p.branding !== undefined) {
+    requireValue(record(p.branding), 'branding must be an object');
+    const limits = { name: 80, tagline: 120, footer: 160 } as const;
+    for (const [key, limit] of Object.entries(limits)) {
+      const value = p.branding[key];
+      requireValue(value === undefined || (text(value) && value.length > 0 && value.length <= limit), `branding.${key} must contain 1-${limit} characters`);
+    }
+    const logo = p.branding.logo;
+    requireValue(logo === undefined || (text(logo) && /^(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.(?:png|jpe?g|webp)$/i.test(logo)), 'branding.logo must be a relative PNG, JPEG or WebP path inside public');
+  }
   requireValue(finite(p.sourceDuration) && p.sourceDuration >= 0 && finite(p.trimBefore) && p.trimBefore >= 0 && p.trimBefore <= p.sourceDuration, 'invalid sourceDuration or trimBefore');
   requireValue(record(p.viewport) && finite(p.viewport.width) && p.viewport.width > 0 && finite(p.viewport.height) && p.viewport.height > 0, 'viewport must be positive');
   requireValue(Array.isArray(p.scenes) && p.scenes.length > 0, 'scenes must not be empty');

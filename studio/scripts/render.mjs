@@ -17,6 +17,12 @@ const inputProps = JSON.parse(await readFile(path.resolve(values.project), 'utf8
 assert(typeof inputProps.video === 'string', 'video is required');
 const media = path.resolve(publicDir, inputProps.video);
 assert(!inputProps.video || media.startsWith(publicDir + path.sep), 'video must be inside the public directory');
+const logo = inputProps.branding?.logo;
+if (logo) {
+  const brandAsset = path.resolve(publicDir, logo);
+  assert(brandAsset.startsWith(publicDir + path.sep), 'branding logo must be inside the public directory');
+  await access(brandAsset);
+}
 const needsVideo = Array.isArray(inputProps.scenes) && inputProps.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type));
 if (needsVideo) {
   await access(media);

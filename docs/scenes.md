@@ -9,6 +9,11 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
   "version": 2,
   "title": "Forma",
   "accent": "#215acb",
+  "branding": {
+    "name": "Forma",
+    "tagline": "COLLECTIONS, IN MOTION",
+    "footer": "YOUR COLLECTION, READY TO SHARE"
+  },
   "video": "captures/forma-take.webm",
   "sourceDuration": 20,
   "trimBefore": 0.5,
@@ -17,7 +22,7 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
 }
 ```
 
-This skeleton needs at least one scene. Example coordinates and times below illustrate the schema; use the generated Forma project or measured events from your own take for an actual recording. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
+This skeleton needs at least one scene. Example coordinates and times below illustrate the schema; use the generated Forma project or measured events from your own take for an actual recording. `branding` is optional. Omit it for no header brand or footer slogan; `name`, `tagline` and `footer` are independently optional. `branding.logo` can reference a PNG, JPEG or WebP inside `studio/public`. MCP projects use `import_brand_logo` so the asset is validated, revision-protected and copied into isolated render jobs. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
 
 There are two independent clocks:
 

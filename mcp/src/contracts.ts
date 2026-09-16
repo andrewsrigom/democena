@@ -5,6 +5,12 @@ import { prepareProject, buildTimeline, FPS } from '../../studio/src/timeline.js
 const rect = z.strictObject({ x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive(), height: z.number().positive() });
 const source = z.strictObject({ from: z.number().nonnegative().describe('Seconds in the recording after trimBefore; independent of presentation time.'), freeze: z.boolean().optional() });
 const transition = z.strictObject({ type: z.enum(['fade', 'slide', 'none']), duration: z.number().nonnegative() });
+const brandingSchema = z.strictObject({
+  logo: z.string().regex(/^(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.(?:png|jpe?g|webp)$/i).optional(),
+  name: z.string().min(1).max(80).optional(),
+  tagline: z.string().min(1).max(120).optional(),
+  footer: z.string().min(1).max(160).optional(),
+});
 const base = { id: z.string().min(1), duration: z.number().positive().max(600), eyebrow: z.string(), title: z.string(), body: z.string(), transition: transition.optional() };
 const text = { reveal: z.enum(['words', 'lines']).optional(), highlight: z.string().optional() };
 export const sceneSchema = z.discriminatedUnion('type', [
@@ -17,17 +23,18 @@ export const sceneSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...base, type: z.literal('result'), source, focus: rect.optional(), comparison: z.strictObject({ before: z.number().nonnegative(), after: z.number().nonnegative(), crop: rect, beforeLabel: z.string(), afterLabel: z.string() }).optional() }),
   z.strictObject({ ...base, ...text, type: z.literal('outro'), cta: z.string().optional() }),
 ]);
-export const projectSchema = z.strictObject({ version: z.literal(2), title: z.string(), accent: z.string().regex(/^#[\da-f]{6}$/i), video: z.string(), sourceDuration: z.number().nonnegative(), trimBefore: z.number().nonnegative(), viewport: z.strictObject({ width: z.number().int().positive(), height: z.number().int().positive() }), scenes: z.array(sceneSchema).min(1).max(100) });
+export const projectSchema = z.strictObject({ version: z.literal(2), title: z.string(), accent: z.string().regex(/^#[\da-f]{6}$/i), branding: brandingSchema.optional(), video: z.string(), sourceDuration: z.number().nonnegative(), trimBefore: z.number().nonnegative(), viewport: z.strictObject({ width: z.number().int().positive(), height: z.number().int().positive() }), scenes: z.array(sceneSchema).min(1).max(100) });
 export const idSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/).describe('Workspace-local identifier, never a path.');
 const revision = z.string().regex(/^[a-f0-9]{64}$/).describe('Revision returned by get/create/save; prevents overwriting another edit.');
 export const inputs = {
   capabilities: z.strictObject({}),
   list_projects: z.strictObject({}),
   list_jobs: z.strictObject({ projectId: idSchema.optional(), limit: z.number().int().min(1).max(100).default(20) }),
-  create_project: z.strictObject({ projectId: idSchema, title: z.string().min(1), accent: z.string().regex(/^#[\da-f]{6}$/i).default('#215acb') }),
+  create_project: z.strictObject({ projectId: idSchema, title: z.string().min(1), accent: z.string().regex(/^#[\da-f]{6}$/i).default('#215acb'), branding: brandingSchema.omit({ logo: true }).optional() }),
   get_project: z.strictObject({ projectId: idSchema }),
   save_project: z.strictObject({ projectId: idSchema, expectedRevision: revision, project: projectSchema }),
   import_media: z.strictObject({ projectId: idSchema, expectedRevision: revision, source: z.string().min(1).describe('Existing video path relative to the configured workspace. No URLs or paths outside it.') }),
+  import_brand_logo: z.strictObject({ projectId: idSchema, expectedRevision: revision, source: z.string().min(1).describe('Existing PNG, JPEG or WebP path relative to the configured workspace. No URLs or paths outside it.') }),
   start_capture: z.strictObject({ projectId: idSchema, expectedRevision: revision, plan: capturePlanSchema }),
   use_capture: z.strictObject({ projectId: idSchema, expectedRevision: revision, jobId: idSchema }),
   validate_project: z.strictObject({ projectId: idSchema }),
@@ -44,6 +51,7 @@ export const descriptions: Record<Operation, string> = {
   get_project: 'Read the editable project, revision, timeline and authoring warnings.',
   save_project: 'Validate and atomically save the full edited manifest using optimistic concurrency. Previous revisions are preserved.',
   import_media: 'Probe and copy an existing local recording into a project, deriving duration and viewport from real media. Does not record a browser.',
+  import_brand_logo: 'Validate and copy a workspace-local PNG, JPEG or WebP logo into the project, then update branding with revision protection.',
   start_capture: 'Record an authorized HTTP(S) application with declarative browser actions, assertions and markers. May change application data. Returns a background capture job; poll get_job.',
   use_capture: 'Attach a successful capture to its project with revision protection. Returns real event timestamps, focus rectangles and the updated manifest; does not replace edited scenes.',
   validate_project: 'Validate scene timing, focus bounds and the actual imported recording before rendering. Returns actionable warnings.',
@@ -74,7 +82,7 @@ export function describeProject(value: unknown) {
 }
 export const guide = `Democena agent workflow:
 1. Discover capabilities. Explore the real application before scripting its actions.
-2. Create a project. For app scenes, start_capture with an authorized URL and a plan that asserts the outcome after its final state-changing action, poll get_job, inspect mark images with read_preview, then use_capture. Use list_jobs to recover a job ID after reconnecting. You may also import_media from the workspace. Never invent screenshots, outcomes, focus coordinates, or source timestamps.
+2. Create a project with optional branding text. Projects have no Democena watermark by default. Use import_brand_logo for a workspace-local logo. For app scenes, start_capture with an authorized URL and a plan that asserts the outcome after its final state-changing action, poll get_job, inspect mark images with read_preview, then use_capture. Use list_jobs to recover a job ID after reconnecting. You may also import_media from the workspace. Never invent screenshots, outcomes, focus coordinates, or source timestamps.
 3. get_project, edit the manifest, and save_project with the returned expectedRevision. On REVISION_CONFLICT, read again and reconcile the changes; do not blindly retry with the new revision.
 4. Source timestamps and focus/note coordinates are in the recording's viewport. Presentation durations and transitions use a separate 30fps clock. Annotations freeze the recording. Camera path times are scene-local.
 5. validate_project, start_render in preview mode, poll get_job, then read_preview for visual inspection. Fix clipping, unreadable copy and inaccurate focus before rendering video.

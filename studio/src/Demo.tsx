@@ -1,11 +1,20 @@
 import { theme } from './theme';
-import democenaLogo from '../public/brand/democena-logo.png';
-import { AbsoluteFill, Img, interpolate, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { Project, Scene } from './model';
 import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { SceneContent } from './scenes';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
+function BrandHeader({ project }: { project: Project }) {
+  const brand = project.branding;
+  if (!brand || (!brand.logo && !brand.name && !brand.tagline)) return null;
+  const hasIdentity = Boolean(brand.logo || brand.name);
+  return <div style={{ position: 'absolute', left: 75, top: 45, display: 'flex', alignItems: 'center', gap: 18, height: 56 }}>
+    {brand.logo ? <Img src={staticFile(brand.logo)} style={{ maxWidth: 244, maxHeight: 56, width: 'auto', height: 'auto', objectFit: 'contain' }} /> : null}
+    {brand.name ? <span style={{ fontSize: 30, lineHeight: 1, fontWeight: 760, letterSpacing: '-0.04em', color: theme.foreground }}>{brand.name}</span> : null}
+    {brand.tagline ? <span style={{ marginLeft: hasIdentity ? 4 : 0, paddingLeft: hasIdentity ? 22 : 0, borderLeft: hasIdentity ? '1px solid #e1e6ed' : undefined, fontSize: 18, color: theme.muted }}>{brand.tagline}</span> : null}
+  </div>;
+}
 function SceneLayer({ scene, project, first }: { scene: Scene; project: Project; first: boolean }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -26,12 +35,9 @@ export function Demo(project: Project) {
     {timeline.map(({ scene, from, duration }, i) => <Sequence key={scene.id} name={`${String(i + 1).padStart(2, '0')} · ${scene.type} · ${scene.title.replaceAll('\n', ' ')}`} from={from} durationInFrames={duration}>
       <SceneLayer scene={scene} project={project} first={i === 0} />
     </Sequence>)}
-    <div style={{ position: 'absolute', left: 75, top: 45, display: 'flex', alignItems: 'center', gap: 14 }}>
-      <Img src={democenaLogo} style={{ width: 244, height: 'auto' }} />
-      <span style={{ marginLeft: 22, paddingLeft: 22, borderLeft: '1px solid #e1e6ed', fontSize: 18, color: theme.muted }}>PRODUCT STORIES, IN MOTION</span>
-    </div>
+    <BrandHeader project={project} />
     <div style={{ position: 'absolute', left: 88, right: 88, bottom: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>
-      <span>{project.title} &nbsp; / &nbsp; A LITTLE CLARITY GOES A LONG WAY</span>
+      <span>{project.title}{project.branding?.footer ? <> &nbsp; / &nbsp; {project.branding.footer}</> : null}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
         <div style={{ display: 'flex', gap: 7 }}>{timeline.map(({ scene }, i) => <span key={scene.id} style={{ width: index === i ? 30 : 8, height: 4, borderRadius: 4, background: index === i ? project.accent : theme.border }} />)}</div>
         <span>{String(index + 1).padStart(2, '0')} / {String(project.scenes.length).padStart(2, '0')}</span>

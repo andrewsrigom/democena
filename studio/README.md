@@ -1,6 +1,6 @@
 # Democena · motion studio
 
-An optional presentation layer for silent product demos. Playwright records the bundled original Forma collection application; Remotion turns an editable scene manifest into a video. No account, AI model, voice or external service is involved.
+An optional presentation layer for silent product demos. Playwright records the bundled original Forma collection application; Remotion turns an editable scene manifest into a video. Project branding is optional and supports a name, tagline, footer and local logo. No Democena watermark is added to generated projects. No account, AI model, voice or external service is involved.
 
 From the repository root, install and build the core first, then:
 
@@ -44,7 +44,7 @@ Generated projects, recordings and renders remain ignored by Git. The bundled ex
 
 ## Agent render inputs
 
-The MCP service calls the same renderer with isolated inputs and outputs:
+The MCP service calls the same renderer with isolated inputs and outputs. It snapshots the recording and any imported brand logo into the render job:
 
 ```bash
 node scripts/render.mjs --project /absolute/project.json --public-dir /absolute/media --output /absolute/render-job --still

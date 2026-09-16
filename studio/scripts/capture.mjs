@@ -33,6 +33,11 @@ try {
     version: 2,
     title: 'Forma — The spring edit',
     accent: '#215acb',
+    branding: {
+      name: 'Forma',
+      tagline: 'COLLECTIONS, IN MOTION',
+      footer: 'YOUR COLLECTION, READY TO SHARE',
+    },
     video,
     sourceDuration,
     trimBefore: 0,
