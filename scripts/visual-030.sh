@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Builds demotale, then runs the 0.3.0 visual review example end to end.
+# Modified for Democena (2026): independent fork naming and configuration.
+# Builds democena, then runs the 0.3.0 visual review example end to end.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,19 +17,19 @@ echo "visual-030: cleaning previous outputs…"
 rm -rf "$EXAMPLE/output" "$EXAMPLE/stills"
 
 echo ""
-echo "=== demotale video (mp4 only) ==="
+echo "=== democena video (mp4 only) ==="
 (cd "$EXAMPLE" && $CLI video)
 
 echo ""
-echo "=== demotale gif (reuses raw; gif only) ==="
+echo "=== democena gif (reuses raw; gif only) ==="
 (cd "$EXAMPLE" && $CLI gif)
 
 echo ""
-echo "=== demotale images 3 (docs stills) ==="
+echo "=== democena images 3 (docs stills) ==="
 (cd "$EXAMPLE" && $CLI images 3)
 
 echo ""
-echo "=== demotale check (frames for caption flip) ==="
+echo "=== democena check (frames for caption flip) ==="
 (cd "$EXAMPLE" && $CLI check)
 
 echo ""

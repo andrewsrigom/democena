@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * Two recordings into one video.
  *
@@ -19,12 +20,12 @@ export interface JoinResult {
 
 export function join(first: string, second: string, target: string): JoinResult {
   for (const part of [first, second]) {
-    if (!fs.existsSync(part)) throw new Error(`demotale: no such recording: ${part}`);
+    if (!fs.existsSync(part)) throw new Error(`democena: no such recording: ${part}`);
   }
 
   // The concat demuxer reads a file of paths and resolves them relative to itself, so they go in
   // absolute or it silently looks in the temp directory.
-  const listDir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-join-'));
+  const listDir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-join-'));
   const listFile = path.join(listDir, 'parts.txt');
   fs.writeFileSync(
     listFile,
@@ -48,7 +49,7 @@ export function join(first: string, second: string, target: string): JoinResult 
         target,
       ]);
     } catch (error) {
-      throw new Error(`demotale: joining failed. ${(error as Error).message}`);
+      throw new Error(`democena: joining failed. ${(error as Error).message}`);
     }
   } finally {
     fs.rmSync(listDir, { recursive: true, force: true });

@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -72,7 +73,7 @@ describe('findRecordings', () => {
   let raw = '';
 
   beforeEach(() => {
-    raw = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-test-'));
+    raw = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-test-'));
   });
 
   afterEach(() => {

@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * Subtitles and a transcript, for free.
  *
@@ -99,7 +100,7 @@ export function toTranscript(meta: DemoMeta): string {
     '',
     `Recorded ${meta.recordedAt.slice(0, 10)} · ${shortStamp(meta.durationMs)} · ${String(seconds)} seconds`,
     '',
-    '<!-- Written by demotale from the scenario. Re-recording the demo rewrites this file. -->',
+    '<!-- Written by democena from the scenario. Re-recording the demo rewrites this file. -->',
     '',
   ];
 

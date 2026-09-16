@@ -1,11 +1,13 @@
-# demotale
+Modified for Democena (2026), an independent Demotale fork. The local package is not published to npm; build the checkout first.
+
+# democena
 
 > Product demos that don't go stale. Write the walkthrough once. Ship a video, a gif, or pictures
 > for the docs. CI films it again when the UI changes. Playwright walks the clicks, text on screen
 > explains each step. Fully local, no account, no upload.
 
-demotale is an npm CLI (`@pesuto/demotale`). A scenario is a Playwright test in `demo/*.demo.ts`.
- Agents should run `npx demotale agent-guide` after install and follow that page — not invent steps
+democena is an npm CLI (`democena`). A scenario is a Playwright test in `demo/*.demo.ts`.
+ Agents should run `npx democena agent-guide` after install and follow that page — not invent steps
  from memory.
 
 ## When to use
@@ -20,29 +22,29 @@ demotale is an npm CLI (`@pesuto/demotale`). A scenario is a Playwright test in 
 ## Install
 
 ```bash
-npm i -D @pesuto/demotale
-npx demotale init
+npm i -D /absolute/path/to/democena
+npx democena init
 ```
 
 Requires Node >= 22.12. Chromium comes with the package. Put ffmpeg on PATH, or
-`npm i -D ffmpeg-static`. If Chromium is missing: `npx demotale setup`. Diagnose with
-`npx demotale doctor` (installs nothing itself).
+`npm i -D ffmpeg-static`. If Chromium is missing: `npx democena setup`. Diagnose with
+`npx democena doctor` (installs nothing itself).
 
 ## Agent loop
 
-1. `npx demotale doctor --json`
-2. Point `demotale.config.ts` at the real app
+1. `npx democena doctor --json`
+2. Point `democena.config.ts` at the real app
 3. Write `demo/<thing>.demo.ts`
-4. `npx demotale check --json` — open the PNG frames
-5. `npx demotale video` (mp4), `gif`, or `images N` — ask for the artefact you need
-   `npx demotale record` is what CI runs: one play, whatever the config lists
+4. `npx democena check --json` — open the PNG frames
+5. `npx democena video` (mp4), `gif`, or `images N` — ask for the artefact you need
+   `npx democena record` is what CI runs: one play, whatever the config lists
 
 ## Docs
 
-- [README](https://github.com/pesuto-dev/demotale/blob/main/README.md)
-- [AGENTS.md](https://github.com/pesuto-dev/demotale/blob/main/AGENTS.md) — when/how for agents
-- [Getting started](https://github.com/pesuto-dev/demotale/blob/main/docs/getting-started.md)
-- [Writing a scenario](https://github.com/pesuto-dev/demotale/blob/main/docs/writing-a-scenario.md)
-- [Recipes](https://github.com/pesuto-dev/demotale/blob/main/docs/recipes.md)
-- [Traps](https://github.com/pesuto-dev/demotale/blob/main/docs/traps.md)
-- After install: `npx demotale agent-guide` (version-matched instructions)
+- [README](https://github.com/andrewsrigom/democena/blob/main/README.md)
+- [AGENTS.md](https://github.com/andrewsrigom/democena/blob/main/AGENTS.md) — when/how for agents
+- [Getting started](https://github.com/andrewsrigom/democena/blob/main/docs/getting-started.md)
+- [Writing a scenario](https://github.com/andrewsrigom/democena/blob/main/docs/writing-a-scenario.md)
+- [Recipes](https://github.com/andrewsrigom/democena/blob/main/docs/recipes.md)
+- [Traps](https://github.com/andrewsrigom/democena/blob/main/docs/traps.md)
+- After install: `npx democena agent-guide` (version-matched instructions)

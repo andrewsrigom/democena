@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { chromium } from 'playwright';
+
+const html = await readFile(new URL('../fixture/index.html', import.meta.url));
+const server = createServer((_req, res) => { res.setHeader('Content-Type', 'text/html'); res.end(html); });
+await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+await mkdir('public/captures', { recursive: true });
+let browser;
+try {
+  browser = await chromium.launch();
+  const viewport = { width: 1280, height: 800 };
+  const context = await browser.newContext({ viewport, recordVideo: { dir: 'public/captures', size: viewport } });
+  const start = performance.now();
+  const page = await context.newPage();
+  const video = page.video();
+  const elapsed = () => (performance.now() - start) / 1000;
+  await page.goto(`http://127.0.0.1:${server.address().port}`);
+  await page.getByRole('button', { name: 'Track', exact: true }).waitFor();
+  const captureStart = elapsed();
+  const scenes = [{ at: 0, eyebrow: '01 · Get the whole picture', title: 'A clear view.\nAt a glance.', body: 'Start with a real workspace. Give every detail room to breathe.' }];
+  await page.waitForTimeout(5000);
+  const field = page.getByRole('textbox', { name: 'Track a parcel' });
+  await field.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  scenes.push({ at: elapsed() - captureStart, eyebrow: '02 · Follow the action', title: 'One parcel.\nOne simple flow.', body: 'Guide attention with text and a gentle focus on the next action.', focus: await field.boundingBox() });
+  await page.waitForTimeout(700);
+  await field.pressSequentially('PD-1041', { delay: 170 });
+  await page.waitForTimeout(900);
+  await page.getByRole('button', { name: 'Track', exact: true }).click();
+  await page.getByTestId('result').filter({ hasText: 'Rotterdam' }).waitFor();
+  assert.match(await page.getByTestId('result').innerText(), /Rotterdam/);
+  await page.waitForTimeout(900);
+  scenes.push({ at: elapsed() - captureStart, eyebrow: '03 · Make the result visible', title: 'The outcome.\nBeautifully clear.', body: 'A recorded result, with a story you can refine without recording again.', focus: await page.getByTestId('result').boundingBox() });
+  await page.waitForTimeout(6000);
+  const captureEnd = elapsed();
+  await context.close();
+  await video.saveAs('public/captures/parcel.webm');
+  await video.delete();
+  const mediaDuration = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', 'public/captures/parcel.webm'], { encoding: 'utf8' }).trim());
+  const trimBefore = Math.max(0, captureStart + mediaDuration - captureEnd);
+  const project = { title: 'Parcel Desk', accent: '#28584c', video: 'captures/parcel.webm', duration: Math.min(captureEnd - captureStart, mediaDuration - trimBefore), trimBefore, viewport, scenes };
+  await writeFile('project.json', JSON.stringify(project, null, 2) + '\n');
+  console.log(`Captured ${project.duration.toFixed(1)} seconds and ${scenes.length} scenes. Edit studio/project.json to change the story.`);
+} finally {
+  await browser?.close();
+  await new Promise((resolve) => server.close(resolve));
+}

@@ -1,9 +1,10 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { definePlaywrightConfig } from '../src/playwright.js';
 
-const CHECK = 'DEMOTALE_CHECK';
-const IMAGES = 'DEMOTALE_IMAGES';
+const CHECK = 'DEMOCENA_CHECK';
+const IMAGES = 'DEMOCENA_IMAGES';
 
 function restoreEnv(): void {
   delete process.env[CHECK];

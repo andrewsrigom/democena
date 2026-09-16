@@ -1,3 +1,4 @@
+<!-- Modified for Democena (2026): independent fork naming and configuration. -->
 # Recipes
 
 ## An app behind a login
@@ -6,7 +7,7 @@ Some applications cannot be signed into with a token. They want a real browser s
 a person with an identity provider. Do that once:
 
 ```bash
-npx demotale auth https://app.example.com/private --out .auth/session.json
+npx democena auth https://app.example.com/private --out .auth/session.json
 ```
 
 A browser opens. Sign in the way you normally would. The command watches, and writes the session out
@@ -35,7 +36,7 @@ By default the command accepts a window that rests on the target origin for fift
 app has an endpoint that answers only for a signed-in user, name it and the check becomes exact:
 
 ```bash
-npx demotale auth https://app.example.com/private \
+npx democena auth https://app.example.com/private \
   --probe /api/me \
   --verify https://app.example.com/orders \
   --settle 20s \
@@ -52,7 +53,7 @@ success. The probe request does not follow redirects for exactly that reason.
 
 ### That file is a credential
 
-It is a signed-in browser session for a real account, in plain JSON, on disk. `demotale init` puts
+It is a signed-in browser session for a real account, in plain JSON, on disk. `democena init` puts
 `.auth/` in your `.gitignore` and says why. Do not put it in CI unless the account is one you would
 be comfortable seeing leaked.
 
@@ -62,9 +63,9 @@ Some demos have a wait in the middle that nobody should sit through: a build, a 
 that takes four minutes. Record two scenarios, and join them:
 
 ```bash
-npx demotale record demo/part-1.demo.ts
-npx demotale record demo/part-2.demo.ts
-npx demotale join demo/output/part-1.mp4 demo/output/part-2.mp4 demo/output/full.mp4
+npx democena record demo/part-1.demo.ts
+npx democena record demo/part-2.demo.ts
+npx democena join demo/output/part-1.mp4 demo/output/part-2.mp4 demo/output/full.mp4
 ```
 
 Both parts come out of the same recorder at the same size and frame rate, which is exactly the
@@ -76,7 +77,7 @@ thing that makes a demo feel like an advertisement.
 ## Keeping the video current in CI
 
 The reason for all of this is that a recording made by hand goes stale at the first UI change. Let CI
-make it again. `npx demotale init --ci` writes the workflow below, and never overwrites one that is
+make it again. `npx democena init --ci` writes the workflow below, and never overwrites one that is
 already there. `doctor` names that command when the file is missing:
 
 ```yaml
@@ -85,14 +86,14 @@ already there. `doctor` names that command when the file is missing:
 - run: npm ci
 - run: npx playwright install --with-deps chromium
 - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-- run: npx demotale record
+- run: npx democena record
 - uses: actions/upload-artifact@v4
   with:
     name: demo
     path: demo/output/*
 ```
 
-Three things to know. `@pesuto/demotale` already depends on Playwright; `--with-deps` is for the OS
+Three things to know. `democena` already depends on Playwright; `--with-deps` is for the OS
 libraries Chromium needs on Linux runners (the browser binary itself usually arrived at `npm ci` via
 postinstall). GitHub-hosted Ubuntu does not ship ffmpeg; without it the recording stays a webm.
 And a recording that fails is a build that goes red, which is the point: it means the click path no
@@ -101,7 +102,7 @@ longer matches the application, and the video would have been wrong.
 ## A gif for your README
 
 ```bash
-npx demotale gif
+npx democena gif
 ```
 
 Or list it in the config if CI should always produce one:
@@ -113,7 +114,7 @@ video: { formats: ['mp4', 'gif'], gifWidth: 720, gifFps: 10 },
 A gif of a full 1440-pixel viewport at 15 frames a second comes out around nine megabytes. Capped at
 720 and 10 it is closer to two, which is what a page at the top of a repository can carry.
 
-`demotale gif` reuses the last recording when there is one, so `video` then `gif` does not play the
+`democena gif` reuses the last recording when there is one, so `video` then `gif` does not play the
 click path twice. Name a scenario file and it records that one instead of reusing.
 
 ## Docs pictures
@@ -129,7 +130,7 @@ Then ask for exactly that many pictures. The number is a promise: a different co
 name writes nothing, so a docs folder cannot go out with a hole in it.
 
 ```bash
-npx demotale images 1
+npx democena images 1
 ```
 
 You get `demo/stills/01-order-open.png` (numbering is on by default; `stills.number: false` turns it
@@ -167,7 +168,7 @@ rows appear.
 ## Recording against a different port
 
 ```bash
-npx demotale record --port 3100
+npx democena record --port 3100
 ```
 
 This moves the browser and your `webServer` together, and passes `PORT` to the server command. A port

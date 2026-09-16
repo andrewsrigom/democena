@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { describe, expect, it } from 'vitest';
 
 import { overlayScript, pickCaptionEdge, boxesOverlap } from '../src/overlay.js';
@@ -61,7 +62,7 @@ describe('overlayScript', () => {
     // application for a beat before the title card.
     expect(script).toContain('.demo-card.hidden');
     expect(script).not.toContain('.demo-card.visible');
-    expect(script).toContain('html.demotale-cover::before');
+    expect(script).toContain('html.democena-cover::before');
     expect(script).toContain("sessionStorage.getItem(COVER_KEY) === 'off'");
   });
 

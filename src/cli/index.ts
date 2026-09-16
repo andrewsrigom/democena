@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * The `demotale` command.
+ * The `democena` command.
  *
  * Every subcommand returns an exit code rather than calling `process.exit`, so the dispatch below is
  * the only place that decides how the process ends, and a mistake in a command cannot cut off output
@@ -9,7 +10,7 @@
 import { createRequire } from 'node:module';
 
 import { agentGuide } from '../agent-guide.js';
-import { DemotaleConfigError } from '../config.js';
+import { DemocenaConfigError } from '../config.js';
 import { flagBoolean, parseArgs } from './args.js';
 import { authCommand } from './auth.js';
 import { checkCommand } from './check.js';
@@ -59,9 +60,9 @@ const OPTIONS = [
 function usage(): string {
   const width = Math.max(...COMMANDS.map(([name]) => name.length));
   return [
-    `demotale ${pkg.version} — record a demo of your web app, from a script in your repository.`,
+    `democena ${pkg.version} — record a demo of your web app, from a script in your repository.`,
     '',
-    'Usage: demotale <command> [options]',
+    'Usage: democena <command> [options]',
     '',
     ...COMMANDS.map(([name, what]) => `  ${name.padEnd(width)}  ${what}`),
     '',
@@ -84,7 +85,7 @@ async function run(argv: string[]): Promise<number> {
     return 0;
   }
 
-  // `demotale check --help` used to run the check. Asking a command what it does should never be
+  // `democena check --help` used to run the check. Asking a command what it does should never be
   // the thing that does it. Anything after `--` belongs to Playwright, so it is left alone.
   const separator = rest.indexOf('--');
   const own = separator === -1 ? rest : rest.slice(0, separator);
@@ -136,7 +137,7 @@ async function run(argv: string[]): Promise<number> {
     case 'doctor':
       return doctorCommand(process.cwd(), json);
     default:
-      warn(`demotale: unknown command "${command}".`);
+      warn(`democena: unknown command "${command}".`);
       warn('');
       warn(usage());
       return 1;
@@ -149,10 +150,10 @@ try {
   if (error instanceof UserFacingError) {
     warn(error.message);
     if (error.hint !== undefined) warn(error.hint);
-  } else if (error instanceof DemotaleConfigError) {
+  } else if (error instanceof DemocenaConfigError) {
     warn(error.message);
   } else {
-    warn(`demotale: ${(error as Error).stack ?? String(error)}`);
+    warn(`democena: ${(error as Error).stack ?? String(error)}`);
   }
   process.exitCode = 1;
 }

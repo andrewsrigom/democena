@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * One config file in the root of the user's project, `demotale.config.ts`.
+ * One config file in the root of the user's project, `democena.config.ts`.
  *
  * Every key has a usable default, so `defineConfig({})` is a working configuration. What this module
  * cares about most is what happens when a key is *wrong*: a recording takes minutes and sets up an
@@ -43,7 +44,7 @@ export interface Viewport {
   height: number;
 }
 
-export interface DemotaleConfig {
+export interface DemocenaConfig {
   /** Where the application runs. A recording opens this once and clicks on from there. */
   baseUrl?: string;
   /** Directory holding `*.demo.ts` and `*.prepare.ts`. */
@@ -62,7 +63,7 @@ export interface DemotaleConfig {
    * against whatever happened to be running is a recording against unknown data.
    */
   webServer?: PlaywrightTestConfig['webServer'];
-  /** A browser session stored once by `demotale auth`. Missing is a supported state. */
+  /** A browser session stored once by `democena auth`. Missing is a supported state. */
   storageState?: string;
   /** CSS selectors that are never in frame, whatever the click path does. */
   redact?: string[];
@@ -90,8 +91,8 @@ export interface ResolvedConfig {
   stills: StillsConfig;
 }
 
-export class DemotaleConfigError extends Error {
-  override readonly name = 'DemotaleConfigError';
+export class DemocenaConfigError extends Error {
+  override readonly name = 'DemocenaConfigError';
 }
 
 const DEFAULTS = {
@@ -130,7 +131,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
 const VIDEO_FORMATS: ReadonlySet<string> = new Set<VideoFormat>(['mp4', 'gif']);
 
 function fail(message: string): never {
-  throw new DemotaleConfigError(`demotale config: ${message}`);
+  throw new DemocenaConfigError(`democena config: ${message}`);
 }
 
 function show(value: unknown): string {
@@ -162,7 +163,7 @@ function text(value: unknown, key: string): string {
  * It throws on a bad value and on an unknown key: a misspelled key is silently ignored otherwise,
  * and then the setting you thought you changed simply is not there.
  */
-export function defineConfig(config: DemotaleConfig = {}): DemotaleConfig {
+export function defineConfig(config: DemocenaConfig = {}): DemocenaConfig {
   if (config === null || typeof config !== 'object' || Array.isArray(config)) {
     fail(`expected an object, got ${show(config)}.`);
   }
@@ -260,7 +261,7 @@ export function defineConfig(config: DemotaleConfig = {}): DemotaleConfig {
 }
 
 /** Fills every gap. Validates first, so `resolveConfig` on a broken config still explains itself. */
-export function resolveConfig(config: DemotaleConfig = {}): ResolvedConfig {
+export function resolveConfig(config: DemocenaConfig = {}): ResolvedConfig {
   defineConfig(config);
 
   return {
@@ -283,11 +284,11 @@ export function resolveConfig(config: DemotaleConfig = {}): ResolvedConfig {
 
 /** The file names looked for, in the order they win. */
 export const CONFIG_FILES = [
-  'demotale.config.ts',
-  'demotale.config.mts',
-  'demotale.config.mjs',
-  'demotale.config.js',
-  'demotale.config.json',
+  'democena.config.ts',
+  'democena.config.mts',
+  'democena.config.mjs',
+  'democena.config.js',
+  'democena.config.json',
 ] as const;
 
 export interface LoadedConfig {
@@ -336,7 +337,7 @@ function isEsmDirectory(dir: string): boolean {
  * imports inside the config still resolve. It is removed again straight away.
  */
 async function importAsEsm(file: string): Promise<{ default?: unknown }> {
-  const shadow = join(dirname(file), `.demotale.config.${String(process.pid)}.mts`);
+  const shadow = join(dirname(file), `.democena.config.${String(process.pid)}.mts`);
   copyFileSync(file, shadow);
   try {
     return (await import(pathToFileURL(shadow).href)) as { default?: unknown };
@@ -364,7 +365,7 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
     } catch (error) {
       fail(`${file} is not valid JSON. ${(error as Error).message}`);
     }
-    return { file, config: resolveConfig(parsed as DemotaleConfig) };
+    return { file, config: resolveConfig(parsed as DemocenaConfig) };
   }
 
   const needsShadow = file.endsWith('.ts') && !isEsmDirectory(dirname(file));
@@ -380,7 +381,7 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
       fail(
         `${file} could not be imported by Node ${process.versions.node}, which does not strip ` +
           `TypeScript types. Upgrade to Node 22.6 or later, or rename the file to ` +
-          `demotale.config.mjs.`,
+          `democena.config.mjs.`,
       );
     }
     fail(`${file} could not be loaded. ${message}`);
@@ -390,5 +391,5 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
     fail(`${file} has no default export. End it with "export default defineConfig({ ... })".`);
   }
 
-  return { file, config: resolveConfig(module.default as DemotaleConfig) };
+  return { file, config: resolveConfig(module.default as DemocenaConfig) };
 }

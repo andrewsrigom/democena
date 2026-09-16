@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -45,7 +46,7 @@ describe('parseArgs', () => {
   });
 
   it('does not swallow a positional after a declared boolean flag', () => {
-    // Without this, "demotale record --headed demo/tour.demo.ts" records every scenario instead of
+    // Without this, "democena record --headed demo/tour.demo.ts" records every scenario instead of
     // the one that was named, and says nothing about it.
     const args = parseArgs(['--headed', 'demo/tour.demo.ts'], ['headed']);
     expect(flagBoolean(args, 'headed')).toBe(true);
@@ -114,7 +115,7 @@ describe('init', () => {
   let root = '';
 
   beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-init-'));
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-init-'));
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
   });
 
@@ -125,7 +126,7 @@ describe('init', () => {
 
   it('writes theme and stills as visible settings, not as hidden defaults', () => {
     init(root);
-    const config = fs.readFileSync(path.join(root, 'demotale.config.ts'), 'utf8');
+    const config = fs.readFileSync(path.join(root, 'democena.config.ts'), 'utf8');
     expect(config).toContain('theme:');
     expect(config).toContain("base: 'dark'");
     expect(config).toContain('stills:');
@@ -135,18 +136,18 @@ describe('init', () => {
   it('prints doctor then video as the next steps', () => {
     init(root);
     const out = vi.mocked(process.stdout.write).mock.calls.map((call) => String(call[0])).join('');
-    expect(out).toContain('demotale.config.ts');
-    expect(out).toContain('npx demotale doctor');
-    expect(out).toContain('npx demotale video');
+    expect(out).toContain('democena.config.ts');
+    expect(out).toContain('npx democena doctor');
+    expect(out).toContain('npx democena video');
   });
 
   it('never overwrites what is already there', () => {
-    fs.writeFileSync(path.join(root, 'demotale.config.ts'), 'mine, and hard won');
+    fs.writeFileSync(path.join(root, 'democena.config.ts'), 'mine, and hard won');
     const { written, skipped } = init(root);
 
-    expect(skipped).toContain('demotale.config.ts');
-    expect(written).not.toContain('demotale.config.ts');
-    expect(fs.readFileSync(path.join(root, 'demotale.config.ts'), 'utf8')).toBe('mine, and hard won');
+    expect(skipped).toContain('democena.config.ts');
+    expect(written).not.toContain('democena.config.ts');
+    expect(fs.readFileSync(path.join(root, 'democena.config.ts'), 'utf8')).toBe('mine, and hard won');
   });
 
   it('says in .gitignore that a stored session is a credential', () => {
@@ -199,7 +200,7 @@ describe('init', () => {
     execFileSync('git', ['init', '-q'], { cwd: root });
     fs.writeFileSync(
       path.join(root, '.gitignore'),
-      '\n# demotale\n.auth/    # a stored browser session is a credential\n',
+      '\n# democena\n.auth/    # a stored browser session is a credential\n',
     );
 
     init(root);
@@ -234,11 +235,11 @@ describe('init', () => {
     };
     expect(pkg.scripts['start']).toBe('node server.js');
     expect(pkg.scripts['demo']).toBe('my own thing');
-    expect(pkg.scripts['demo:render']).toBe('demotale render');
+    expect(pkg.scripts['demo:render']).toBe('democena render');
   });
 
   describe('--ci', () => {
-    const workflow = path.join('.github', 'workflows', 'demotale.yml');
+    const workflow = path.join('.github', 'workflows', 'democena.yml');
 
     it('leaves the workflow alone without the flag', () => {
       init(root);
@@ -250,7 +251,7 @@ describe('init', () => {
       expect(written).toContain(workflow);
 
       const yaml = fs.readFileSync(path.join(root, workflow), 'utf8');
-      expect(yaml).toContain('npx demotale record');
+      expect(yaml).toContain('npx democena record');
       expect(yaml).toContain('playwright install --with-deps chromium');
       expect(yaml).toContain('if-no-files-found: error');
       expect(yaml).toContain('demo/output/*');

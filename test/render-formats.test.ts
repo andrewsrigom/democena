@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -25,7 +26,7 @@ describe('render format override', () => {
   });
 
   it('writes only the format that was asked for', () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-render-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-render-'));
     const raw = path.join(dir, 'raw', 'take');
     fs.mkdirSync(raw, { recursive: true });
     fs.writeFileSync(path.join(raw, 'video.webm'), 'webm');

@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * The dry run: what `demotale check` collects, and how it reads.
+ * The dry run: what `democena check` collects, and how it reads.
  *
  * The recorder answers one question, "is there a video", and answers it in a minute. Writing a
  * scenario asks a different question twenty times in a row: does this locator hit the thing I mean,

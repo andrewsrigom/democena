@@ -1,8 +1,9 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * Docs pictures taken from a scenario.
  *
  * A still is a screenshot of the real page at a moment the author marked, without the overlay. The
- * CLI asks for a count (`demotale images 8`); that count is a promise. If the run delivered a
+ * CLI asks for a count (`democena images 8`); that count is a promise. If the run delivered a
  * different set, nothing is written to the stills directory — a partial update would leave a hole
  * in the documentation.
  */
@@ -109,8 +110,8 @@ export function publishStills(
   const parent = path.dirname(destDir);
   fs.mkdirSync(parent, { recursive: true });
 
-  const staging = path.join(parent, `.demotale-stills-${String(process.pid)}`);
-  const aside = path.join(parent, `.demotale-stills-prev-${String(process.pid)}`);
+  const staging = path.join(parent, `.democena-stills-${String(process.pid)}`);
+  const aside = path.join(parent, `.democena-stills-prev-${String(process.pid)}`);
   fs.rmSync(staging, { recursive: true, force: true });
   fs.rmSync(aside, { recursive: true, force: true });
   fs.mkdirSync(staging, { recursive: true });

@@ -1,4 +1,5 @@
-# Clean-room install smoke for @pesuto/demotale.
+# Modified for Democena (2026): package and CLI identity.
+# Clean-room install smoke for democena.
 # Not a product image — only used by scripts/docker-smoke.sh.
 FROM node:22-bookworm
 
@@ -19,11 +20,11 @@ RUN mkdir -p /smoke/app \
   && npm init -y \
   && npm i -D /pack/*.tgz \
   && npx playwright install-deps chromium \
-  && (npx demotale doctor --json > /tmp/doctor.json || true) \
+  && (npx democena doctor --json > /tmp/doctor.json || true) \
   && node /opt/assert-doctor-smoke.mjs /tmp/doctor.json \
-  && npx demotale init --agent \
+  && npx democena init --agent \
   && test -f AGENTS.md \
-  && npx demotale agent-guide | head -n 5
+  && npx democena agent-guide | head -n 5
 
 # 2) examples/basic: same tarball, prove the browser actually launches via check
 RUN mkdir -p /smoke/example \
@@ -31,6 +32,6 @@ RUN mkdir -p /smoke/example \
   && cd /smoke/example \
   && npm init -y \
   && npm i -D /pack/*.tgz \
-  && npx demotale check
+  && npx democena check
 
-CMD ["npx", "demotale", "doctor"]
+CMD ["npx", "democena", "doctor"]

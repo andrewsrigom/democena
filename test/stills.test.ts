@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -31,7 +32,7 @@ describe('planStills', () => {
   });
 
   it('accepts a run that delivered exactly the promised names', () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-stills-'));
     const taken: TakenStill[] = [
       { name: 'home', source: png(dir, 'a.png') },
       { name: 'result', source: png(dir, 'b.png') },
@@ -42,7 +43,7 @@ describe('planStills', () => {
   });
 
   it('rejects a count mismatch so a partial set cannot land in the docs', () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-stills-'));
     const taken: TakenStill[] = [{ name: 'home', source: png(dir, 'a.png') }];
     const plan = planStills(taken, 2, true);
     expect(plan.ok).toBe(false);
@@ -51,7 +52,7 @@ describe('planStills', () => {
   });
 
   it('rejects a duplicated name', () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-stills-'));
     const taken: TakenStill[] = [
       { name: 'home', source: png(dir, 'a.png') },
       { name: 'home', source: png(dir, 'b.png') },
@@ -70,7 +71,7 @@ describe('publishStills', () => {
   });
 
   it('leaves the destination alone if a source file is missing', () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-stills-'));
     const dest = path.join(dir, 'stills');
     fs.mkdirSync(dest);
     fs.writeFileSync(path.join(dest, '09-old.png'), 'stale');
@@ -84,7 +85,7 @@ describe('publishStills', () => {
   });
 
   it('replaces the destination directory, so leftover pictures from a longer run go away', () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-stills-'));
     const dest = path.join(dir, 'stills');
     fs.mkdirSync(dest);
     fs.writeFileSync(path.join(dest, '09-old.png'), 'stale');

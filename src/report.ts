@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * What every command answers when it is asked in JSON.
  *
@@ -71,7 +72,7 @@ export interface Problem {
 
 export interface JsonReport<T> {
   /** The version that produced this, so a reader can tell an old shape from a new one. */
-  demotale: string;
+  democena: string;
   command: CommandName;
   ok: boolean;
   /** Empty when nothing is wrong. Never absent, so a reader never has to check for it. */
@@ -85,7 +86,7 @@ export function jsonReport<T>(
   problems: Problem[],
   result: T,
 ): JsonReport<T> {
-  return { demotale: version, command, ok, problems, result };
+  return { democena: version, command, ok, problems, result };
 }
 
 /**

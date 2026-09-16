@@ -1,7 +1,8 @@
-import { test, expect } from '@pesuto/demotale';
+// Modified for Democena (2026): independent fork naming and configuration.
+import { test, expect } from 'democena';
 
 /**
- * Visual review scenario for demotale 0.3.0.
+ * Visual review scenario for democena 0.3.0.
  *
  * Run from the repo root: npm run visual-030
  * Then open the artefacts listed in examples/visual-030/README.md.
@@ -9,7 +10,7 @@ import { test, expect } from '@pesuto/demotale';
  * Each still scrolls to a different part of the page first: three names must mean three pictures.
  */
 test('0.3.0 visual review', async ({ page, demo }) => {
-  await demo.card('demotale 0.3.0', 'Visual review: video, gif, images, caption flip');
+  await demo.card('democena 0.3.0', 'Visual review: video, gif, images, caption flip');
   await page.goto('/');
   await demo.hideCard();
 

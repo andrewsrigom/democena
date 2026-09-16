@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * The Playwright config, generated rather than hand-written.
  *
@@ -13,8 +14,8 @@ import { resolve } from 'node:path';
 
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 
-import { resolveConfig, type DemotaleConfig } from './config.js';
-import type { DemoMode, DemotaleOptions } from './demo.js';
+import { resolveConfig, type DemocenaConfig } from './config.js';
+import type { DemoMode, DemocenaOptions } from './demo.js';
 
 /**
  * Moves a configured webServer to the same port the browser was told to use.
@@ -24,9 +25,9 @@ import type { DemoMode, DemotaleOptions } from './demo.js';
  * the server's environment as well, since that is the variable nearly every `npm start` reads.
  */
 function webServerOn(
-  webServer: DemotaleConfig['webServer'],
+  webServer: DemocenaConfig['webServer'],
   baseUrl: string,
-): DemotaleConfig['webServer'] {
+): DemocenaConfig['webServer'] {
   if (webServer === undefined || Array.isArray(webServer)) return webServer;
   if (typeof webServer.url !== 'string') return webServer;
 
@@ -49,9 +50,9 @@ function webServerOn(
  * reuses whatever is already running, and the report says so.
  */
 function reusableFor(
-  webServer: NonNullable<DemotaleConfig['webServer']>,
+  webServer: NonNullable<DemocenaConfig['webServer']>,
   check: boolean,
-): NonNullable<DemotaleConfig['webServer']> {
+): NonNullable<DemocenaConfig['webServer']> {
   if (!check) return webServer;
   if (Array.isArray(webServer)) {
     return webServer.map((server) => ({ ...server, reuseExistingServer: true }));
@@ -60,10 +61,10 @@ function reusableFor(
 }
 
 /** Environment overrides, so the CLI can pass `--speed` through without rewriting the config file. */
-function withEnvOverrides(config: DemotaleConfig): DemotaleConfig {
-  const speed = Number(process.env['DEMOTALE_SPEED']);
-  const slowMo = Number(process.env['DEMOTALE_SLOWMO']);
-  const baseUrl = process.env['DEMOTALE_BASE_URL'];
+function withEnvOverrides(config: DemocenaConfig): DemocenaConfig {
+  const speed = Number(process.env['DEMOCENA_SPEED']);
+  const slowMo = Number(process.env['DEMOCENA_SLOWMO']);
+  const baseUrl = process.env['DEMOCENA_BASE_URL'];
 
   return {
     ...config,
@@ -74,13 +75,13 @@ function withEnvOverrides(config: DemotaleConfig): DemotaleConfig {
 }
 
 export interface PlaywrightConfigOptions {
-  /** What relative paths in the demotale config are resolved against. Defaults to the cwd. */
+  /** What relative paths in the democena config are resolved against. Defaults to the cwd. */
   rootDir?: string;
 }
 
 function runMode(): DemoMode {
-  if (process.env['DEMOTALE_CHECK'] === '1') return 'check';
-  if (process.env['DEMOTALE_IMAGES'] === '1') return 'images';
+  if (process.env['DEMOCENA_CHECK'] === '1') return 'check';
+  if (process.env['DEMOCENA_IMAGES'] === '1') return 'images';
   return 'record';
 }
 
@@ -100,9 +101,9 @@ function outputKind(mode: DemoMode): 'check' | 'images' | 'raw' {
 }
 
 export function definePlaywrightConfig(
-  config: DemotaleConfig = {},
+  config: DemocenaConfig = {},
   options: PlaywrightConfigOptions = {},
-): PlaywrightTestConfig<DemotaleOptions> {
+): PlaywrightTestConfig<DemocenaOptions> {
   const resolved = resolveConfig(withEnvOverrides(config));
   const root = options.rootDir ?? process.cwd();
   const { viewport } = resolved;
@@ -114,19 +115,19 @@ export function definePlaywrightConfig(
    * Its own `outputDir` is not tidiness. Playwright empties a test's output directory before every
    * run, so a check that shared one with the recorder would delete the video that was there.
    */
-  const demotaleMode = runMode();
-  const check = demotaleMode === 'check';
-  const filming = demotaleMode === 'record';
+  const democenaMode = runMode();
+  const check = democenaMode === 'check';
+  const filming = democenaMode === 'record';
 
   /**
-   * A session stored earlier by `demotale auth`. Absent is a supported state: everything that films
+   * A session stored earlier by `democena auth`. Absent is a supported state: everything that films
    * a public part of an application works without one.
    */
   const storageState = resolve(root, resolved.storageState);
 
-  return defineConfig<DemotaleOptions>({
+  return defineConfig<DemocenaOptions>({
     testDir: resolve(root, resolved.scenarios),
-    outputDir: resolve(root, resolved.output, outputKind(demotaleMode)),
+    outputDir: resolve(root, resolved.output, outputKind(democenaMode)),
     fullyParallel: false,
     workers: 1,
     retries: 0,
@@ -150,8 +151,8 @@ export function definePlaywrightConfig(
       screenshot: 'off',
       ...(existsSync(storageState) ? { storageState } : {}),
       // Read back by the demo fixture, so a scenario never loads the config file itself.
-      demotale: resolved,
-      demotaleMode,
+      democena: resolved,
+      democenaMode,
     },
     projects: [
       {

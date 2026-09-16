@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale auth` — sign in once by hand, and keep the session for later recordings.
+ * `democena auth` — sign in once by hand, and keep the session for later recordings.
  *
  * This is the part with the most ways to believe it worked when it did not, so the order of
  * operations here is the whole design, and every step of it was paid for:
@@ -31,7 +32,7 @@ import { flagString, parseDuration, type Args } from './args.js';
 import { say, UserFacingError, warn } from './ui.js';
 
 /**
- * Playwright for this project: its own copy when present, otherwise demotale's.
+ * Playwright for this project: its own copy when present, otherwise democena's.
  *
  * Loaded with `require` and not with `import()`. @playwright/test resolves to a CommonJS entry, and
  * importing that file by path hands back a namespace whose named exports are not filled in: the first
@@ -41,8 +42,8 @@ function importPlaywright(root: string): PlaywrightModule {
   const playwright = loadPlaywright(root);
   if (playwright === undefined) {
     throw new UserFacingError(
-      'demotale: @playwright/test is not installed.',
-      'Run "npx demotale setup".',
+      'democena: @playwright/test is not installed.',
+      'Run "npx democena setup".',
     );
   }
   return playwright;
@@ -190,12 +191,12 @@ async function verifyStoredSession(
 export async function authCommand(args: Args, root = process.cwd()): Promise<number> {
   const url = args.positional[0];
   if (url === undefined) {
-    throw new UserFacingError('usage: demotale auth <url> [--out .auth/session.json]');
+    throw new UserFacingError('usage: democena auth <url> [--out .auth/session.json]');
   }
 
   const targetOrigin = originOf(url);
   if (targetOrigin === undefined) {
-    throw new UserFacingError(`demotale: "${url}" is not a URL.`);
+    throw new UserFacingError(`democena: "${url}" is not a URL.`);
   }
 
   const { config } = await loadConfig(root);
@@ -272,7 +273,7 @@ export async function authCommand(args: Args, root = process.cwd()): Promise<num
   await browser.close().catch(() => {});
 
   if (!saved) {
-    warn('demotale: no session was stored.');
+    warn('democena: no session was stored.');
     warn(
       probe === undefined
         ? `Nothing settled on ${targetOrigin} for ${String(Math.round(settleMs / 1_000))}s before the window closed or the wait ran out.`
@@ -288,13 +289,13 @@ export async function authCommand(args: Args, root = process.cwd()): Promise<num
 
   if (verdict === 'failed') {
     fs.rmSync(out, { force: true });
-    warn(`demotale: the stored session did not work. It loaded ${landedOn}, and ${why}.`);
+    warn(`democena: the stored session did not work. It loaded ${landedOn}, and ${why}.`);
     warn('The file has been deleted rather than left to fail a recording later. Try again.');
     return 1;
   }
 
   if (verdict === 'inconclusive') {
-    warn(`demotale: cannot tell whether the stored session works: ${why}.`);
+    warn(`democena: cannot tell whether the stored session works: ${why}.`);
     warn(`The file is kept at ${path.relative(root, out)}, unverified.`);
     warn('Pass --probe <path> with a URL that only answers for a signed-in user to be sure.');
     return 0;

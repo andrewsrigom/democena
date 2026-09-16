@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * Post-production: Playwright's webm into a file that plays everywhere.
  *
@@ -42,7 +43,7 @@ export interface RenderResult {
 }
 
 export interface RenderOptions {
-  /** Override `config.video.formats` for this run, so `demotale gif` does not also write an mp4. */
+  /** Override `config.video.formats` for this run, so `democena gif` does not also write an mp4. */
   formats?: VideoFormat[];
   /** Write vtt/transcript. Default: yes when an mp4 is being produced. */
   captions?: boolean;

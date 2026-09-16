@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale check` — play the click path without filming it.
+ * `democena check` — play the click path without filming it.
  *
  * Writing a scenario is a loop: guess a locator, find out, fix it. Doing that loop through `record`
  * costs a minute and a video nobody wants, and the answer it gives when a locator is wrong is a
@@ -97,7 +98,7 @@ function wrongOriginProblem(report: CheckReport): Problem[] {
         'browser to a login. Everything else in this report is about that page, candidates ' +
         'included.',
       scenario: report.scenario,
-      fix: `npx demotale doctor  # then fix baseUrl and webServer, or run: npx demotale auth ${report.baseUrl}`,
+      fix: `npx democena doctor  # then fix baseUrl and webServer, or run: npx democena auth ${report.baseUrl}`,
     },
   ];
 }
@@ -122,7 +123,7 @@ function loginProblem(report: CheckReport): Problem[] {
         'below is about that page, so the locator that missed is probably fine. Signing in is a ' +
         'one-off job for a person.',
       scenario: report.scenario,
-      fix: `npx demotale auth ${report.baseUrl}`,
+      fix: `npx democena auth ${report.baseUrl}`,
     },
   ];
 }
@@ -136,9 +137,9 @@ export async function checkCommand(args: Args, root = process.cwd()): Promise<nu
   // Stale frames from a previous check read as this run's, which is worse than having none.
   fs.rmSync(outputDir, { recursive: true, force: true });
 
-  const env: NodeJS.ProcessEnv = { ...process.env, DEMOTALE_CHECK: '1' };
+  const env: NodeJS.ProcessEnv = { ...process.env, DEMOCENA_CHECK: '1' };
   const baseUrl = resolveBaseUrl(args, config.baseUrl);
-  if (baseUrl !== undefined) env['DEMOTALE_BASE_URL'] = baseUrl;
+  if (baseUrl !== undefined) env['DEMOCENA_BASE_URL'] = baseUrl;
 
   const filter = args.positional[0];
   const playwrightArgs = [
@@ -186,8 +187,8 @@ export async function checkCommand(args: Args, root = process.cwd()): Promise<nu
 
     warn(
       filter === undefined
-        ? 'demotale check: no scenario ran. There is no *.demo.ts under the scenarios directory.'
-        : `demotale check: no scenario matched "${filter}". The argument is part of a file name, ` +
+        ? 'democena check: no scenario ran. There is no *.demo.ts under the scenarios directory.'
+        : `democena check: no scenario matched "${filter}". The argument is part of a file name, ` +
             'not a path pattern.',
     );
     if (stderr !== '') warn(stderr.split('\n').slice(0, 10).join('\n'));
@@ -222,7 +223,7 @@ export async function checkCommand(args: Args, root = process.cwd()): Promise<nu
   say(
     failed === 0
       ? `${reports.length} scenario${reports.length === 1 ? '' : 's'} checked in ` +
-          `${(elapsed / 1000).toFixed(1)}s. Run "demotale record" to film it.`
+          `${(elapsed / 1000).toFixed(1)}s. Run "democena record" to film it.`
       : `${failed} of ${reports.length} failed in ${(elapsed / 1000).toFixed(1)}s.`,
   );
 

@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale init` — put the files a project needs in place, and nothing else.
+ * `democena init` — put the files a project needs in place, and nothing else.
  *
  * It never overwrites. The agent block in AGENTS.md is written by default (five lines that point at
  * `agent-guide`); `--no-agent` skips it. CI is a separate flag, because a workflow in `.github/` is
@@ -28,8 +29,8 @@ const IGNORE_LINES = [
 ] as const;
 
 const SCRIPTS: Record<string, string> = {
-  demo: 'demotale record',
-  'demo:render': 'demotale render',
+  demo: 'democena record',
+  'demo:render': 'democena render',
 };
 
 export interface InitResult {
@@ -73,7 +74,7 @@ function updateGitignore(root: string, result: InitResult): void {
   // supposed to be kept out of git is a stored browser session for a real account.
   const block = [
     '',
-    '# demotale',
+    '# democena',
     ...missing.flatMap(([pattern, why]) => [`# ${why}`, pattern]),
     '',
   ];
@@ -99,7 +100,7 @@ function updatePackageScripts(root: string, result: InitResult): void {
 }
 
 /**
- * Points whatever writes code in this repository at `demotale agent-guide`.
+ * Points whatever writes code in this repository at `democena agent-guide`.
  *
  * Appends rather than writes, because AGENTS.md belongs to the project and usually already says
  * things. A marker keeps a second run from stacking the block up again.
@@ -117,7 +118,7 @@ function updateAgentsFile(root: string, result: InitResult): 'created' | 'append
   fs.writeFileSync(file, `${existing}${separator}${agentsBlock()}\n`);
   if (existing === '') {
     result.written.push(
-      'AGENTS.md  (five lines: run `demotale agent-guide` instead of inventing a scenario)',
+      'AGENTS.md  (five lines: run `democena agent-guide` instead of inventing a scenario)',
     );
     return 'created';
   }
@@ -128,8 +129,8 @@ function updateAgentsFile(root: string, result: InitResult): 'created' | 'append
 export function init(root = process.cwd(), options: { agent?: boolean; ci?: boolean } = {}): InitResult {
   if (!fs.existsSync(TEMPLATE_DIR)) {
     throw new UserFacingError(
-      `demotale: the init templates are missing from the installed package (${TEMPLATE_DIR}).`,
-      'Reinstall @pesuto/demotale.',
+      `democena: the init templates are missing from the installed package (${TEMPLATE_DIR}).`,
+      'Reinstall democena.',
     );
   }
 
@@ -142,8 +143,8 @@ export function init(root = process.cwd(), options: { agent?: boolean; ci?: bool
   if (options.ci === true) {
     if (!fs.existsSync(CI_DIR)) {
       throw new UserFacingError(
-        `demotale: the CI workflow template is missing from the installed package (${CI_DIR}).`,
-        'Reinstall @pesuto/demotale.',
+        `democena: the CI workflow template is missing from the installed package (${CI_DIR}).`,
+        'Reinstall democena.',
       );
     }
     copyTree(CI_DIR, root, result, root);
@@ -153,22 +154,22 @@ export function init(root = process.cwd(), options: { agent?: boolean; ci?: bool
   for (const file of result.skipped) say(`kept     ${file} (already there)`);
   if (agents === 'appended') {
     say(
-      'Appended five lines to AGENTS.md so an agent runs `demotale agent-guide` instead of inventing a scenario.',
+      'Appended five lines to AGENTS.md so an agent runs `democena agent-guide` instead of inventing a scenario.',
     );
   }
 
   say('');
   say('Next:');
-  say('  1. Point baseUrl and webServer in demotale.config.ts at your app');
-  say('  2. npx demotale doctor');
-  say('  3. npx demotale video');
+  say('  1. Point baseUrl and webServer in democena.config.ts at your app');
+  say('  2. npx democena doctor');
+  say('  3. npx democena video');
   if (!agent) {
     say('');
-    say('If an agent writes the demos here, run "demotale init" again (it writes the five lines).');
+    say('If an agent writes the demos here, run "democena init" again (it writes the five lines).');
   }
   if (options.ci !== true) {
     say('');
-    say('If CI should re-record the demo, run "demotale init --ci". Doctor will say so if it is missing.');
+    say('If CI should re-record the demo, run "democena init --ci". Doctor will say so if it is missing.');
   }
 
   return result;

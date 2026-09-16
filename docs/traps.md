@@ -1,11 +1,12 @@
+<!-- Modified for Democena (2026): independent fork naming and configuration. -->
 # Traps
 
-Everything here was measured, not reasoned about. It comes from the recorder demotale grew out of and
+Everything here was measured, not reasoned about. It comes from the recorder democena grew out of and
 from the sessions that used it to film a real application. Anyone building this from scratch hits
 these in roughly this order and loses evenings to them, so they are written down whether or not you
 use this package.
 
-Where it says demotale handles something, that is what the code does about it.
+Where it says democena handles something, that is what the code does about it.
 
 ## The overlay
 
@@ -13,7 +14,7 @@ Where it says demotale handles something, that is what the code does about it.
 sent `style-src 'self'`, so the `<style>` element the overlay injects was blocked. The first take had
 every subtitle as bare text at the bottom of the page, no cursor, no highlight.
 
-→ demotale sets `bypassCSP: true` on the recording context. That is a property of the browser doing
+→ democena sets `bypassCSP: true` on the recording context. That is a property of the browser doing
 the filming, not of the application: the served headers are unchanged, and what the CSP is for gets
 measured where that belongs rather than in a video.
 
@@ -64,7 +65,7 @@ defect meant never arrived, and burned the full fifteen-minute test budget with 
 provisioned environment around it. Assert existence with a short explicit timeout before pointing at
 something, and a missing panel becomes a sentence within seconds.
 
-→ demotale gives `spotlight` and `click` their own short timeouts, and `doctor` warns when the global
+→ democena gives `spotlight` and `click` their own short timeouts, and `doctor` warns when the global
 timeout is far larger than a scenario could plausibly need.
 
 **Navigate by clicking, not by loading a URL.** A bundle referenced its assets relatively and the app
@@ -78,13 +79,13 @@ interface.
 recording against unknown data. One such run had an order already open for the demo record, so the
 application correctly refused to start a second one, and the video showed a refusal.
 
-→ demotale passes Playwright's `webServer` through, so the application is stood up per recording and
+→ democena passes Playwright's `webServer` through, so the application is stood up per recording and
 per stills run. The docs call that a condition rather than tidiness. `check` reuses whatever is
 already listening, because it is looking at locators rather than writing a picture.
 
 **Check everything that can be missing in the first ten seconds.** ffmpeg, browsers, reachability,
 credentials. One recording failed after the setup and part one, twenty minutes in. That is what
-`demotale doctor` is.
+`democena doctor` is.
 
 ## Rendering
 

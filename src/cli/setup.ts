@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale setup` — download what `npm i` should have left behind when postinstall was skipped.
+ * `democena setup` — download what `npm i` should have left behind when postinstall was skipped.
  *
  * Doctor never runs this. It only names the command. Installing browsers is solicited here, or by
  * the package postinstall that `npm i` already asked for.
@@ -15,12 +16,12 @@ export function setupCommand(root = process.cwd()): number {
   const playwright = resolvePlaywright(root);
   if (playwright === undefined) {
     throw new UserFacingError(
-      'demotale: @playwright/test is not installed.',
-      'Reinstall the package: npm i -D @pesuto/demotale',
+      'democena: @playwright/test is not installed.',
+      'Reinstall the package: npm i -D democena',
     );
   }
 
-  say('demotale: ensuring Chromium is downloaded…');
+  say('democena: ensuring Chromium is downloaded…');
   const install = spawnSync(process.execPath, [playwright.cli, 'install', 'chromium'], {
     stdio: 'inherit',
     cwd: root,
@@ -28,7 +29,7 @@ export function setupCommand(root = process.cwd()): number {
   });
   if (install.status !== 0) {
     throw new UserFacingError(
-      'demotale: Playwright could not download Chromium.',
+      'democena: Playwright could not download Chromium.',
       'Check the network, or set PLAYWRIGHT_DOWNLOAD_HOST if you use a mirror.',
     );
   }
@@ -37,25 +38,25 @@ export function setupCommand(root = process.cwd()): number {
   const executable = chromium.executablePath();
   if (!fs.existsSync(executable)) {
     throw new UserFacingError(
-      'demotale: Chromium is still missing after install.',
+      'democena: Chromium is still missing after install.',
       'Try: npx playwright install chromium',
     );
   }
-  say('demotale: Chromium is ready.');
+  say('democena: Chromium is ready.');
 
   const ffmpeg = resolveFfmpeg();
   if (ffmpeg === undefined) {
-    warn('demotale: ffmpeg is not available, so recordings will stay as webm.');
+    warn('democena: ffmpeg is not available, so recordings will stay as webm.');
     warn(`Install with: ${ffmpegMissingFix()}`);
     return 1;
   }
 
   switch (ffmpeg.source) {
     case 'path':
-      say('demotale: ffmpeg is on PATH.');
+      say('democena: ffmpeg is on PATH.');
       break;
     case 'ffmpeg-static':
-      say('demotale: ffmpeg is available (ffmpeg-static in this project).');
+      say('democena: ffmpeg is available (ffmpeg-static in this project).');
       break;
     default: {
       const _exhaustive: never = ffmpeg.source;

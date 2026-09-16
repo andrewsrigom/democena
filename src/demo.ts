@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * The scenario API, and the Playwright fixture that hands it to a test.
  *
@@ -26,7 +27,7 @@ import {
   type LocatorProbe,
   type PageSeen,
 } from './check.js';
-import { resolveConfig, type DemotaleConfig, type ResolvedConfig } from './config.js';
+import { resolveConfig, type DemocenaConfig, type ResolvedConfig } from './config.js';
 import { overlayScript, type OverlayWindow } from './overlay.js';
 import type { StillsReport } from './stills.js';
 
@@ -72,7 +73,7 @@ const SCROLL_SETTLE_MS = 450;
 const CHECK_FIRST_WAIT_MS = 1_200;
 const CHECK_TIMEOUT_MS = 4_000;
 
-/** How a `Demo` was started: filming, the dry run behind `demotale check`, or docs pictures. */
+/** How a `Demo` was started: filming, the dry run behind `democena check`, or docs pictures. */
 export type DemoMode = 'record' | 'check' | 'images';
 
 export interface DemoRunOptions {
@@ -303,7 +304,7 @@ export class Demo {
       message: `${failed.locator} ${what}`,
       fromAssertion: false,
     };
-    throw new CheckStop(`demotale check: ${failed.locator} ${what}.`, failed);
+    throw new CheckStop(`democena check: ${failed.locator} ${what}.`, failed);
   }
 
   /**
@@ -482,7 +483,7 @@ export class Demo {
     const box = await locator.boundingBox();
     if (box === null) {
       throw new Error(
-        'demotale: spotlight found the element but it has no box on screen, so there is nothing ' +
+        'democena: spotlight found the element but it has no box on screen, so there is nothing ' +
           'to frame. It is probably collapsed or clipped to zero size.',
       );
     }
@@ -596,14 +597,14 @@ export class Demo {
    *
    * The name becomes the file name (`order-open` → `01-order-open.png` when numbering is on). Call
    * this after the assertion that proves the screen is what the documentation claims. Only
-   * `demotale images N` writes the files; during a recording this is a no-op so the same scenario
+   * `democena images N` writes the files; during a recording this is a no-op so the same scenario
    * can film and illustrate.
    */
   async still(name: string): Promise<void> {
     const slug = slugify(name);
     if (slug === '') {
       throw new Error(
-        `demotale: still() needs a name that can become a file name, got ${JSON.stringify(name)}.`,
+        `democena: still() needs a name that can become a file name, got ${JSON.stringify(name)}.`,
       );
     }
 
@@ -631,7 +632,7 @@ export class Demo {
     }
   }
 
-  /** What `demotale images` collects from this run. */
+  /** What `democena images` collects from this run. */
   stillsReport(title: string, scenario: string): StillsReport {
     return { title, scenario, stills: this.stillsTaken.map((still) => ({ ...still })) };
   }
@@ -652,47 +653,47 @@ export class Demo {
   }
 }
 
-export interface DemotaleFixtures {
+export interface DemocenaFixtures {
   demo: Demo;
 }
 
-export interface DemotaleOptions {
+export interface DemocenaOptions {
   /**
    * Set by `definePlaywrightConfig`, so a scenario never has to load the config itself. Writing it
    * by hand in `use` works too, and is what a one-off recording without a config file does.
    */
-  demotale: DemotaleConfig;
+  democena: DemocenaConfig;
   /**
-   * Filming, or the dry run behind `demotale check`. Set by `definePlaywrightConfig`; a scenario
+   * Filming, or the dry run behind `democena check`. Set by `definePlaywrightConfig`; a scenario
    * never mentions it, which is the point: one scenario, one code path, two speeds.
    */
-  demotaleMode: DemoMode;
+  democenaMode: DemoMode;
 }
 
 /**
  * The scenario entry point. Besides `demo` it leaves a small sidecar next to the recording: Playwright
  * names the video directory itself, and the renderer has to know which mp4 this was meant to become.
  */
-export const test = base.extend<DemotaleOptions & DemotaleFixtures>({
-  demotale: [{}, { option: true }],
-  demotaleMode: ['record', { option: true }],
+export const test = base.extend<DemocenaOptions & DemocenaFixtures>({
+  democena: [{}, { option: true }],
+  democenaMode: ['record', { option: true }],
 
   // On the context, before the page exists, so about:blank and the first goto are already covered.
   // page.addInitScript in install() is too late: Playwright's video has already started.
-  context: async ({ context, demotale }, use) => {
-    const config = resolveConfig(demotale);
+  context: async ({ context, democena }, use) => {
+    const config = resolveConfig(democena);
     await context.addInitScript(overlayScript(config.theme, config.redact));
     await use(context);
   },
 
-  demo: async ({ page, demotale, demotaleMode }, use, testInfo: TestInfo) => {
-    const config = resolveConfig(demotale);
-    const demo = new Demo(page, config, { mode: demotaleMode, frameDir: testInfo.outputDir });
+  demo: async ({ page, democena, democenaMode }, use, testInfo: TestInfo) => {
+    const config = resolveConfig(democena);
+    const demo = new Demo(page, config, { mode: democenaMode, frameDir: testInfo.outputDir });
     await demo.install();
 
     await use(demo);
 
-    if (demotaleMode === 'check') {
+    if (democenaMode === 'check') {
       // No demo-meta.json here on purpose: its durations come from a run with the pauses taken out,
       // and the renderer would turn those numbers into subtitle timings that are simply wrong.
       const report = demo.checkReport(
@@ -708,7 +709,7 @@ export const test = base.extend<DemotaleOptions & DemotaleFixtures>({
       return;
     }
 
-    if (demotaleMode === 'images') {
+    if (democenaMode === 'images') {
       const report = demo.stillsReport(testInfo.title, path.relative(process.cwd(), testInfo.file));
       fs.mkdirSync(testInfo.outputDir, { recursive: true });
       fs.writeFileSync(

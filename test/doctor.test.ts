@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -53,7 +54,7 @@ describe('doctor', () => {
   };
 
   const config = (body: string): void =>
-    write('demotale.config.ts', `export default ${body};\n`);
+    write('democena.config.ts', `export default ${body};\n`);
 
   /**
    * A @playwright/test that resolves out of this temporary project, so the check that looks it up
@@ -69,12 +70,12 @@ describe('doctor', () => {
       'node_modules/@playwright/test/index.js',
       `exports.chromium = { executablePath: () => ${JSON.stringify(process.execPath)} };\n`,
     );
-    // resolvePlaywright requires cli.js beside the entry, so a stub here beats demotale's real copy.
+    // resolvePlaywright requires cli.js beside the entry, so a stub here beats democena's real copy.
     write('node_modules/@playwright/test/cli.js', '#!/usr/bin/env node\n');
   };
 
   beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-doctor-'));
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-doctor-'));
     write('package.json', JSON.stringify({ name: 'app', scripts: { dev: 'node serve.mjs' } }));
     write('demo/thing.demo.ts', '// a scenario\n');
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
@@ -244,13 +245,13 @@ describe('doctor', () => {
 
     expect(agent?.status).toBe('warn');
     expect(agent?.code).toBe('missing-agent-guide');
-    expect(agent?.fix).toBe('npx demotale init');
+    expect(agent?.fix).toBe('npx democena init');
   });
 
   it('is happy when AGENTS.md already points at the guide', async () => {
     fakePlaywright({ version: '1.49.0' });
     config(`{ baseUrl: 'http://localhost:4173' }`);
-    write('AGENTS.md', '<!-- demotale:agent-guide -->\nrun demotale agent-guide\n');
+    write('AGENTS.md', '<!-- democena:agent-guide -->\nrun democena agent-guide\n');
 
     const { checks } = await collectChecks(root);
     expect(find(checks, 'agent')[0]?.status).toBe('ok');
@@ -265,13 +266,13 @@ describe('doctor', () => {
 
     expect(ci?.status).toBe('warn');
     expect(ci?.code).toBe('missing-ci-workflow');
-    expect(ci?.fix).toBe('npx demotale init --ci');
+    expect(ci?.fix).toBe('npx democena init --ci');
   });
 
   it('is happy when the CI workflow is already there', async () => {
     fakePlaywright({ version: '1.49.0' });
     config(`{ baseUrl: 'http://localhost:4173' }`);
-    write('.github/workflows/demotale.yml', 'name: demotale\n');
+    write('.github/workflows/democena.yml', 'name: democena\n');
 
     const { checks } = await collectChecks(root);
     expect(find(checks, 'ci')[0]?.status).toBe('ok');

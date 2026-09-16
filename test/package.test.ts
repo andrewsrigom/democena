@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -47,7 +48,7 @@ describe('package shape', () => {
   });
 
   it('requires the Node version the package actually needs', () => {
-    // 22.12 is not a preference. Below it Node cannot strip types from a demotale.config.ts, and a
+    // 22.12 is not a preference. Below it Node cannot strip types from a democena.config.ts, and a
     // CommonJS project cannot require this ESM-only package at all.
     expect(pkg.engines.node).toBe('>=22.12');
   });

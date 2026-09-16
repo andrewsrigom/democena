@@ -1,7 +1,7 @@
 {
-  "name": "@pesuto/demotale",
-  "version": "0.3.0",
-  "description": "Product demos that don't go stale. Write the walkthrough once; ship a video, a gif, or pictures. CI films it again when the UI changes.",
+  "name": "democena",
+  "version": "0.1.0-alpha.1",
+  "description": "Scripted product demos with expressive typography, real browser capture, and optional Remotion rendering.",
   "keywords": [
     "demo",
     "demo-video",
@@ -20,23 +20,19 @@
     "ai-agents"
   ],
   "license": "Apache-2.0",
-  "author": {
-    "name": "pesuto",
-    "email": "ben@pesuto.dev",
-    "url": "https://pesuto.dev"
-  },
+  "author": "andrewsrigom",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pesuto-dev/demotale.git"
+    "url": "git+https://github.com/andrewsrigom/democena.git"
   },
-  "homepage": "https://pesuto.dev/",
-  "bugs": "https://github.com/pesuto-dev/demotale/issues",
+  "homepage": "https://github.com/andrewsrigom/democena#readme",
+  "bugs": "https://github.com/andrewsrigom/democena/issues",
   "type": "module",
   "engines": {
     "node": ">=22.12"
   },
   "bin": {
-    "demotale": "dist/cli/index.js"
+    "democena": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -54,7 +50,8 @@
     "scripts/postinstall.mjs",
     "README.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "UPSTREAM.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -65,7 +62,13 @@
     "visual-030": "bash scripts/visual-030.sh",
     "postinstall": "node scripts/postinstall.mjs",
     "smoke:docker": "bash scripts/docker-smoke.sh",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test:browser": "node scripts/check-overlay.mjs",
+    "studio:install": "npm --prefix studio ci --ignore-scripts",
+    "studio:dev": "npm --prefix studio run dev",
+    "studio:capture": "npm --prefix studio run capture",
+    "studio:render": "npm --prefix studio run render",
+    "studio:preview": "npm --prefix studio run preview"
   },
   "dependencies": {
     "@playwright/test": "^1.56.1"
@@ -73,9 +76,17 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
     "@playwright/test@1.62.1": true
-  }
+  },
+  "contributors": [
+    {
+      "name": "Ben van den Berge",
+      "url": "https://github.com/pesuto-dev",
+      "note": "Original Demotale author"
+    }
+  ],
+  "x-democena-modified": "Independent fork of Demotale 0.3.0; see UPSTREAM.md and NOTICE."
 }

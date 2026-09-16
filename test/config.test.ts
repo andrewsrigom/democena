@@ -1,6 +1,7 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { describe, expect, it } from 'vitest';
 
-import { defineConfig, DemotaleConfigError, resolveConfig } from '../src/config.js';
+import { defineConfig, DemocenaConfigError, resolveConfig } from '../src/config.js';
 
 /**
  * The point of these is the wording. A recording provisions an application and runs for minutes, so
@@ -59,8 +60,8 @@ describe('defineConfig', () => {
     expect(message).toContain('gif');
   });
 
-  it('throws a DemotaleConfigError, so a CLI can tell it apart from a crash', () => {
-    expect(() => defineConfig({ speed: -1 })).toThrow(DemotaleConfigError);
+  it('throws a DemocenaConfigError, so a CLI can tell it apart from a crash', () => {
+    expect(() => defineConfig({ speed: -1 })).toThrow(DemocenaConfigError);
   });
 });
 
@@ -92,7 +93,7 @@ describe('resolveConfig', () => {
   });
 
   it('validates before it resolves', () => {
-    expect(() => resolveConfig({ speed: -2 })).toThrow(DemotaleConfigError);
+    expect(() => resolveConfig({ speed: -2 })).toThrow(DemocenaConfigError);
   });
 
   it('takes stills overrides without dropping the numbered default', () => {

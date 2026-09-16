@@ -1,4 +1,5 @@
-import { defineConfig } from '@pesuto/demotale';
+// Modified for Democena (2026): independent fork naming and configuration.
+import { defineConfig } from 'democena';
 
 export default defineConfig({
   baseUrl: 'http://localhost:4173',

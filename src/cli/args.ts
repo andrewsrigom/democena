@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * A small argument parser, deliberately not a dependency.
  *
@@ -5,7 +6,7 @@
  * positional. Anything after a bare `--` is handed through untouched, which is how `record` passes
  * extra arguments straight to Playwright.
  *
- * Callers must name their boolean flags. Without that, `demotale record --headed demo/tour.demo.ts`
+ * Callers must name their boolean flags. Without that, `democena record --headed demo/tour.demo.ts`
  * reads the file name as the value of `--headed`, the scenario filter disappears, and every scenario
  * gets recorded instead of the one that was asked for. Silently.
  */
@@ -70,7 +71,7 @@ export function flagNumber(args: Args, name: string): number | undefined {
   if (value === undefined) return undefined;
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
-    throw new Error(`demotale: --${name} expects a number, got "${value}".`);
+    throw new Error(`democena: --${name} expects a number, got "${value}".`);
   }
   return parsed;
 }
@@ -79,7 +80,7 @@ export function flagNumber(args: Args, name: string): number | undefined {
 export function parseDuration(value: string, name: string): number {
   const match = /^(\d+(?:\.\d+)?)(ms|s|m|h)?$/.exec(value.trim());
   if (match === null) {
-    throw new Error(`demotale: --${name} expects something like 90s or 10m, got "${value}".`);
+    throw new Error(`democena: --${name} expects something like 90s or 10m, got "${value}".`);
   }
   const amount = Number(match[1]);
   const unit = match[2] ?? 's';

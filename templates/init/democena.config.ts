@@ -1,4 +1,5 @@
-import { defineConfig } from '@pesuto/demotale';
+// Modified for Democena (2026): independent fork naming and configuration.
+import { defineConfig } from 'democena';
 
 export default defineConfig({
   // Where your app runs. The recording opens this once and clicks from there.
@@ -23,7 +24,7 @@ export default defineConfig({
     reuseExistingServer: false,
   },
 
-  // Written by `demotale auth <url>`. Missing is a supported state.
+  // Written by `democena auth <url>`. Missing is a supported state.
   // This file is a credential. Keep it out of git.
   storageState: '.auth/session.json',
 
@@ -39,7 +40,7 @@ export default defineConfig({
     accent: '#38bdf8',
   },
 
-  // Docs pictures from `demotale images N`. Numbered files (01-name.png); this folder belongs in git.
+  // Docs pictures from `democena images N`. Numbered files (01-name.png); this folder belongs in git.
   stills: {
     dir: './demo/stills',
     number: true,

@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale doctor` — everything that can be missing, checked before it costs an afternoon.
+ * `democena doctor` — everything that can be missing, checked before it costs an afternoon.
  *
  * The reason this command exists: a recording that fails on a missing browser fails *after* the
  * environment is up and part one is filmed, twenty minutes in. Every check here is cheap and runs
@@ -58,7 +59,7 @@ function nodeCheck(): Check {
         label: 'node',
         code: 'node-too-old',
         detail:
-          `${process.versions.node}; demotale needs ${required} or later. It reads TypeScript ` +
+          `${process.versions.node}; democena needs ${required} or later. It reads TypeScript ` +
           'config files without a build step, and that is where Node learned to do it.',
       };
 }
@@ -129,7 +130,7 @@ function playwrightCheck(root: string): Check[] {
         label: 'playwright',
         code: 'missing-dependency',
         detail: 'not installed.',
-        fix: 'npx demotale setup',
+        fix: 'npx democena setup',
       },
     ];
   }
@@ -152,7 +153,7 @@ function playwrightCheck(root: string): Check[] {
             label: 'chromium',
             code: 'missing-dependency',
             detail: 'not downloaded.',
-            fix: 'npx demotale setup',
+            fix: 'npx democena setup',
           },
     );
   } catch (error) {
@@ -163,7 +164,7 @@ function playwrightCheck(root: string): Check[] {
       // With the path, because a package that resolves but will not load is a broken install and
       // where it sits is the first thing you want to know about it.
       detail: `${(error as Error).message} (from ${path.dirname(resolved.entry)})`,
-      fix: 'npx demotale setup',
+      fix: 'npx democena setup',
     });
   }
 
@@ -176,8 +177,8 @@ function configChecks(root: string, config: ResolvedConfig, file: string | undef
       ? {
           status: 'warn',
           label: 'config',
-          detail: 'no demotale.config found, so every default applies.',
-          fix: 'npx demotale init',
+          detail: 'no democena.config found, so every default applies.',
+          fix: 'npx democena init',
         }
       : { status: 'ok', label: 'config', detail: path.relative(root, file) },
   ];
@@ -200,7 +201,7 @@ function configChecks(root: string, config: ResolvedConfig, file: string | undef
           detail:
             `no *.demo.ts in ${config.scenarios}, so there is nothing to record. Write one; init ` +
             'leaves an example behind to start from.',
-          fix: 'npx demotale init',
+          fix: 'npx democena init',
         },
   );
 
@@ -273,7 +274,7 @@ function webServerCheck(root: string, config: ResolvedConfig): Check[] {
                 (Object.keys(scripts).length === 0
                   ? '.'
                   : `. It has: ${Object.keys(scripts).join(', ')}. Put the right one in ` +
-                    'demotale.config.ts.'),
+                    'democena.config.ts.'),
             };
 
     const port =
@@ -381,7 +382,7 @@ export function npmScriptName(command: string): string | undefined {
 }
 
 /**
- * The three values `templates/init/demotale.config.ts` writes, kept here so this check can compare
+ * The three values `templates/init/democena.config.ts` writes, kept here so this check can compare
  * against them rather than against an idea of them.
  */
 const INIT_WROTE = {
@@ -489,7 +490,7 @@ async function baseUrlCheck(config: ResolvedConfig, hasSession: boolean): Promis
               : ', which looks like a sign-in, and there is no stored session. Signing in is a ' +
                 'one-off job for a person, not something a recording can do.'
             : '.'),
-        ...(isLogin ? { fix: `npx demotale auth ${config.baseUrl}` } : {}),
+        ...(isLogin ? { fix: `npx democena auth ${config.baseUrl}` } : {}),
       };
     }
 
@@ -521,7 +522,7 @@ async function baseUrlCheck(config: ResolvedConfig, hasSession: boolean): Promis
           code: 'unreachable',
           detail:
             `${config.baseUrl} does not answer, and no webServer is configured to start it. Either ` +
-            'start the application yourself, or add webServer to demotale.config.ts so a recording ' +
+            'start the application yourself, or add webServer to democena.config.ts so a recording ' +
             'starts it.',
         }
       : {
@@ -541,20 +542,20 @@ function agentGuideCheck(root: string): Check {
   const file = path.join(root, 'AGENTS.md');
   const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   if (existing.includes(AGENTS_MARKER)) {
-    return { status: 'ok', label: 'agent', detail: 'AGENTS.md points at demotale agent-guide' };
+    return { status: 'ok', label: 'agent', detail: 'AGENTS.md points at democena agent-guide' };
   }
   return {
     status: 'warn',
     label: 'agent',
     code: 'missing-agent-guide',
     detail:
-      'AGENTS.md does not point at demotale agent-guide, so an agent will invent a scenario from memory.',
-    fix: 'npx demotale init',
+      'AGENTS.md does not point at democena agent-guide, so an agent will invent a scenario from memory.',
+    fix: 'npx democena init',
   };
 }
 
 function ciWorkflowCheck(root: string): Check {
-  const workflow = path.join('.github', 'workflows', 'demotale.yml');
+  const workflow = path.join('.github', 'workflows', 'democena.yml');
   if (fs.existsSync(path.join(root, workflow))) {
     return { status: 'ok', label: 'ci', detail: workflow };
   }
@@ -563,7 +564,7 @@ function ciWorkflowCheck(root: string): Check {
     label: 'ci',
     code: 'missing-ci-workflow',
     detail: 'no GitHub Actions workflow, so a UI change will not re-record the demo.',
-    fix: 'npx demotale init --ci',
+    fix: 'npx democena init --ci',
   };
 }
 
@@ -592,7 +593,7 @@ export async function collectChecks(
       status: 'problem',
       label: 'config',
       code: 'environment',
-      detail: `${file ?? 'demotale.config'} could not be read. ${(error as Error).message}`,
+      detail: `${file ?? 'democena.config'} could not be read. ${(error as Error).message}`,
     });
   }
 

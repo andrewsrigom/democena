@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -54,7 +55,7 @@ describe('the frame that ends a step', () => {
   let demo: Demo;
 
   beforeEach(() => {
-    frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-frames-'));
+    frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-frames-'));
     events = [];
     demo = new Demo(fakePage(events), resolveConfig(), { mode: 'check', frameDir });
   });
@@ -137,7 +138,7 @@ describe('demo.still', () => {
   let events: string[] = [];
 
   beforeEach(() => {
-    frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-stills-'));
+    frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-stills-'));
     events = [];
   });
 

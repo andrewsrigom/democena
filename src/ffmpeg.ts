@@ -1,8 +1,9 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * Where the ffmpeg binary comes from.
  *
  * Prefer a system install on PATH (what operators already trust). If the project has
- * `ffmpeg-static` installed, use that binary next. demotale is Apache-2.0; an FFmpeg
+ * `ffmpeg-static` installed, use that binary next. democena is Apache-2.0; an FFmpeg
  * binary from `ffmpeg-static` is GPL — see NOTICE.
  */
 import { spawnSync } from 'node:child_process';

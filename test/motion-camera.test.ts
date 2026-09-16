@@ -1,0 +1,31 @@
+import { describe, expect, it } from 'vitest';
+import { cameraFor } from '../studio/src/camera.js';
+
+const viewport = { width: 1280, height: 800 };
+const width = 1170;
+const ratio = width / viewport.width;
+
+describe('motion camera', () => {
+  it('keeps a centered result fully readable when zooming', () => {
+    const focus = { x: 133, y: 634.5, width: 1014, height: 22.5 };
+    const camera = cameraFor(focus, viewport, width);
+    const left = focus.x * ratio * camera.scale + width * (1 - camera.scale) / 2 + camera.x;
+    const right = left + focus.width * ratio * camera.scale;
+    expect(left).toBeGreaterThan(24);
+    expect(right).toBeLessThan(width - 24);
+    expect(camera.x).toBeCloseTo(0);
+  });
+
+  it('never pans beyond the recorded image', () => {
+    for (const x of [0, 133, 1000]) for (const y of [0, 400, 740]) {
+      const camera = cameraFor({ x, y, width: 180, height: 40 }, viewport, width);
+      expect(Math.abs(camera.x)).toBeLessThanOrEqual(width * (camera.scale - 1) / 2);
+      expect(Math.abs(camera.y)).toBeLessThanOrEqual(viewport.height * ratio * (camera.scale - 1) / 2);
+    }
+  });
+
+  it('preserves the whole viewport for overview scenes and full-page focus', () => {
+    expect(cameraFor(undefined, viewport, width)).toEqual({ scale: 1, x: 0, y: 0 });
+    expect(cameraFor({ x: 0, y: 0, ...viewport }, viewport, width).scale).toBe(1);
+  });
+});

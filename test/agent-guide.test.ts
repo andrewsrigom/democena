@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -15,7 +16,7 @@ describe('agentsBlock', () => {
   });
 
   it('points at the command rather than repeating it', () => {
-    expect(block).toContain('demotale agent-guide');
+    expect(block).toContain('democena agent-guide');
     expect(block).toContain(AGENTS_MARKER);
   });
 });
@@ -37,11 +38,11 @@ describe('agentGuide', () => {
     ['deleting the generated example', 'demo/example.demo.ts'],
     ['seeding out of the recording', 'prepare.ts'],
     ['saying what is not real', 'demo.note'],
-    ['checking before recording', 'demotale check'],
+    ['checking before recording', 'democena check'],
     ['opening the frames', 'open the frames'],
     ['the json envelope', 'problems'],
     ['not installing things unasked', 'only if the person asked'],
-    ['login being a human job', 'demotale auth'],
+    ['login being a human job', 'democena auth'],
     ['reading the diff instead of clicking around', 'git diff'],
     // Added after the first trial on a framework application: two arms, no test id anywhere in it.
     ['locating by role rather than by CSS class', "getByRole('button', { name: 'Filter' })"],
@@ -51,7 +52,7 @@ describe('agentGuide', () => {
     ['redacting an internal string you cannot ask about', 'Redaction is reversible'],
     ['the last frame of a step waiting for the step', 'the step has finished'],
     ['recording taking as long as the video', 'plays in real time'],
-    ['stills as a promise', 'demotale images'],
+    ['stills as a promise', 'democena images'],
     ['still after the assertion', "demo.still('order-open')"],
     // From the framework trial: an arm asserted on a heading that renders before the data behind it
     // arrives, so its frame proved a loading spinner and it went looking for a locator bug it did
@@ -70,7 +71,7 @@ describe('init agent block', () => {
   let root: string;
 
   beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'demotale-agents-'));
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'democena-agents-'));
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
   });
 
@@ -81,13 +82,13 @@ describe('init agent block', () => {
 
   it('writes AGENTS.md by default', () => {
     init(root);
-    expect(fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8')).toContain('demotale agent-guide');
+    expect(fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8')).toContain('democena agent-guide');
   });
 
   it('says what the new AGENTS.md is for, without a mutation notice', () => {
     init(root);
     const out = vi.mocked(process.stdout.write).mock.calls.map((call) => String(call[0])).join('');
-    expect(out).toContain('run `demotale agent-guide` instead of inventing a scenario');
+    expect(out).toContain('run `democena agent-guide` instead of inventing a scenario');
     expect(out).not.toContain('Appended five lines to AGENTS.md');
   });
 
@@ -97,7 +98,7 @@ describe('init agent block', () => {
 
     const written = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
     expect(written).toContain('Use tabs.');
-    expect(written).toContain('demotale agent-guide');
+    expect(written).toContain('democena agent-guide');
   });
 
   it('says so in one sentence when it appends to an existing AGENTS.md', () => {
@@ -105,7 +106,7 @@ describe('init agent block', () => {
     init(root);
     const out = vi.mocked(process.stdout.write).mock.calls.map((call) => String(call[0])).join('');
     expect(out).toContain(
-      'Appended five lines to AGENTS.md so an agent runs `demotale agent-guide` instead of inventing a scenario.',
+      'Appended five lines to AGENTS.md so an agent runs `democena agent-guide` instead of inventing a scenario.',
     );
   });
 

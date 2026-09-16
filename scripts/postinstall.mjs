@@ -1,8 +1,9 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * Download Chromium for the Playwright that ships with demotale.
+ * Download Chromium for the Playwright that ships with democena.
  *
  * Skipped when the environment asks: CI that already has browsers, air-gapped installs, or anyone
- * who ran `npm i --ignore-scripts` and will call `npx demotale setup` instead.
+ * who ran `npm i --ignore-scripts` and will call `npx democena setup` instead.
  */
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -10,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 if (
-  process.env.DEMOTALE_SKIP_POSTINSTALL === '1' ||
+  process.env.DEMOCENA_SKIP_POSTINSTALL === '1' ||
   process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD === '1'
 ) {
   process.exit(0);

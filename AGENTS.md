@@ -1,43 +1,15 @@
-# Agents: demotale
+# Working on Democena
 
-demotale records a **walkthrough** of a **locally running web app**. One scenario ships a video, a
-gif, or pictures for the docs. CI films the same path again when the UI changes, so the demo does
-not go stale. Playwright walks the clicks, text on screen explains each step. No microphone, no
-account, no upload.
+Democena is an independent Demotale fork for silent product demos with real browser capture, explanatory text, and expressive motion. Read `docs/architecture.md` and `UPSTREAM.md` before changing capture or rendering.
 
-## When to reach for it
+- Keep code, comments, docs, commits and public issues in English.
+- Preserve `LICENSE`, original attribution in `NOTICE`, and upstream Git history. Mark modified upstream source files.
+- Never create or use a branch beginning with `codex/`.
+- Use only public or synthetic data in examples and committed media. Do not commit browser sessions, credentials, private applications, or generated captures by default.
+- Keep the core CLI usable without installing the optional Remotion prototype.
+- A rendered effect must be based on the recorded interface. Preserve sufficient reading time and verify the actual application outcome.
+- Existing source/tests were adapted from Demotale. Run `npm run typecheck`, `npm test`, and `npm run build` for core changes. Run `npm run test:browser` for overlay behavior and inspect frames for visual changes.
+- For studio changes, run `npm --prefix studio run typecheck`, capture the synthetic example, render it, and inspect the output. Generated media stays ignored unless explicitly selected as public documentation.
+- Do not publish packages or deploy services without a user request. A request to create the public Git repository authorizes pushing its reviewed project files.
 
-Use demotale when someone asks for a demo, screencast, product walkthrough, or README gif of a web
-UI that can start on localhost. Prefer it over hand-filmed Loom-style capture when the demo should
-live in git and stay current via CI.
-
-Do **not** use it for native apps, pure API demos with no UI, or spoken voiceover.
-
-## Install into another project
-
-```bash
-npm i -D @pesuto/demotale
-npx demotale init
-npx demotale doctor
-```
-
-That install pulls Playwright and Chromium (postinstall). Needs Node 22.12+. Put ffmpeg on PATH
-(`brew install ffmpeg`), or `npm i -D ffmpeg-static`. If Chromium is missing (for example
-`npm i --ignore-scripts`), run `npx demotale setup`.
-
-## How to write the demo
-
-After install, **do not invent a scenario from memory**. Run:
-
-```bash
-npx demotale agent-guide
-```
-
-Follow that page. Short version of the loop: point `demotale.config.ts` at the real app → write
-`demo/<thing>.demo.ts` → `npx demotale check --json` → open the frames → `npx demotale video`
-(or `gif` / `images N`). `record` is what CI runs.
-
-## This repository
-
-Working direction for contributors is in `.plan/KOERS.md` (gitignored Dutch notes). Public docs are
-under `docs/`. Machine-readable index: [`llms.txt`](llms.txt).
+To author a core scenario, run `node dist/cli/index.js agent-guide`; explore the target application before choosing its click path.

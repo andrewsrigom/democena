@@ -1,4 +1,5 @@
-name: demotale
+# Modified for Democena (2026): independent fork naming and configuration.
+name: democena
 
 # Re-records the demo on every push and pull request. A red job means the click path no longer
 # matches the application, which is the point: a stale video would have been worse.
@@ -21,14 +22,14 @@ jobs:
       - run: npm ci
 
       # --with-deps is for the OS libraries Chromium needs on Linux. The browser binary itself
-      # usually arrived at npm ci via demotale's postinstall.
+      # usually arrived at npm ci via democena's postinstall.
       - run: npx playwright install --with-deps chromium
 
       # GitHub-hosted Ubuntu does not ship ffmpeg. Without it the recording still runs and leaves
       # a webm, and this job would then have nothing to upload.
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - run: npx demotale record
+      - run: npx democena record
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale images N` — docs pictures from marked moments in the scenario.
+ * `democena images N` — docs pictures from marked moments in the scenario.
  *
  * N is a promise: the run must deliver exactly that many `demo.still()` calls, with unique names,
  * or nothing is written. A partial set would leave a hole in the documentation.
@@ -16,7 +17,7 @@ import { relative, say, warn } from './ui.js';
 
 const STILL_HINT =
   'In the scenario, after the assertion that proves the screen, add: await demo.still(\'name\'). ' +
-  'Then run `npx demotale agent-guide` and read the stills section.';
+  'Then run `npx democena agent-guide` and read the stills section.';
 
 /** Every `stills.json` under a directory, oldest first so order follows the run. */
 function readStillReports(dir: string): { report: StillsReport; dir: string }[] {
@@ -109,7 +110,7 @@ export async function imagesCommand(args: Args, root = process.cwd()): Promise<n
 
   if (count === undefined) {
     const message =
-      'demotale images needs a count, as in `demotale images 8`. That number is a promise: ' +
+      'democena images needs a count, as in `democena images 8`. That number is a promise: ' +
       'exactly that many `demo.still()` calls, or nothing is written.';
     if (json) {
       emitJson(
@@ -132,7 +133,7 @@ export async function imagesCommand(args: Args, root = process.cwd()): Promise<n
     ...args,
     positional: filter === undefined ? [] : [filter],
   };
-  const extraEnv: NodeJS.ProcessEnv = { DEMOTALE_IMAGES: '1' };
+  const extraEnv: NodeJS.ProcessEnv = { DEMOCENA_IMAGES: '1' };
 
   const played = await playScenarios(playArgs, root, extraEnv);
   const reports = readStillReports(outputDir);
@@ -145,7 +146,7 @@ export async function imagesCommand(args: Args, root = process.cwd()): Promise<n
     problems.push({
       code: 'record-failed',
       message: 'The scenario did not finish, so the stills were not written.',
-      fix: 'npx demotale check',
+      fix: 'npx democena check',
     });
   } else if (!plan.ok && plan.failure !== undefined) {
     problems.push({ ...explainFailure(plan.failure, plan.taken, plan.expected), fix: STILL_HINT });
@@ -167,7 +168,7 @@ export async function imagesCommand(args: Args, root = process.cwd()): Promise<n
   }
 
   if (!ok) {
-    for (const problem of problems) warn(`demotale images: ${problem.message}`);
+    for (const problem of problems) warn(`democena images: ${problem.message}`);
     warn(STILL_HINT);
     return 1;
   }

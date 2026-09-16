@@ -18,3 +18,8 @@ playwright-report/
 # npm pack output
 *.tgz
 pack/
+
+# Democena: local story edits and recordings may contain private application data.
+studio/project.json
+studio/public/captures/
+studio/.cache/

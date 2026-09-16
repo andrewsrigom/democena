@@ -1,7 +1,8 @@
-import { test, expect } from '@pesuto/demotale';
+// Modified for Democena (2026): independent fork naming and configuration.
+import { test, expect } from 'democena';
 
 test('A tour of the parcel desk', async ({ page, demo }) => {
-  await demo.card('Parcel desk', 'Recorded by demotale, from a script in this repository');
+  await demo.card('Parcel desk', 'Recorded by democena, from a script in this repository');
   await page.goto('/');
   await demo.hideCard();
 

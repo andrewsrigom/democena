@@ -1,8 +1,9 @@
+# Modified for Democena (2026): independent fork naming and configuration.
 name: CI
 
 # The recording job is the smoke alarm for the whole package: it exercises the config loader, the
 # Playwright config, the overlay, the fixture, ffmpeg and the caption writers in one go. If the
-# example still records, demotale still works.
+# example still records, democena still works.
 
 on:
   push:
@@ -51,6 +52,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Verify overlay initialization
+        run: npm run test:browser
+
       - name: Record the example
         run: npm run example
 
@@ -62,4 +66,28 @@ jobs:
             examples/basic/output/*.gif
             examples/basic/output/*.vtt
             examples/basic/output/*.md
+          if-no-files-found: error
+
+  studio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            studio/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run studio:install
+      - run: npm --prefix studio run typecheck
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npx playwright install --with-deps chromium
+      - run: npm run studio:capture
+      - run: npm run studio:render
+      - uses: actions/upload-artifact@v4
+        with:
+          name: democena-motion-preview
+          path: studio/output/
           if-no-files-found: error

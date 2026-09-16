@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { describe, expect, it } from 'vitest';
 
 import { jsonReport } from '../src/report.js';
@@ -5,8 +6,8 @@ import { jsonReport } from '../src/report.js';
 describe('jsonReport', () => {
   it('always carries the same envelope, so a reader learns it once', () => {
     const report = jsonReport('doctor', true, [], { checks: [] });
-    expect(Object.keys(report)).toEqual(['demotale', 'command', 'ok', 'problems', 'result']);
-    expect(report.demotale).toMatch(/^\d+\.\d+\.\d+/);
+    expect(Object.keys(report)).toEqual(['democena', 'command', 'ok', 'problems', 'result']);
+    expect(report.democena).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it('has problems as an array even when nothing is wrong', () => {

@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * What `demotale agent-guide` prints, and the few lines in AGENTS.md that point at it.
+ * What `democena agent-guide` prints, and the few lines in AGENTS.md that point at it.
  *
  * Everything here was measured. Two agents were given a repository, one sentence and no help, and
  * every place they guessed, over-recorded or got something wrong is a line below. The rules that
@@ -16,7 +17,7 @@ import { createRequire } from 'node:module';
 const version = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
 /** Marks the block in AGENTS.md, so a second `init` leaves it alone. */
-export const AGENTS_MARKER = '<!-- demotale:agent-guide -->';
+export const AGENTS_MARKER = '<!-- democena:agent-guide -->';
 
 /** The five lines. Deliberately short: their whole job is to point somewhere that cannot go stale. */
 export function agentsBlock(): string {
@@ -24,30 +25,30 @@ export function agentsBlock(): string {
     AGENTS_MARKER,
     '## Recording a demo',
     '',
-    'This project records demo videos of itself with demotale. When you are asked for a demo, a',
-    'recording or a screencast of anything here, run `npx demotale agent-guide` first and follow',
+    'This project records demo videos of itself with democena. When you are asked for a demo, a',
+    'recording or a screencast of anything here, run `npx democena agent-guide` first and follow',
     'what it prints. It is one page, it is written for you rather than for a person, and it is part',
     'of the installed version, so it cannot be out of date. Do not write a scenario from memory.',
   ].join('\n');
 }
 
 export function agentGuide(): string {
-  return `demotale ${version} — writing a demo, for an agent
+  return `democena ${version} — writing a demo, for an agent
 
 A scenario is a Playwright test that happens to be watchable. You write it, a dry run tells you what
 is wrong in seconds, and one recording at the end turns it into an mp4 with subtitles and a
 transcript. Everything below was learned by watching agents do this without instructions.
 
 THE LOOP
-  1  npx demotale doctor --json          what is missing, and the command that fixes it
+  1  npx democena doctor --json          what is missing, and the command that fixes it
   2  point the config at the real app    the one step nobody can do for you
   3  write demo/<thing>.demo.ts          one sentence per step
-  4  npx demotale check --json           seconds, no video, a frame per subtitle
+  4  npx democena check --json           seconds, no video, a frame per subtitle
   5  open the frames                     really open them; a green check proves less than you think
-  6  npx demotale video                once, at the end, if you want an mp4
-     npx demotale gif                  the gif; reuses the last recording unless you name a file
-     npx demotale images N             docs pictures; N is a promise (exactly N stills)
-     npx demotale record               CI: one play, whatever the config lists
+  6  npx democena video                once, at the end, if you want an mp4
+     npx democena gif                  the gif; reuses the last recording unless you name a file
+     npx democena images N             docs pictures; N is a promise (exactly N stills)
+     npx democena record               CI: one play, whatever the config lists
 
 Do 3 to 5 as often as needed. Recording to test a locator is slower and tells you less than \`check\`.
 Ask for the artefact you need. Do not add gif or stills to the config "just in case".
@@ -61,7 +62,7 @@ WHAT TO FILM
   part is not real yet.
 
 POINT IT AT THE REAL APP
-  Edit \`demotale.config.ts\`. \`init\` writes \`baseUrl: 'http://localhost:3000'\` and
+  Edit \`democena.config.ts\`. \`init\` writes \`baseUrl: 'http://localhost:3000'\` and
   \`webServer.command: 'npm start'\`; both are placeholders and both are usually wrong. Find the truth
   in the project itself: the dev script in package.json, the port in the server's own source.
   \`baseUrl\`, \`webServer.url\` and \`webServer.command\` are three settings for one thing and must
@@ -115,7 +116,7 @@ STILLS FOR DOCS
   A still is a screenshot of the real page, without the overlay. Mark the moment after the assertion:
       await expect(...).toBeVisible();
       await demo.still('order-open');
-  \`demotale images 8\` is a promise: exactly eight \`still()\` calls, unique names, or nothing is
+  \`democena images 8\` is a promise: exactly eight \`still()\` calls, unique names, or nothing is
   written. Files land in \`demo/stills/\` (\`01-order-open.png\` by default), which belongs in git.
   Numbering is a config flag. ffmpeg is not needed. During \`video\`/\`record\`, \`still()\` is a no-op.
 
@@ -134,17 +135,17 @@ CHECKING YOUR OWN WORK
 READING THE OUTPUT AS DATA
   \`check\`, \`record\`, \`video\`, \`gif\`, \`images\`, \`render\` and \`doctor\` all take \`--json\` and all answer
   the same shape:
-  \`{ demotale, command, ok, problems, result }\`. Start at \`problems\`: each has a stable \`code\`
+  \`{ democena, command, ok, problems, result }\`. Start at \`problems\`: each has a stable \`code\`
   (\`locator-no-match\`, \`assertion-failed\`, \`wrong-origin\`, \`missing-ffmpeg\`, ...), the scenario, the
   step, the locator, and a \`fix\` command where a command is the answer. \`result\` has the detail:
   candidates, frame paths, the pages that were filmed, and the settings the run actually used.
 
 WHEN SOMETHING IS MISSING
-  \`doctor\` names the \`fix\` command and installs nothing itself. Missing Chromium: \`npx demotale setup\`.
+  \`doctor\` names the \`fix\` command and installs nothing itself. Missing Chromium: \`npx democena setup\`.
   Missing ffmpeg: a system install, or \`npm i -D ffmpeg-static\`. Run those only if the person asked:
   installing because a tool suggested it is how people come to distrust tools.
   When it reports \`needs-login\`, the application sent the browser to a sign-in and the fix is
-  \`demotale auth <url>\`, which opens a browser and waits for a human. That is a person's job, not
+  \`democena auth <url>\`, which opens a browser and waits for a human. That is a person's job, not
   yours: say it is needed and stop.
 
 WHEN YOU ARE DONE

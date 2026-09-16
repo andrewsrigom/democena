@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
  * The overlay layer, which runs inside the PAGE itself.
  *
@@ -196,7 +197,7 @@ export function overlayScript(theme: Theme, redact: readonly string[] = []): str
   const PREFERRED = ${JSON.stringify(theme.captionPosition)};
   const RING_GAP = ${CAPTION_RING_GAP};
   const OFFSET = ${theme.captionOffset};
-  const COVER_KEY = '__demotale_cover';
+  const COVER_KEY = '__democena_cover';
   const COVER_STYLE_ID = '__demo-cover-style';
   const state = {};
   const boxesOverlap = ${boxesOverlap.toString()};
@@ -226,27 +227,38 @@ export function overlayScript(theme: Theme, redact: readonly string[] = []): str
   }
 
   function paintHtmlCover() {
+    if (!document.documentElement) return;
     if (dismissed()) {
-      document.documentElement.classList.remove('demotale-cover');
+      document.documentElement.classList.remove('democena-cover');
       return;
     }
     if (!document.getElementById(COVER_STYLE_ID)) {
       const style = document.createElement('style');
       style.id = COVER_STYLE_ID;
-      style.textContent = 'html.demotale-cover::before{content:"";position:fixed;inset:0;background:'
+      style.textContent = 'html.democena-cover::before{content:"";position:fixed;inset:0;background:'
         + CARD_SURFACE + ';z-index:2147483647;pointer-events:none;}';
       (document.head || document.documentElement).appendChild(style);
     }
-    document.documentElement.classList.add('demotale-cover');
+    document.documentElement.classList.add('democena-cover');
   }
 
   function clearHtmlCover() {
-    document.documentElement.classList.remove('demotale-cover');
+    document.documentElement?.classList.remove('democena-cover');
   }
 
   // Before body exists, and so before the overlay can mount: this is what the first video frame
   // actually is. Without it, goto paints the application and card() fades in over the top.
-  paintHtmlCover();
+  // addInitScript can precede <html>. Observe parser insertion, rather than waiting for
+  // DOMContentLoaded: deferred scripts may leave the application visible before that event.
+  if (document.documentElement) paintHtmlCover();
+  else {
+    const coverObserver = new MutationObserver(() => {
+      if (!document.documentElement) return;
+      paintHtmlCover();
+      coverObserver.disconnect();
+    });
+    coverObserver.observe(document, { childList: true, subtree: true });
+  }
 
   function ensureRoot() {
     if (state.root && document.body && document.body.contains(state.root)) return state.root;

@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { describe, expect, it } from 'vitest';
 
 import { toTranscript, toVtt, type DemoMeta } from '../src/captions.js';
@@ -66,7 +67,7 @@ describe('toTranscript', () => {
   });
 
   it('says it is generated, so nobody edits it by hand', () => {
-    expect(markdown).toContain('Written by demotale');
+    expect(markdown).toContain('Written by democena');
   });
 });
 

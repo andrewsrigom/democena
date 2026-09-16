@@ -1,3 +1,4 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 import { describe, expect, it } from 'vitest';
 
 import { ffmpegInstallHint, ffmpegInstallHintFor, ffmpegMissingFix, ffmpegSourceDetail } from '../src/ffmpeg.js';
@@ -11,11 +12,11 @@ describe('ffmpegInstallHintFor', () => {
 });
 
 describe('ffmpegMissingFix', () => {
-  it('names a system install and ffmpeg-static, not demotale setup', () => {
+  it('names a system install and ffmpeg-static, not democena setup', () => {
     const fix = ffmpegMissingFix();
     expect(fix).toContain(ffmpegInstallHint());
     expect(fix).toContain('npm i -D ffmpeg-static');
-    expect(fix).not.toMatch(/demotale setup/);
+    expect(fix).not.toMatch(/democena setup/);
   });
 });
 

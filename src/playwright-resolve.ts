@@ -1,8 +1,9 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * Where `@playwright/test` comes from for this install of demotale.
+ * Where `@playwright/test` comes from for this install of democena.
  *
  * Prefer the project's copy when it has one (one Playwright, one browser download). Fall back to the
- * copy that ships with demotale, which is what a one-package `npm i -D @pesuto/demotale` leaves you
+ * copy that ships with democena, which is what a one-package `npm i -D democena` leaves you
  * with under pnpm and other non-hoisting layouts.
  */
 import { createRequire } from 'node:module';
@@ -31,7 +32,7 @@ function tryResolve(require: NodeRequire): ResolvedPlaywright | undefined {
   }
 }
 
-/** Resolve Playwright for `root`, or `undefined` when neither the project nor demotale has it. */
+/** Resolve Playwright for `root`, or `undefined` when neither the project nor democena has it. */
 export function resolvePlaywright(root: string): ResolvedPlaywright | undefined {
   return (
     tryResolve(createRequire(path.join(root, 'package.json'))) ??

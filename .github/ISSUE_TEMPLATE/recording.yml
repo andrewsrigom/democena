@@ -1,3 +1,4 @@
+# Modified for Democena (2026): independent fork naming and configuration.
 name: Recording went wrong
 description: A click path, overlay, or render that did not match the application.
 title: "[recording] "
@@ -16,7 +17,7 @@ body:
   - type: textarea
     id: doctor
     attributes:
-      label: Output of `npx demotale doctor`
+      label: Output of `npx democena doctor`
       render: text
     validations:
       required: true
@@ -31,4 +32,4 @@ body:
     id: extra
     attributes:
       label: Video, a frame, or anything else you can share
-      description: A frame from `demotale check` is often enough.
+      description: A frame from `democena check` is often enough.

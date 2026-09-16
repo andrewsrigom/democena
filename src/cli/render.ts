@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale render` — the raw webm into files people can actually open.
+ * `democena render` — the raw webm into files people can actually open.
  *
  * A missing ffmpeg is not a failure here. The webm is a real recording that plays in any browser, so
  * this says what is missing and how to install it, and stops with a zero exit code: a CI job that has
@@ -43,7 +44,7 @@ export async function runRender(
     return {
       ok: false,
       problems: [
-        { code: 'no-recording', message: 'No recording found to render.', fix: 'npx demotale video' },
+        { code: 'no-recording', message: 'No recording found to render.', fix: 'npx democena video' },
       ],
       payload,
     };
@@ -80,12 +81,12 @@ export async function renderCommand(
   }
 
   if (payload.recordings.length === 0) {
-    warn('demotale: no recording found. Run "demotale video" or "demotale record" first.');
+    warn('democena: no recording found. Run "democena video" or "democena record" first.');
     return 1;
   }
 
   if (payload.missingFfmpeg) {
-    warn('demotale: ffmpeg is not available, so the recordings stay as webm:');
+    warn('democena: ffmpeg is not available, so the recordings stay as webm:');
     for (const recording of payload.recordings) warn(`  ${relative(recording.webm, root)}`);
     warn(`Install with: ${ffmpegMissingFix()}`);
     return 0;

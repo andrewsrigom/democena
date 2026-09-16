@@ -1,10 +1,11 @@
+<!-- Modified for Democena (2026): independent fork naming and configuration. -->
 # Writing a scenario
 
 A scenario is a Playwright test with one extra fixture. Everything you already know about Playwright
 applies: locators, `expect`, fixtures, `test.describe`. What `demo` adds is the part a viewer sees.
 
 ```ts
-import { test, expect } from '@pesuto/demotale';
+import { test, expect } from 'democena';
 
 test('From an order to a shipped parcel', async ({ page, demo }) => {
   await demo.card('Acme', 'From an order to a shipped parcel');
@@ -113,10 +114,10 @@ the assertion, not before: the documentation should show the state you just prov
 unique. During `video` or `record` the call does nothing.
 
 ```bash
-npx demotale images 1
+npx democena images 1
 ```
 
-That `1` is a promise. Eight `still()` calls means `demotale images 8`. If the count does not match,
+That `1` is a promise. Eight `still()` calls means `democena images 8`. If the count does not match,
 or two stills share a name, nothing is written. Where the files land, and numbering, is in
 [recipes](recipes.md#docs-pictures).
 
@@ -146,8 +147,8 @@ sign-ins and any other preparation there, so the video starts on the story.
 ## Pace
 
 ```bash
-npx demotale video --speed 1.4    # calmer
-npx demotale video --speed 0.7    # shorter
+npx democena video --speed 1.4    # calmer
+npx democena video --speed 0.7    # shorter
 ```
 
 One knob, and it only scales pauses. Your application is never sped up or slowed down, so nothing you

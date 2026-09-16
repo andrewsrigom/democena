@@ -1,5 +1,6 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * `demotale record` — run the scenarios and turn the result into a video.
+ * `democena record` — run the scenarios and turn the result into a video.
  *
  * `video` and `gif` are the same play, asking for one artefact so a person does not get files they
  * did not ask for. `record` is the CI umbrella: one play, whatever the config lists.
@@ -30,18 +31,18 @@ export function findPlaywrightConfig(root: string): string {
     if (fs.existsSync(candidate)) return candidate;
   }
   throw new UserFacingError(
-    'demotale: no playwright.config.ts in this directory, so there is nothing to run.',
-    'Run "npx demotale init" to write one.',
+    'democena: no playwright.config.ts in this directory, so there is nothing to run.',
+    'Run "npx democena init" to write one.',
   );
 }
 
-/** The Playwright CLI: the project's copy when present, otherwise the one that ships with demotale. */
+/** The Playwright CLI: the project's copy when present, otherwise the one that ships with democena. */
 export function resolvePlaywrightCli(root: string): string {
   const resolved = resolvePlaywright(root);
   if (resolved === undefined) {
     throw new UserFacingError(
-      'demotale: @playwright/test is not installed.',
-      'Run "npx demotale setup".',
+      'democena: @playwright/test is not installed.',
+      'Run "npx democena setup".',
     );
   }
   return resolved.cli;
@@ -68,7 +69,7 @@ export function resolveBaseUrl(args: Args, configured: string): string | undefin
       return new URL(given).toString().replace(/\/$/, '');
     } catch {
       throw new UserFacingError(
-        `demotale: --base-url ${given} is not a URL.`,
+        `democena: --base-url ${given} is not a URL.`,
         'It needs the scheme too, as in --base-url http://localhost:4173',
       );
     }
@@ -92,9 +93,9 @@ export async function playScenarios(
   const baseUrl = resolveBaseUrl(args, config.baseUrl);
 
   const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
-  if (speed !== undefined) env['DEMOTALE_SPEED'] = String(speed);
-  if (slowMo !== undefined) env['DEMOTALE_SLOWMO'] = String(slowMo);
-  if (baseUrl !== undefined) env['DEMOTALE_BASE_URL'] = baseUrl;
+  if (speed !== undefined) env['DEMOCENA_SPEED'] = String(speed);
+  if (slowMo !== undefined) env['DEMOCENA_SLOWMO'] = String(slowMo);
+  if (baseUrl !== undefined) env['DEMOCENA_BASE_URL'] = baseUrl;
 
   const filter = args.positional[0];
   const playwrightArgs = [
@@ -145,9 +146,9 @@ async function reportPlay(
                   code: 'record-failed' as const,
                   message:
                     'The recording did not finish. Playwright\'s own output is under ' +
-                    'result.playwright.output; run "demotale check" for the same click path with ' +
+                    'result.playwright.output; run "democena check" for the same click path with ' +
                     'the failure spelled out.',
-                  fix: 'npx demotale check',
+                  fix: 'npx democena check',
                 },
               ]),
           ...(rendered?.problems ?? []),
@@ -167,7 +168,7 @@ async function reportPlay(
 
   if (noRender) {
     say('');
-    say('Recorded. Run "demotale render" to turn it into a video.');
+    say('Recorded. Run "democena render" to turn it into a video.');
     return 0;
   }
 

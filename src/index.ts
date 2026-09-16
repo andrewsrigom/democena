@@ -1,12 +1,13 @@
+// Modified for Democena (2026): independent fork naming and configuration.
 /**
- * Public entry point of @pesuto/demotale.
+ * Public entry point of democena.
  *
  * A scenario imports `test` and `expect` from here instead of from Playwright: same test runner, one
- * extra fixture. `playwright.config.ts` imports `definePlaywrightConfig`, and `demotale.config.ts`
+ * extra fixture. `playwright.config.ts` imports `definePlaywrightConfig`, and `democena.config.ts`
  * imports `defineConfig`.
  */
 export { test, expect, Demo, readingTimeMs, slugify } from './demo.js';
-export type { DemotaleFixtures, DemotaleOptions, DemoMode, DemoRunOptions } from './demo.js';
+export type { DemocenaFixtures, DemocenaOptions, DemoMode, DemoRunOptions } from './demo.js';
 
 export { formatReport, rank, score, parseAriaSnapshot, describeLocator, locatorWords } from './check.js';
 export type {
@@ -21,9 +22,9 @@ export type {
 export { jsonReport, emitJson } from './report.js';
 export type { JsonReport, Problem, CommandName } from './report.js';
 
-export { defineConfig, resolveConfig, loadConfig, findConfigFile, DemotaleConfigError } from './config.js';
+export { defineConfig, resolveConfig, loadConfig, findConfigFile, DemocenaConfigError } from './config.js';
 export type {
-  DemotaleConfig,
+  DemocenaConfig,
   ResolvedConfig,
   LoadedConfig,
   CaptionsConfig,
