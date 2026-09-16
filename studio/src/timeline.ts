@@ -1,24 +1,7 @@
-import type { Project, Scene, Source } from './model.js';
+import type { Project, Source } from './model.js';
 
-export const FPS = 30;
-export const DEFAULT_TRANSITION = { type: 'fade', duration: 0.4 } as const;
-export const frames = (seconds: number, fps: number) => Math.round(seconds * fps);
-export function transitionFrames(scene: Scene, fps: number) {
-  const transition = scene.transition ?? DEFAULT_TRANSITION;
-  return transition.type === 'none' ? 0 : frames(transition.duration, fps);
-}
-
-/** Durations include the incoming crossfade. Source time never uses timeline time. */
-export function buildTimeline(scenes: Scene[], fps: number) {
-  let end = 0;
-  return scenes.map((scene, index) => {
-    const duration = frames(scene.duration, fps);
-    const overlap = index === 0 ? 0 : transitionFrames(scene, fps);
-    const from = end - overlap;
-    end = from + duration;
-    return { scene, from, duration, overlap, end };
-  });
-}
+import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
+export { DEFAULT_TRANSITION, FPS, frames, transitionFrames, buildTimeline } from './timeline-layout.mjs';
 
 export function sourceFrame(source: Source, localFrame: number, trimBefore: number, fps: number) {
   return frames(trimBefore + source.from, fps) + (source.freeze ? 0 : localFrame);
@@ -75,7 +58,7 @@ export function prepareProject(value: unknown, fps = FPS): Project {
   const clip = (value: unknown, duration: number, name: string) => {
     requireValue(record(value) && finite(value.from) && value.from >= 0 && (value.freeze === undefined || typeof value.freeze === 'boolean'), `${name} needs a nonnegative from and optional boolean freeze`);
     const last = frames(trim + value.from, fps) + (value.freeze ? 0 : frames(duration, fps) - 1);
-    requireValue(last < Math.floor(sourceDuration * fps), `${name} runs beyond the recording; shorten duration or use freeze: true`);
+    requireValue(last / fps < sourceDuration, `${name} runs beyond the recording; shorten duration or use freeze: true`);
   };
   const zoom = (value: unknown, name: string) => requireValue(value === undefined || (finite(value) && value >= 1 && value <= 3), `${name} must be between 1 and 3`);
   for (const [i, scene] of p.scenes.entries()) {
@@ -87,7 +70,7 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     for (const key of ['eyebrow', 'title', 'body']) requireValue(text(scene[key]), `${name}.${key} is required`);
     const transition = scene.transition ?? DEFAULT_TRANSITION;
     requireValue(record(transition) && ['fade', 'slide', 'none'].includes(String(transition.type)) && finite(transition.duration) && transition.duration >= 0, `${name}.transition is invalid`);
-    const incoming = transition.type === 'none' ? 0 : frames(transition.duration, fps);
+    const incoming = i === 0 || transition.type === 'none' ? 0 : frames(transition.duration, fps);
     const previous = p.scenes[i - 1];
     requireValue(incoming * 2 < frames(scene.duration, fps) && (!previous || incoming * 2 < frames(Number(previous.duration), fps)), `${name}.transition must be shorter than half of both adjacent scenes`);
     switch (scene.type) {

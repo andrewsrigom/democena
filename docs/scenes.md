@@ -17,7 +17,7 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
 }
 ```
 
-This skeleton needs at least one scene. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page.
+This skeleton needs at least one scene. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
 
 There are two independent clocks:
 
@@ -34,7 +34,7 @@ Seconds are rounded to frames at 30 fps. Every scene has a unique `id`, a `type`
 "transition": { "type": "slide", "duration": 0.5 }
 ```
 
-Transitions are incoming and overlap the previous scene. They do not add runtime. Two 5-second scenes with a 0.5-second incoming transition have a total duration of 9.5 seconds. Supported types are `fade`, `slide` and `none`; default is a 0.4-second fade. Use `{ "type": "none", "duration": 0 }` for a cut. The first scene has no incoming overlap. Transition duration must be shorter than half of both neighboring scenes, preventing triple overlaps.
+Transitions are incoming and overlap the previous scene. They do not add runtime. Two 5-second scenes with a 0.5-second incoming transition have a total duration of 9.5 seconds. Supported types are `fade`, `slide` and `none`; default is a 0.4-second fade. Use `{ "type": "none", "duration": 0 }` for a cut. The first scene has no incoming overlap. Scene thumbnails are chosen between transitions so the next scene cannot leak into the preview. Transition duration must be shorter than half of both neighboring scenes, preventing triple overlaps.
 
 Durations include transition time. Allow enough settled time to read the title, body and any note; the example uses longer holds for explanations. Keep titles and notes concise and inspect the generated stills for your copy.
 
@@ -134,7 +134,7 @@ Use a `result` with `source` and optional `focus` for one final state. Add `comp
 }
 ```
 
-Comparison times follow the same trimmed recording clock as `source.from`. The comparison replaces the normal source view; its two frames remain frozen throughout the scene. Pick timestamps safely before/after the action and crop the meaningful region. No application state or result text is fabricated by the renderer.
+Comparison times follow the same trimmed recording clock as `source.from`. The comparison replaces the normal source view; its two frames remain frozen throughout the scene. Pick timestamps safely before/after the action and crop the meaningful region. Tall or narrow crops are centered with empty space beside them; content outside the chosen rectangle remains hidden. No application state or result text is fabricated by the renderer.
 
 ## Closing
 

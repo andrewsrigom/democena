@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { Focus, Project, Source } from './model';
 import type { Camera } from './camera';
 import { sourceFrame } from './timeline';
+import { comparisonLayout } from './layout';
 
 const IDENTITY: Camera = { x: 0, y: 0, scale: 1 };
 export function RecordedVideo({ project, source, width }: { project: Project; source: Source; width: number }) {
@@ -50,18 +51,16 @@ export function BrowserFrame({ project, source, camera = IDENTITY, focus, dim, c
 /** Crop two actual video frames to the same rectangle so differences are easy to read. */
 export function ComparisonFrame({ project, at, crop, label, after }: { project: Project; at: number; crop: Focus; label: string; after: boolean }) {
   const width = 1170;
-  const ratio = width / crop.width;
-  const height = Math.min(280, crop.height * ratio);
-  // Fit tall crops rather than silently cutting off the recorded outcome.
-  const fit = Math.min(ratio, height / crop.height);
-  const padding = (width - crop.width * fit) / 2;
+  const clip = comparisonLayout(crop, width);
   return <div style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${after ? project.accent : '#d5dacf'}`, background: '#fff', boxShadow: '0 20px 40px -30px #23352950' }}>
     <div style={{ height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 12, background: after ? project.accent : '#e7e9e1', color: after ? '#fff' : '#66716b', fontSize: 16, fontWeight: 700, letterSpacing: 1 }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor' }} />{label}
     </div>
-    <div style={{ width, height, overflow: 'hidden', position: 'relative', background: '#f8fafc' }}>
-      <div style={{ position: 'absolute', left: padding - crop.x * fit, top: -crop.y * fit }}>
-        <RecordedVideo project={project} source={{ from: at, freeze: true }} width={project.viewport.width * fit} />
+    <div style={{ width, height: clip.height, position: 'relative', background: '#f8fafc' }}>
+      <div style={{ position: 'absolute', left: clip.left, width: clip.width, height: clip.height, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: clip.videoLeft, top: clip.videoTop }}>
+          <RecordedVideo project={project} source={{ from: at, freeze: true }} width={project.viewport.width * clip.scale} />
+        </div>
       </div>
     </div>
   </div>;

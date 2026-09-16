@@ -73,6 +73,28 @@ describe('scene timeline and source clock', () => {
     expect(prepareProject(p).scenes[0]?.type).toBe('result');
   });
 
+
+  it('selects previews outside both incoming and outgoing transitions', () => {
+    const scenes: Scene[] = ['a', 'b', 'c'].map((id) => ({ ...base, id, type: 'text', duration: 5, transition: { type: 'fade', duration: 2.4 } }));
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const middle = timeline[1]!;
+    expect(middle.previewFrame).toBeGreaterThanOrEqual(middle.from + middle.overlap);
+    expect(middle.previewFrame).toBeLessThan(timeline[2]!.from);
+    expect(middle.from + Math.round(middle.duration * .65)).toBeGreaterThanOrEqual(timeline[2]!.from);
+  });
+
+  it('does not apply an incoming transition to a single short opening', () => {
+    const p = prepareProject({ ...project(), scenes: [{ ...base, id: 'opening', type: 'text', duration: .3 }] });
+    const timeline = buildTimeline(p.scenes, FPS);
+    expect(timeline[0]).toMatchObject({ from: 0, duration: 9, overlap: 0, end: 9, previewFrame: 4 });
+  });
+
+  it('accepts the final partial media frame, but rejects a frame at the exact end', () => {
+    const scene = { ...base, id: 'last', type: 'overview', source: { from: 1, freeze: true } };
+    expect(() => prepareProject({ ...project(), trimBefore: 0, sourceDuration: 1.02, scenes: [scene] })).not.toThrow();
+    expect(() => prepareProject({ ...project(), trimBefore: 0, sourceDuration: 1, scenes: [scene] })).toThrow(/beyond the recording/);
+  });
+
   it('rejects clips and comparison stills beyond the recording', () => {
     for (const scene of [
       { ...base, id: 'bad', type: 'overview', source: { from: 18 } },
@@ -84,7 +106,7 @@ describe('scene timeline and source clock', () => {
     const p = project();
     expect(() => prepareProject({ ...p, scenes: [{ ...base, id: 'bad', type: 'focus', source: { from: 0 }, focus: { ...focus, x: 1200 } }] })).toThrow(/fit the recorded viewport/);
     expect(() => prepareProject({ ...p, scenes: [{ ...base, id: 'bad', type: 'camera', source: { from: 0 }, path: [{ at: 0 }, { at: .001, focus }] }] })).toThrow(/distinct frames/);
-    expect(() => prepareProject({ ...p, scenes: [{ ...base, id: 'bad', type: 'text', transition: { type: 'fade', duration: 2 } }] })).toThrow(/half/);
+    expect(() => prepareProject({ ...p, scenes: [p.scenes[0], { ...base, id: 'bad', type: 'text', transition: { type: 'fade', duration: 2 } }] })).toThrow(/half/);
   });
 
   it('rejects unpaused annotations, missing fields, duplicate IDs and unknown scene types', () => {

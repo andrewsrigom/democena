@@ -3,6 +3,7 @@ import type { AnnotationScene, ChapterScene, OutroScene, Project, Scene, TextSce
 import { cameraAt, cameraFor } from './camera';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
+import { browserLayout } from './layout';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function TextPanel({ scene, accent }: { scene: TextScene | OutroScene; accent: string }) {
@@ -45,12 +46,12 @@ function Caption({ scene, accent }: { scene: Scene; accent: string }) {
     <div style={{ width: 42, height: 4, borderRadius: 4, background: accent, marginTop: 34 }} />
   </div>;
 }
-function Annotation({ scene, project }: { scene: AnnotationScene; project: Project }) {
+function Annotation({ scene, project, width }: { scene: AnnotationScene; project: Project; width: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const appear = spring({ frame: frame - 12, fps, config: { damping: 26 } });
   const draw = interpolate(frame, [10, 35], [0, 1], CLAMP);
-  const ratio = 1170 / project.viewport.width;
+  const ratio = width / project.viewport.width;
   const { note, focus } = scene;
   const x = focus.x + focus.width / 2;
   const y = focus.y + focus.height / 2;
@@ -81,17 +82,18 @@ export function SceneContent({ scene, project }: { scene: Scene; project: Projec
       </div>
     </>;
   }
+  const layout = browserLayout(project.viewport);
   const focus = 'focus' in scene ? scene.focus : undefined;
   const strength = spring({ frame, fps, config: { damping: 30, stiffness: 60 } });
-  const target = cameraFor(focus, project.viewport, 1170, scene.type === 'focus' ? scene.zoom ?? 1.35 : 1.14);
-  const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, 1170)
-    : scene.type === 'annotation' ? cameraFor(undefined, project.viewport, 1170)
+  const target = cameraFor(focus, project.viewport, layout.width, scene.type === 'focus' ? scene.zoom ?? 1.35 : 1.14);
+  const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, layout.width)
+    : scene.type === 'annotation' ? cameraFor(undefined, project.viewport, layout.width)
     : { scale: 1 + (target.scale - 1) * strength, x: target.x * strength, y: target.y * strength };
   return <><Caption scene={scene} accent={project.accent} />
-    <div style={{ position: 'absolute', left: 664, top: 158 }}>
-      <BrowserFrame project={project} source={scene.source} camera={camera} focus={focus}
+    <div style={{ position: 'absolute', left: layout.left, top: layout.top }}>
+      <BrowserFrame project={project} source={scene.source} width={layout.width} camera={camera} focus={focus}
         dim={scene.type === 'focus' ? scene.dim ?? .38 : scene.type === 'annotation' ? .14 : 0}>
-        {scene.type === 'annotation' ? <Annotation scene={scene} project={project} /> : null}
+        {scene.type === 'annotation' ? <Annotation scene={scene} project={project} width={layout.width} /> : null}
       </BrowserFrame>
     </div>
   </>;

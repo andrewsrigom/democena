@@ -5,6 +5,7 @@ import path from 'node:path';
 import { bundle } from '@remotion/bundler';
 import { openBrowser, renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import { chromium } from 'playwright';
+import { buildTimeline } from '../src/timeline-layout.mjs';
 
 const inputProps = JSON.parse(await readFile('project.json', 'utf8').catch(() => { throw new Error('Run npm run studio:capture from the repository root first.'); }));
 assert(typeof inputProps.video === 'string', 'video is required');
@@ -24,14 +25,8 @@ try {
   const composition = await selectComposition({ serveUrl, id: 'Democena', inputProps, puppeteerInstance });
   const props = composition.props;
   const stills = [];
-  let end = 0;
-  for (const [i, scene] of props.scenes.entries()) {
-    const duration = Math.round(scene.duration * composition.fps);
-    const transition = scene.transition ?? { type: 'fade', duration: .4 };
-    const overlap = i === 0 || transition.type === 'none' ? 0 : Math.round(transition.duration * composition.fps);
-    const from = end - overlap;
-    end = from + duration;
-    const frame = from + Math.min(duration - 1, Math.max(overlap, Math.round(duration * .65)));
+  const timeline = buildTimeline(props.scenes, composition.fps);
+  for (const [i, { scene, from, duration, previewFrame: frame }] of timeline.entries()) {
     // Filenames use an index and validated type, never a user-supplied ID or title.
     const output = `output/scenes/${String(i + 1).padStart(2, '0')}-${scene.type}.png`;
     await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance, frame, output });
