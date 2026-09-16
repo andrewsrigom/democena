@@ -8,11 +8,13 @@ Democena produces silent demos: real software workflows explained by text and mo
 
 ## Optional presentation prototype
 
-`studio/` has a separate dependency installation and lockfile. A small Playwright adapter records the synthetic example without decorative overlays and writes `project.json` plus video under `public/captures/`. A Remotion composition reads that project and adds framing, text, progress and camera movement. The same composition powers preview and MP4 rendering.
+`studio/` has a separate dependency installation and lockfile. A small Playwright adapter records the synthetic example without decorative overlays and writes `project.json` plus video under `public/captures/`. A Remotion composition reads that project and renders eight scene types: text, chapter, overview, focus, camera, annotation, result/comparison, and outro. The same composition powers preview and MP4 rendering.
 
 Recorded video remains the visual source. Focus coordinates come from the real page. Text and styling can change without replaying the application. Actions or resulting state changes require another capture.
 
-The prototype uses a single continuous capture and scene timestamps. Its initial video offset is estimated from the recording duration and capture clock; frame-perfect event timing is not claimed. Do not silently treat these approximate timestamps as ground truth for precise click effects.
+The capture remains a single continuous video. The version 2 scene manifest separates presentation duration from source timestamps, so text cards do not advance playback and annotations/comparisons can hold actual recorded frames. Incoming transitions overlap neighboring scenes; camera paths use scene-local timestamps. Studio and export share validation and normalize older manifests in memory. See [scene authoring](scenes.md).
+
+The adapter still records approximate event timestamps. Its initial video offset is estimated from the recording duration and capture clock; frame-perfect event timing is not claimed. Do not silently treat these approximate timestamps as ground truth for precise click effects.
 
 ## Next steps
 

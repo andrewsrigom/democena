@@ -4,9 +4,9 @@
 
 Democena records scripted browser walkthroughs and turns them into silent product demos, GIFs, and documentation images.
 
-**Status: early alpha.** The optional `studio/` prototype adds a real browser recording, animated typography, a framed viewport, and smooth focus movements. It is a developer tool, not a hosted editor.
+**Status: early alpha.** The optional `studio/` adds eight scene types: animated text, chapter breaks, app overview, spotlight focus, camera paths, paused annotations, before/after results, and closing panels. It is a developer tool, not a hosted editor.
 
-![Democena motion prototype showing a real synthetic parcel-tracking workflow](docs/media/preview.png)
+![Democena showing a paused recording with an animated note pointing to the real parcel-tracking result](docs/media/preview.png)
 
 ## Start locally
 
@@ -35,7 +35,9 @@ npm run studio:dev
 
 Capture produces a clean browser video plus an editable scene manifest. Render creates `studio/output/democena.mp4`. Studio previews the same composition. Change the text, accent and focus points in `studio/project.json`, then render again without replaying the application.
 
-See [studio/README.md](studio/README.md) for the current capabilities and limits.
+Each scene has its own duration and transition. Freeze the recording for an explanation, move between real elements, or compare two recorded states. `npm run studio:preview` exports a still of every scene.
+
+See the [scene authoring guide](docs/scenes.md) and [studio/README.md](studio/README.md) for controls, examples and current limits.
 
 ## Capture your application
 

@@ -1,4 +1,4 @@
-<!-- Adapted for Democena (2026) from the Apache-2.0 Demotale synthetic example. See ../../NOTICE. Compact layout for the motion prototype. -->
+<!-- Adapted for Democena (2026) from the Apache-2.0 Demotale synthetic example. See ../../NOTICE. Compact layout and visible empty state for the motion scenes. -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -95,7 +95,7 @@
         <label for="code">Track a parcel</label>
         <input id="code" name="code" placeholder="PD-0000" autocomplete="off" />
         <button type="submit">Track</button>
-        <div id="result" data-testid="result"></div>
+        <div id="result" data-testid="result" aria-live="polite">Enter a parcel code to see its latest status.</div>
       </form>
     </main>
 
