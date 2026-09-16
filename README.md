@@ -59,6 +59,18 @@ npx democena images 3
 
 The core CLI still renders its in-page overlays. The clean-capture Remotion prototype currently has its own example adapter; it does not yet convert every existing scenario automatically.
 
+## Use with Codex or another agent
+
+The optional local MCP server exposes project discovery, scene editing, media import, validation, background rendering and PNG previews. The same operations are available through a JSON CLI for agents with terminal access.
+
+```bash
+npm run mcp:install
+npm run mcp:build
+node mcp/dist/mcp/src/cli.js capabilities --workspace "$PWD/.democena-agent"
+```
+
+Configure Codex to launch `mcp/dist/mcp/src/index.js` with an explicit workspace. See the [agent and MCP guide](docs/agents.md) for setup and the complete create → edit → preview → inspect → render workflow. The integration uses existing recordings; browser capture remains a separate step.
+
 ## Development
 
 ```bash

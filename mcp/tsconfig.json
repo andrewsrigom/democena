@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "rootDir": "..",
+    "outDir": "dist",
+    "allowJs": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "../studio/src/model.ts",
+    "../studio/src/timeline.ts",
+    "../studio/src/timeline-layout.mjs",
+    "../studio/src/timeline-layout.d.mts"
+  ]
+}

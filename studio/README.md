@@ -41,3 +41,13 @@ See **[the scene authoring guide](../docs/scenes.md)** for the manifest contract
 - Re-running capture replaces the generated manifest and recording. Copy your edited `project.json` before doing so.
 
 Generated projects, recordings and renders remain ignored by Git. The bundled example contains synthetic data. Remotion has [its own license](https://www.remotion.dev/license).
+
+## Agent render inputs
+
+The MCP service calls the same renderer with isolated inputs and outputs:
+
+```bash
+node scripts/render.mjs --project /absolute/project.json --public-dir /absolute/media --output /absolute/render-job --still
+```
+
+Omit `--still` for MP4 plus previews. Defaults remain `project.json`, `public` and `output` relative to the working directory. The renderer resolves its composition from the installed Studio checkout. Agent jobs always use fresh output directories; the legacy fixed output directory can retain old scene images between runs. See [agents](../docs/agents.md).

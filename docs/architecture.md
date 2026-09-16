@@ -16,6 +16,14 @@ The capture remains a single continuous video. The version 2 scene manifest sepa
 
 The adapter still records approximate event timestamps. Its initial video offset is estimated from the recording duration and capture clock; frame-perfect event timing is not claimed. Do not silently treat these approximate timestamps as ground truth for precise click effects.
 
+## Local agent interface
+
+`mcp/` is an optional package with its own dependency installation. It provides a stdio MCP server and a JSON CLI backed by the same project service. Both reuse the Studio manifest validator and timeline math without importing React or installing Remotion in the core CLI.
+
+Projects live in an explicitly selected workspace. Saves check a content revision, retain the prior manifest, and replace the active manifest atomically. Media imports copy recordings into immutable names and derive metadata through ffprobe. Render jobs snapshot the manifest and media, run in a separate local process, and persist their state and artifacts. A client can disconnect and later inspect its job. The server exposes PNG previews for an agent's visual verification loop.
+
+This is a local trusted-user tool, not a hosted service or a sandbox for hostile local processes. It rejects paths outside its workspace and symbolic links within it, and never accepts shell commands or remote media URLs. Browser capture and frame-accurate event timing remain separate work. See [agent integration](agents.md).
+
 ## Next steps
 
 1. Extend the core scenario API with an explicit clean-capture mode and structured focus/cursor events.

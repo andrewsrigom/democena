@@ -80,15 +80,21 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             studio/package-lock.json
+            mcp/package-lock.json
       - run: npm ci --ignore-scripts
+      - run: npm run mcp:install
+      - run: npm run mcp:test
       - run: npm run studio:install
       - run: npm --prefix studio run typecheck
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npx playwright install --with-deps chromium
       - run: npm run studio:capture
-      - run: npm run studio:render
+      - run: node mcp/scripts/smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: democena-motion-preview
-          path: studio/output/
+          include-hidden-files: true
+          path: |
+            studio/.cache/agent-smoke-*/verification.json
+            studio/.cache/agent-smoke-*/jobs/*/output/
           if-no-files-found: error

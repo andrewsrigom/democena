@@ -148,6 +148,13 @@ WHEN SOMETHING IS MISSING
   \`democena auth <url>\`, which opens a browser and waits for a human. That is a person's job, not
   yours: say it is needed and stop.
 
+OPTIONAL SCENE EDITING AND MCP
+  For editable motion scenes, this checkout also provides a local MCP server and a JSON CLI.
+  Read docs/agents.md in the Democena repository for setup and the create → preview → inspect →
+  render workflow. Keep core capture and Studio editing distinct: automatic conversion of every
+  scenario to clean Studio media is not implemented. Inspect rendered previews before claiming
+  the visual result is correct.
+
 WHEN YOU ARE DONE
   Say what you changed and leave it for the developer to commit. The scenario belongs in the
   repository — thirty lines that CI can run again tomorrow (\`init --ci\` writes the workflow) — and \`demo/output/\` does not; it is a

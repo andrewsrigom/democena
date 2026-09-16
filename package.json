@@ -68,7 +68,10 @@
     "studio:dev": "npm --prefix studio run dev",
     "studio:capture": "npm --prefix studio run capture",
     "studio:render": "npm --prefix studio run render",
-    "studio:preview": "npm --prefix studio run preview"
+    "studio:preview": "npm --prefix studio run preview",
+    "mcp:install": "npm --prefix mcp ci --ignore-scripts",
+    "mcp:build": "npm --prefix mcp run build",
+    "mcp:test": "npm --prefix mcp test"
   },
   "dependencies": {
     "@playwright/test": "^1.56.1"

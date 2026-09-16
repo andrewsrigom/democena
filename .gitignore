@@ -23,3 +23,6 @@ pack/
 studio/project.json
 studio/public/captures/
 studio/.cache/
+
+# Local agent projects, imported media and render jobs.
+.democena-agent/
