@@ -1,5 +1,5 @@
 import { theme } from './theme';
-import { AbsoluteFill, interpolate, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { Project, Scene } from './model';
 import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { SceneContent } from './scenes';
@@ -25,9 +25,8 @@ export function Demo(project: Project) {
     {timeline.map(({ scene, from, duration }, i) => <Sequence key={scene.id} name={`${String(i + 1).padStart(2, '0')} · ${scene.type} · ${scene.title.replaceAll('\n', ' ')}`} from={from} durationInFrames={duration}>
       <SceneLayer scene={scene} project={project} first={i === 0} />
     </Sequence>)}
-    <div style={{ position: 'absolute', left: 88, top: 64, display: 'flex', alignItems: 'center', gap: 14 }}>
-      <div style={{ background: project.accent, width: 36, height: 36, borderRadius: 11, color: '#fff', fontSize: 20, textAlign: 'center', lineHeight: '36px' }}>d</div>
-      <span style={{ fontSize: 25, fontWeight: 700, letterSpacing: -1 }}>democena</span>
+    <div style={{ position: 'absolute', left: 75, top: 45, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <Img src={staticFile('brand/democena-logo.png')} style={{ width: 244, height: 'auto' }} />
       <span style={{ marginLeft: 22, paddingLeft: 22, borderLeft: '1px solid #e1e6ed', fontSize: 18, color: theme.muted }}>PRODUCT STORIES, IN MOTION</span>
     </div>
     <div style={{ position: 'absolute', left: 88, right: 88, bottom: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>

@@ -1,6 +1,8 @@
-# Democena
+<h1 align="center">
+  <img src="docs/media/democena-logo.png" alt="Democena" width="460">
+</h1>
 
-**Real product workflows. Text that guides. Motion that makes them clear.**
+<p align="center"><strong>Real product workflows. Text that guides. Motion that makes them clear.</strong></p>
 
 Democena records scripted browser walkthroughs and turns them into silent product demos, GIFs, and documentation images.
 
