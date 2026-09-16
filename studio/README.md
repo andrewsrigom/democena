@@ -20,7 +20,7 @@ The visual layer provides an animated browser frame, three scene captions, subtl
 
 ## Current limits
 
-- This is an example adapter, not automatic import of arbitrary Demotale/Democena scenarios.
+- This example adapter does not yet import existing CLI scenarios automatically.
 - Capture uses wall-clock scene markers and estimates the leading video offset from the final media duration. This is suitable for a prototype; frame-accurate event synchronization is future work.
 - Focus assumes a fixed viewport. There is no responsive reflow or cursor-path interpolation yet.
 - Remotion Studio previews the composition; this repository does not yet provide a custom drag-and-drop editor.

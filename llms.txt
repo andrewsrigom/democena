@@ -1,4 +1,4 @@
-Modified for Democena (2026), an independent Demotale fork. The local package is not published to npm; build the checkout first.
+Modified for Democena (2026). The local package is not published to npm; build the checkout first.
 
 # democena
 

@@ -1,6 +1,6 @@
 # Contributing to Democena
 
-Issues and pull requests are welcome. This is an independent fork of Demotale; read `UPSTREAM.md` for attribution and `docs/architecture.md` for direction.
+Issues and pull requests are welcome. Read `docs/architecture.md` for the project direction.
 
 Use English for code, comments, documentation, commits and issues. Prefer a small change with a reproducible failure or a clearly inspectable visual improvement.
 
@@ -23,4 +23,4 @@ Include expected/actual behavior, `democena doctor` output, the smallest relevan
 
 Tests should catch observable failures rather than merely match source strings. In particular, overlay changes must work during real navigation and before DOMContentLoaded, not only in a mocked DOM.
 
-Contributions to this repository are under Apache-2.0. Preserve upstream copyright and third-party notices. Democena is independent of Pesuto and does not represent the official Demotale project.
+Contributions to this repository are under Apache-2.0. Preserve upstream copyright and third-party notices.

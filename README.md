@@ -2,9 +2,9 @@
 
 **Real product workflows. Text that guides. Motion that makes them clear.**
 
-Democena records scripted browser walkthroughs and turns them into silent product demos, GIFs, and documentation images. It is an independent fork of [Demotale](https://github.com/pesuto-dev/demotale), moving toward clean capture and a separate Remotion presentation layer.
+Democena records scripted browser walkthroughs and turns them into silent product demos, GIFs, and documentation images.
 
-**Status: early alpha.** The capture CLI is inherited from Demotale. The optional `studio/` prototype adds a real browser recording, animated typography, a framed viewport, and smooth focus movements. It is a developer tool, not a hosted editor.
+**Status: early alpha.** The optional `studio/` prototype adds a real browser recording, animated typography, a framed viewport, and smooth focus movements. It is a developer tool, not a hosted editor.
 
 ![Democena motion prototype showing a real synthetic parcel-tracking workflow](docs/media/preview.png)
 
@@ -47,7 +47,7 @@ npx democena init
 npx democena agent-guide
 ```
 
-Write `democena.config.ts` and a scenario that imports `test` and `expect` from `democena`. Existing Demotale scenarios need their package import and config name updated. CLI environment variables use the `DEMOCENA_` prefix.
+Write `democena.config.ts` and a scenario that imports `test` and `expect` from `democena`. CLI environment variables use the `DEMOCENA_` prefix.
 
 ```bash
 npx democena check --json
@@ -67,10 +67,10 @@ npm run test:browser
 npm --prefix studio run typecheck
 ```
 
-[Architecture and next steps](docs/architecture.md) · [Writing a scenario](docs/writing-a-scenario.md) · [Upstream origin](UPSTREAM.md)
+[Architecture and next steps](docs/architecture.md) · [Writing a scenario](docs/writing-a-scenario.md)
 
 ## License and attribution
 
-Democena's source is Apache-2.0. Original Demotale copyright and notices remain in [LICENSE](LICENSE) and [NOTICE](NOTICE). Democena is maintained independently by andrewsrigom and is not an official Pesuto product.
+Licensed under [Apache-2.0](LICENSE). Based on [Demotale](https://github.com/pesuto-dev/demotale); see [NOTICE](NOTICE) for credits and [UPSTREAM.md](UPSTREAM.md) for origin and changes.
 
 Remotion and browser/media dependencies retain their own licenses. In particular, Remotion has [its own license](https://www.remotion.dev/license); this repository does not relicense it under Apache-2.0.

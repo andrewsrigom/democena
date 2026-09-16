@@ -4,7 +4,7 @@ Democena produces silent demos: real software workflows explained by text and mo
 
 ## Existing capture CLI
 
-`src/` contains the Demotale-derived scenario API, Playwright fixtures, in-page overlays, diagnostics, FFmpeg export, and stills. The package and executable are named `democena`; configuration is `democena.config.ts`.
+`src/` contains the scenario API, Playwright fixtures, in-page overlays, diagnostics, FFmpeg export, and stills. The package and executable are named `democena`; configuration is `democena.config.ts`.
 
 ## Optional presentation prototype
 

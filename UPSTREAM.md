@@ -14,3 +14,7 @@ The initial Democena changes are:
 - Optional, separate Remotion prototype with a synthetic example, clean browser video, scene data, typography, framing, and focus animation.
 
 General fixes may be contributed upstream. See the original [overlay report](https://github.com/pesuto-dev/demotale/issues/3). Remotion presentation work follows Democena's own direction.
+
+## Migrating scenarios
+
+When adapting existing Demotale scenarios, change the package import to `democena`, rename the configuration to `democena.config.ts`, and use the `DEMOCENA_` prefix for CLI environment variables.
