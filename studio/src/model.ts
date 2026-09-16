@@ -39,8 +39,8 @@ export type Project = {
 
 // Useful even before the first capture: no missing video is requested for a text scene.
 export const example: Project = {
-  version: 2, title: 'Parcel Desk', accent: '#28584c', video: 'captures/parcel.webm',
+  version: 2, title: 'Forma', accent: '#215acb', video: '',
   sourceDuration: 0, trimBefore: 0, viewport: { width: 1280, height: 800 },
   scenes: [{ id: 'welcome', type: 'text', duration: 5, eyebrow: 'Product stories, in motion',
-    title: 'Show the flow.\nLet it speak.', body: 'Run studio:capture to create the eight-scene example.', reveal: 'words', highlight: 'speak.' }],
+    title: 'Show the flow.\nLet it speak.', body: 'Run studio:capture to create the Forma example.', reveal: 'words', highlight: 'speak.' }],
 };

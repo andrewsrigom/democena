@@ -37,7 +37,7 @@ export default defineConfig({
   // Overlay colours. `base` is "dark" or "light"; `accent` is the badge, cursor and spotlight.
   theme: {
     base: 'dark',
-    accent: '#38bdf8',
+    accent: '#215acb',
   },
 
   // Docs pictures from `democena images N`. Numbered files (01-name.png); this folder belongs in git.

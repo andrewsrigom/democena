@@ -10,6 +10,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
+import { capturePlanSchema } from '../src/capture-contracts.js';
 import { capabilities, validate } from '../src/contracts.js';
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
@@ -20,12 +21,12 @@ async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
 test('all eight discoverable examples pass the shared Studio validator', () => {
   const scenes = capabilities().examples.map((s, i) => ({ ...s, id: `scene-${i}` }));
   assert.equal(scenes.length, 8);
-  assert.equal(validate({ version: 2, title: 'Demo', accent: '#28584c', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes }).scenes.length, 8);
+  assert.equal(validate({ version: 2, title: 'Demo', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes }).scenes.length, 8);
 });
 test('create, read, save and list preserve revisions and reject stale writes', async t => {
   const s = await fixture(t);
-  const created = await s.store.create('demo', 'First', '#28584c');
-  await assert.rejects(s.store.create('demo', 'Other', '#28584c'), { code: 'ALREADY_EXISTS' });
+  const created = await s.store.create('demo', 'First', '#215acb');
+  await assert.rejects(s.store.create('demo', 'Other', '#215acb'), { code: 'ALREADY_EXISTS' });
   const changed = { ...created.project, title: 'Edited' };
   const saved = await s.store.save('demo', created.revision, changed);
   assert.notEqual(saved.revision, created.revision);
@@ -37,14 +38,14 @@ test('create, read, save and list preserve revisions and reject stale writes', a
 });
 test('concurrent writers cannot silently replace each other', async t => {
   const s = await fixture(t);
-  const p = await s.store.create('demo', 'First', '#28584c');
+  const p = await s.store.create('demo', 'First', '#215acb');
   const results = await Promise.allSettled(['A','B'].map(title => s.store.save('demo', p.revision, { ...p.project, title })));
   assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
   assert.equal(results.filter(r => r.status === 'rejected').length, 1);
 });
 test('invalid scenes and unimported media do not modify the saved project', async t => {
   const s = await fixture(t);
-  const p = await s.store.create('demo', 'First', '#28584c');
+  const p = await s.store.create('demo', 'First', '#215acb');
   await assert.rejects(s.store.save('demo', p.revision, { ...p.project, scenes: [{ ...p.project.scenes[0], type: 'focus', focus: { x: 0, y: 0, width: 10, height: 10 }, source: { from: 0 } }] }), { code: 'INVALID_PROJECT' });
   await assert.rejects(s.store.save('demo', p.revision, { ...p.project, video: 'captures/not-imported.webm' }), { code: 'MEDIA_CHANGE_REQUIRES_IMPORT' });
   assert.equal((await s.store.get('demo')).revision, p.revision);
@@ -59,7 +60,7 @@ test('source paths cannot escape the workspace or follow symlinks', async t => {
 });
 test('warnings distinguish valid timing from layout and reading concerns', async t => {
   const s = await fixture(t);
-  const p = await s.store.create('demo', 'A very long title '.repeat(8), '#28584c');
+  const p = await s.store.create('demo', 'A very long title '.repeat(8), '#215acb');
   assert(p.warnings.some(w => w.code === 'READING_TIME'));
   assert(p.warnings.some(w => w.code === 'TEXT_LAYOUT'));
   assert.equal(p.durationInFrames, 150);
@@ -83,7 +84,7 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
   const client = new Client({ name: 'democena-test', version: '1.0.0' });
   t.after(async () => { await client.close(); });
   await client.connect(transport);
-  assert.equal((await client.listTools()).tools.length, 10);
+  assert.equal((await client.listTools()).tools.length, 12);
   assert.equal((await client.listResources()).resources.length, 2);
   assert((await client.readResource({ uri: 'democena://guide' })).contents.length > 0);
   const created = await client.callTool({ name: 'democena_create_project', arguments: { projectId: 'via-mcp', title: 'Agent demo' } });
@@ -100,7 +101,7 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
 });
 test('malformed recordings are rejected without changing project or keeping copied files', async t => {
   const s = await fixture(t);
-  const p = await s.store.create('demo', 'First', '#28584c');
+  const p = await s.store.create('demo', 'First', '#215acb');
   await writeFile(path.join(s.store.root, 'assets/broken.mp4'), 'not a recording');
   await assert.rejects(s.importMedia('demo', p.revision, 'assets/broken.mp4'), { code: 'MEDIA_PROBE_FAILED' });
   assert.equal((await s.store.get('demo')).revision, p.revision);
@@ -115,4 +116,29 @@ test('invalid creation leaves no broken project and queued previews report not r
   await mkdir(dir);
   await writeFile(path.join(dir, 'job.json'), JSON.stringify({ jobId: 'queued-job', status: 'queued', createdAt: new Date().toISOString() }));
   await assert.rejects(s.preview('queued-job'), { code: 'JOB_NOT_READY' });
+});
+
+test('capture plans require a verified outcome and explicit navigation origins', () => {
+  const plan = { url: 'http://localhost:4173', steps: [{ id: 'result', action: 'expect', target: { testId: 'result' } }] };
+  assert(capturePlanSchema.safeParse(plan).success);
+  for (const change of [
+    { url: 'not a URL' }, { allowedOrigins: ['not a URL'] }, { url: 'file:///etc/passwd' }, { url: 'https://user:password@example.com' },
+    { steps: [{ id: 'wait', action: 'wait', durationMs: 100 }] },
+    { steps: [...plan.steps, ...plan.steps] },
+    { steps: [...plan.steps, { id: 'away', action: 'goto', url: 'https://other.example' }] },
+    { steps: [...plan.steps, { id: 'script', action: 'goto', url: 'javascript:alert(1)' }] },
+    { redact: ['body { display:none }'] }, { timeoutMs: 180001 },
+  ]) assert.equal(capturePlanSchema.safeParse({ ...plan, ...change }).success, false);
+  assert(capturePlanSchema.safeParse({ ...plan, allowedOrigins: ['https://other.example'], steps: [...plan.steps, { id: 'away', action: 'goto', url: 'https://other.example/path' }] }).success);
+});
+test('capture adoption rejects unfinished jobs and wrong projects without modifying edits', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('demo', 'Retain me', '#215acb');
+  const dir = path.join(s.store.root, 'jobs/capture-job');
+  await mkdir(dir);
+  await writeFile(path.join(dir, 'job.json'), JSON.stringify({ jobId: 'capture-job', projectId: 'demo', mode: 'capture', status: 'failed' }));
+  await assert.rejects(s.useCapture('demo', project.revision, 'capture-job'), { code: 'CAPTURE_NOT_READY' });
+  await writeFile(path.join(dir, 'job.json'), JSON.stringify({ jobId: 'capture-job', projectId: 'other', mode: 'capture', status: 'succeeded', capture: {}, artifacts: { recording: '/tmp/unused.webm' } }));
+  await assert.rejects(s.useCapture('demo', project.revision, 'capture-job'), { code: 'WRONG_PROJECT' });
+  assert.equal((await s.store.get('demo')).revision, project.revision);
 });

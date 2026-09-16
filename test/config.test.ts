@@ -83,13 +83,13 @@ describe('resolveConfig', () => {
   });
 
   it('takes a theme by name', () => {
-    expect(resolveConfig({ theme: 'light' }).theme.text).toBe('#0f172a');
+    expect(resolveConfig({ theme: 'light' }).theme.text).toBe('#202d40');
   });
 
   it('takes overrides on top of a named theme', () => {
     const { theme } = resolveConfig({ theme: { base: 'light', accent: '#ff0000' } });
     expect(theme.accent).toBe('#ff0000');
-    expect(theme.cardSurface).toBe('#ffffff');
+    expect(theme.cardSurface).toBe('#f7f9fc');
   });
 
   it('validates before it resolves', () => {

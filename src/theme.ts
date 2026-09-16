@@ -1,3 +1,4 @@
+// Modified for Democena (2026): CatalogForge-inspired blue palette and typography.
 /**
  * The look of the overlay.
  *
@@ -40,9 +41,9 @@ export interface Theme {
 
 export const defaultTheme: Theme = {
   fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  accent: '#38bdf8',
-  onAccent: '#0f172a',
+    'Inter, "Segoe UI", system-ui, -apple-system, sans-serif',
+  accent: '#215acb',
+  onAccent: '#ffffff',
   surface: 'rgba(15, 23, 42, 0.94)',
   cardSurface: '#0f172a',
   text: '#f8fafc',
@@ -62,13 +63,13 @@ export const defaultTheme: Theme = {
  */
 export const lightTheme: Theme = {
   ...defaultTheme,
-  accent: '#2563eb',
+  accent: '#215acb',
   onAccent: '#ffffff',
   surface: 'rgba(255, 255, 255, 0.96)',
-  cardSurface: '#ffffff',
-  text: '#0f172a',
-  muted: '#64748b',
-  dim: 'rgba(15, 23, 42, 0.18)',
+  cardSurface: '#f7f9fc',
+  text: '#202d40',
+  muted: '#7b8799',
+  dim: 'rgba(20, 45, 82, 0.18)',
 };
 
 export const themes = { dark: defaultTheme, light: lightTheme } as const;

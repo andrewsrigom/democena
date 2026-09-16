@@ -71,10 +71,11 @@
     "studio:preview": "npm --prefix studio run preview",
     "mcp:install": "npm --prefix mcp ci --ignore-scripts",
     "mcp:build": "npm --prefix mcp run build",
-    "mcp:test": "npm --prefix mcp test"
+    "mcp:test": "npm --prefix mcp test",
+    "test:capture": "node --test --test-concurrency=1 capture/test/*.test.mjs"
   },
   "dependencies": {
-    "@playwright/test": "^1.56.1"
+    "@playwright/test": "^1.62.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

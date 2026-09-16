@@ -1,3 +1,4 @@
+import { theme } from './theme';
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { AnnotationScene, ChapterScene, OutroScene, Project, Scene, TextScene } from './model';
 import { cameraAt, cameraFor } from './camera';
@@ -12,11 +13,11 @@ function TextPanel({ scene, accent }: { scene: TextScene | OutroScene; accent: s
   const enter = spring({ frame: frame - 20, fps, config: { damping: 26 } });
   const closing = scene.type === 'outro';
   return <>
-    <div style={{ position: 'absolute', width: 560, height: 560, right: -100, top: 180, border: `1px solid ${accent}25`, borderRadius: '50%', transform: `scale(${0.9 + enter * 0.1})` }} />
+    <div style={{ position: 'absolute', width: 510, height: 560, right: -150, top: 180, border: `1px solid ${accent}18`, borderRadius: 28, background: '#ffffff55', transform: `scale(${0.9 + enter * 0.1})` }} />
     <div style={{ position: 'absolute', left: 148, right: 148, top: closing ? 250 : 270 }}>
       <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
       <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} />
-      <p style={{ maxWidth: 1030, color: '#67716c', fontSize: 29, lineHeight: 1.6, margin: '0 0 32px', opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.body}</p>
+      <p style={{ maxWidth: 1030, color: theme.muted, fontSize: 29, lineHeight: 1.6, margin: '0 0 32px', opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.body}</p>
       {closing && scene.cta ? <div style={{ display: 'inline-flex', alignItems: 'center', gap: 42, padding: '20px 28px', borderRadius: 12, background: accent, color: '#fff', fontSize: 23, opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.cta}<span>↗</span></div> : null}
     </div>
   </>;
@@ -31,7 +32,7 @@ function Chapter({ scene, accent }: { scene: ChapterScene; accent: string }) {
       <Eyebrow accent={accent}>{`${scene.number} — ${scene.eyebrow}`}</Eyebrow>
       <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: 92, maxWidth: 1300 }} />
       <div style={{ width: 130 * enter, height: 4, background: accent, marginBottom: 28 }} />
-      <p style={{ color: '#67716c', fontSize: 27, lineHeight: 1.6, maxWidth: 880 }}>{scene.body}</p>
+      <p style={{ color: theme.muted, fontSize: 27, lineHeight: 1.6, maxWidth: 880 }}>{scene.body}</p>
     </div>
   </>;
 }
@@ -42,7 +43,7 @@ function Caption({ scene, accent }: { scene: Scene; accent: string }) {
   return <div style={{ position: 'absolute', left: 88, top: 315, width: 506, opacity: enter, transform: `translateY(${(1 - enter) * 22}px)` }}>
     <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
     <h1 style={{ fontSize: 68, fontWeight: 600, letterSpacing: -3, lineHeight: 1.08, margin: '28px 0', whiteSpace: 'pre-line' }}>{scene.title}</h1>
-    <p style={{ fontSize: 25, lineHeight: 1.6, color: '#67716c', maxWidth: 450, margin: 0 }}>{scene.body}</p>
+    <p style={{ fontSize: 25, lineHeight: 1.6, color: theme.muted, maxWidth: 450, margin: 0 }}>{scene.body}</p>
     <div style={{ width: 42, height: 4, borderRadius: 4, background: accent, marginTop: 34 }} />
   </div>;
 }
@@ -56,14 +57,15 @@ function Annotation({ scene, project, width }: { scene: AnnotationScene; project
   const x = focus.x + focus.width / 2;
   const y = focus.y + focus.height / 2;
   const nx = note.x + note.width / 2;
-  const ny = note.y + 130;
+  const ny = note.y;
+  const bend = y < ny ? -60 : 60;
   return <>
     <svg viewBox={`0 0 ${project.viewport.width} ${project.viewport.height}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
-      <path d={`M ${nx} ${ny} C ${nx} ${ny + 60}, ${x} ${y - 60}, ${x} ${y}`} pathLength={1} stroke={project.accent} strokeWidth={3} fill="none" strokeDasharray={1} strokeDashoffset={1 - draw} />
+      <path d={`M ${nx} ${ny} C ${nx} ${ny + bend}, ${x} ${y - bend}, ${x} ${y}`} pathLength={1} stroke={project.accent} strokeWidth={3} fill="none" strokeDasharray={1} strokeDashoffset={1 - draw} />
       <circle cx={x} cy={y} r={6} fill={project.accent} opacity={draw} />
     </svg>
     <div style={{ position: 'absolute', left: note.x * ratio, top: note.y * ratio, width: note.width * ratio, boxSizing: 'border-box', padding: '20px 24px', borderRadius: 14,
-      background: project.accent, color: '#fff', fontSize: 22, lineHeight: 1.5, boxShadow: '0 12px 30px #182c2830', opacity: appear, transform: `translateY(${(1 - appear) * 12}px)` }}>{note.text}</div>
+      background: project.accent, color: '#fff', fontSize: 22, lineHeight: 1.5, boxShadow: '0 12px 30px #142d5230', opacity: appear, transform: `translateY(${(1 - appear) * 12}px)` }}>{note.text}</div>
   </>;
 }
 

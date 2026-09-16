@@ -1,111 +1,811 @@
-<!-- Modified for Democena (2026): independent example branding. -->
 <!doctype html>
+<!-- Original Democena (2026): redesigned as the Forma collection example. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Parcel desk</title>
+    <title>Forma — Your collection, ready to share</title>
     <style>
       :root {
-        --line: #e2e8f0;
-        --muted: #64748b;
-        --accent: #2563eb;
+        --ink: #202d40;
+        --muted: #7b8799;
+        --paper: #f7f9fc;
+        --line: #e1e6ed;
+        --accent: #215acb;
+        --tint: #eff4fc;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        color: #0f172a;
-        background: #f8fafc;
+        font:
+          14px/1.5 Inter,
+          'Segoe UI',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
       }
-      header {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 18px 32px; background: #fff; border-bottom: 1px solid var(--line);
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
       }
-      header strong { font-size: 17px; }
-      .account { color: var(--muted); font-size: 14px; }
-      main { padding: 32px; max-width: 980px; }
-      h1 { font-size: 26px; margin: 0 0 4px; }
-      .lede { color: var(--muted); margin: 0 0 28px; }
-      .stats { display: flex; gap: 16px; margin-bottom: 28px; }
-      .stat {
-        flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px;
+      button,
+      a,
+      input,
+      select,
+      textarea {
+        outline-offset: 4px;
       }
-      .stat .value { font-size: 28px; font-weight: 700; }
-      .stat .label { color: var(--muted); font-size: 13px; }
-      table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-      th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); }
-      th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-      tr:last-child td { border-bottom: 0; }
-      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; background: #e0f2fe; color: #075985; }
-      .pill.done { background: #dcfce7; color: #166534; }
-      form { margin-top: 28px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
-      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-      input { width: 320px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
       button {
-        margin-left: 10px; padding: 10px 18px; border: 0; border-radius: 8px;
-        background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+        cursor: pointer;
       }
-      #result { margin-top: 16px; font-weight: 600; }
-      #result:empty { display: none; }
-      .filler { height: 520px; }
-      footer { padding: 0 32px 40px; color: var(--muted); font-size: 13px; }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      svg {
+        display: block;
+      }
+      aside {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 200px;
+        padding: 28px 22px;
+        background: #fff;
+        color: #202d40;
+        border-right: 1px solid #e4e9f0;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -0.8px;
+      }
+      .brand-mark {
+        display: grid;
+        grid-template-columns: repeat(2, 6px);
+        gap: 3px;
+        padding: 9px;
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: #215acb;
+      }
+      .brand-mark i {
+        width: 6px;
+        height: 6px;
+        background: #ffffff;
+        border-radius: 2px;
+      }
+      .workspace {
+        margin-top: 39px;
+        font-size: 10px;
+        letter-spacing: 1.7px;
+        color: #91a0b5;
+      }
+      .nav {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .nav.active {
+        background: #edf3ff;
+        color: #215acb;
+        font-weight: 600;
+      }
+      .aside-foot {
+        margin-top: auto;
+        border-top: 1px solid #e4e9f0;
+        padding-top: 20px;
+        color: #7b8799;
+        font-size: 11px;
+      }
+      .avatar {
+        display: inline-flex;
+        width: 29px;
+        height: 29px;
+        align-items: center;
+        justify-content: center;
+        background: #eff4fc;
+        color: #215acb;
+        border-radius: 50%;
+        margin-right: 7px;
+        font-weight: 700;
+      }
+      main {
+        margin-left: 200px;
+        padding: 26px 36px 32px;
+        max-width: 1550px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 20px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .breadcrumbs b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+      .account {
+        font-size: 11px;
+      }
+      .intro {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin: 28px 0 24px;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 1.8px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 7px;
+      }
+      h1 {
+        font-size: 29px;
+        letter-spacing: -1px;
+        margin: 0 0 5px;
+        line-height: 1.1;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 10px 17px;
+        color: var(--ink);
+        background: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .button.primary {
+        box-shadow: 0 2px 3px #215acb16;
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .button.ghost {
+        background: transparent;
+      }
+      .summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 10px;
+        padding: 19px 22px;
+        min-height: 107px;
+        margin-bottom: 24px;
+      }
+      .summary.live {
+        background: #eff4fc;
+        border-color: #cfdef6;
+      }
+      .status {
+        display: inline-flex;
+        gap: 5px;
+        align-items: center;
+        padding: 4px 9px;
+        border-radius: 20px;
+        font-size: 10px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: #f0efe7;
+        color: #777568;
+        font-weight: 700;
+      }
+      .status.live {
+        background: #e6efff;
+        color: #215acb;
+      }
+      .status:before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .summary h2 {
+        font-size: 15px;
+        margin: 7px 0 3px;
+      }
+      .summary p {
+        font-size: 12px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 13px;
+        font-size: 12px;
+      }
+      .section-title strong {
+        font-size: 14px;
+      }
+      .count {
+        margin-left: 8px;
+        font-size: 10px;
+        padding: 3px 7px;
+        border-radius: 12px;
+        background: #eff4fc;
+        color: #617797;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .product {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .art {
+        height: 190px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #eae7de;
+      }
+      .art svg {
+        height: 155px;
+        width: 155px;
+      }
+      .product:nth-child(2) .art {
+        background: #e8eef8;
+      }
+      .product:nth-child(3) .art {
+        background: #eee1d4;
+      }
+      .product:nth-child(4) .art {
+        background: #e9e7ef;
+      }
+      .product-info {
+        padding: 14px;
+      }
+      .product-info small {
+        font-size: 9px;
+        letter-spacing: 1.1px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .product-info h3 {
+        font-size: 13px;
+        margin: 4px 0 7px;
+      }
+      .price {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+      }
+      .stock {
+        color: var(--accent);
+        font-size: 9px;
+      }
+      .empty-card {
+        min-height: 286px;
+        border: 1px dashed #d8e3f4;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: #7b8da6;
+        background: #f1f6fd;
+        gap: 8px;
+      }
+      .empty-card span {
+        font-size: 27px;
+        font-weight: 300;
+      }
+      .bottom-line {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid var(--line);
+        margin-top: 24px;
+        padding-top: 15px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .dot {
+        color: #215acb;
+        margin-right: 4px;
+      }
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background: #142d5240;
+        z-index: 2;
+      }
+      .drawer {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 430px;
+        background: #fff;
+        z-index: 3;
+        padding: 28px 32px;
+        box-shadow: -10px 0 50px #142d5218;
+        display: flex;
+        flex-direction: column;
+      }
+      .drawer-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+      }
+      .drawer h2 {
+        font-size: 23px;
+        letter-spacing: -0.6px;
+        margin: 0 0 7px;
+      }
+      .close {
+        border: 0;
+        background: #f3f5f8;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        color: #637797;
+      }
+      .mini-art {
+        background: #f1f5fb;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        padding: 10px 18px;
+        margin: 21px 0;
+        gap: 16px;
+      }
+      .mini-art svg {
+        height: 76px;
+        width: 76px;
+      }
+      .mini-art strong {
+        font-size: 13px;
+        display: block;
+      }
+      .mini-art p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      input,
+      select,
+      textarea {
+        border: 1px solid #d8dfe8;
+        border-radius: 6px;
+        padding: 10px 12px;
+        width: 100%;
+        background: #fff;
+        color: var(--ink);
+        font-size: 13px;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: 2px solid #88aff4;
+        outline-offset: 1px;
+      }
+      .field {
+        margin-bottom: 17px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      textarea {
+        resize: none;
+        height: 72px;
+      }
+      .form-note {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .drawer-footer {
+        margin-top: auto;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .drawer-footer small {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .toast {
+        position: fixed;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-30%);
+        padding: 12px 22px;
+        background: #172945;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 12px;
+        box-shadow: 0 8px 28px #17294525;
+        z-index: 4;
+      }
+      .public main {
+        margin: 0 auto;
+        max-width: 1080px;
+        padding-top: 42px;
+      }
+      .public aside,
+      .public .admin-only {
+        display: none;
+      }
+      .public .public-only {
+        display: block;
+      }
+      .public-only {
+        display: none;
+      }
+      .public-hero {
+        padding: 35px 0 28px;
+        max-width: 600px;
+      }
+      .public-hero h1 {
+        font-size: 52px;
+        letter-spacing: -2px;
+        margin: 14px 0;
+      }
+      .public .art {
+        height: 240px;
+      }
+      .public .art svg {
+        height: 180px;
+        width: 180px;
+      }
     </style>
   </head>
   <body>
-    <header>
-      <strong>Parcel desk</strong>
-      <span class="account" data-testid="account">signed in as sam@example.com</span>
-    </header>
-
+    <aside>
+      <div class="brand">
+        <span class="brand-mark"><i></i><i></i><i></i><i></i></span>forma
+      </div>
+      <div class="workspace">YOUR WORKSPACE</div>
+      <div class="nav active">Collections <span>01</span></div>
+      <div class="nav">
+        Products <span data-testid="sidebar-count">03</span>
+      </div>
+      <div class="aside-foot">
+        <p><span class="avatar">F</span>Forma Studio</p>
+        <p style="margin-top: 12px">Your products. One clear story.</p>
+      </div>
+    </aside>
     <main>
-      <h1>Today's parcels</h1>
-      <p class="lede">Everything on this page is made up. It exists so democena has something to film.</p>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="value" data-testid="waiting">18</div>
-          <div class="label">waiting to be picked</div>
+      <div class="topbar">
+        <span class="breadcrumbs admin-only"
+          >Collections &nbsp; / &nbsp; <b>The spring edit</b></span
+        ><span class="public-only brand" style="color: #215acb">forma</span
+        ><span class="account" data-testid="account">studio@example.com</span>
+      </div>
+      <div class="intro admin-only">
+        <div>
+          <div class="eyebrow">COLLECTION / 001</div>
+          <h1>The spring edit</h1>
+          <p class="muted">Thoughtful objects. Everyday possibilities.</p>
         </div>
-        <div class="stat">
-          <div class="value">4</div>
-          <div class="label">on the road</div>
+        <button
+          class="button"
+          id="new-product"
+          type="button"
+          aria-label="New product"
+        >
+          ＋ &nbsp; New product
+        </button>
+      </div>
+      <div class="summary admin-only" data-testid="publish-summary">
+        <div>
+          <span class="status" data-testid="collection-status">Draft</span>
+          <h2 data-testid="publication-title">A collection in the making.</h2>
+          <p class="muted" data-testid="publication-description">
+            Add your finishing touches, then give it a place to live.
+          </p>
         </div>
-        <div class="stat" data-testid="cache-age">
-          <div class="value">2 min</div>
-          <div class="label">since this list was refreshed</div>
+        <div class="actions">
+          <a class="button ghost" id="open-catalog" href="/c/spring-edit" hidden
+            >Open catalog ↗</a
+          ><button class="button primary" id="publish" type="button">
+            Publish collection
+          </button>
         </div>
       </div>
-
-      <table>
-        <thead>
-          <tr><th>Parcel</th><th>Destination</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>PD-1041</td><td>Rotterdam</td><td><span class="pill">waiting</span></td></tr>
-          <tr><td>PD-1042</td><td>Antwerp</td><td><span class="pill">waiting</span></td></tr>
-          <tr><td>PD-1043</td><td>Hamburg</td><td><span class="pill done">delivered</span></td></tr>
-        </tbody>
-      </table>
-
-      <!-- Deliberately far enough down that a spotlight has to scroll to it first. -->
-      <div class="filler"></div>
-
-      <form data-testid="lookup" onsubmit="event.preventDefault(); track();">
-        <label for="code">Track a parcel</label>
-        <input id="code" name="code" placeholder="PD-0000" autocomplete="off" />
-        <button type="submit">Track</button>
-        <div id="result" data-testid="result"></div>
-      </form>
+      <div class="public-hero public-only">
+        <div class="eyebrow">THE SPRING EDIT · FORMA STUDIO</div>
+        <h1>Good things.<br />Made for everyday.</h1>
+        <p class="muted">
+          A considered collection of objects for a softer, slower home.
+        </p>
+      </div>
+      <div class="section-title">
+        <div>
+          <strong>In this collection</strong
+          ><span class="count" data-testid="product-count">3 products</span>
+        </div>
+        <span class="muted">Curated by Forma Studio</span>
+      </div>
+      <div class="grid" id="products"></div>
+      <div class="bottom-line">
+        <span
+          ><span class="dot">●</span
+          ><span data-testid="save-status">All changes saved</span></span
+        ><span>Demo workspace · Sample products</span>
+      </div>
     </main>
-
-    <footer>A static page. No framework, no build step.</footer>
-
+    <div class="backdrop" id="backdrop" hidden></div>
+    <form class="drawer" id="product-form" aria-label="New product" hidden>
+      <div class="drawer-header">
+        <div>
+          <div class="eyebrow">MAKE ROOM FOR SOMETHING NEW</div>
+          <h2>Add a product</h2>
+          <p class="muted" style="font-size: 12px">
+            The details make the difference.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="close"
+          aria-label="Close form"
+          id="close-form"
+        >
+          ×
+        </button>
+      </div>
+      <div class="mini-art">
+        <div id="form-art"></div>
+        <div>
+          <strong id="live-name">Your next good thing</strong>
+          <p>Product preview</p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="product-name">Product name</label
+        ><input
+          id="product-name"
+          data-testid="product-name"
+          required
+          maxlength="50"
+          autocomplete="off"
+          placeholder="Give it a name"
+        />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="category">Category</label
+          ><select id="category">
+            <option>Lighting</option>
+            <option>Furniture</option>
+            <option>Objects</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="price">Price ($)</label
+          ><input
+            id="price"
+            type="number"
+            min="1"
+            max="9999"
+            required
+            placeholder="129"
+          />
+        </div>
+      </div>
+      <div class="field">
+        <label for="description">Short description</label
+        ><textarea
+          id="description"
+          maxlength="160"
+          placeholder="What makes it special?"
+        ></textarea>
+      </div>
+      <p class="form-note">Your product will join The spring edit.</p>
+      <div class="drawer-footer">
+        <small>Ready when you are.</small
+        ><button
+          class="button primary"
+          type="submit"
+          data-testid="save-product"
+        >
+          Save product
+        </button>
+      </div>
+    </form>
+    <div class="toast" id="toast" role="status" hidden></div>
     <script>
-      function track() {
-        const code = document.getElementById('code').value.trim() || 'PD-0000';
-        document.getElementById('result').textContent = code + ' is out for delivery in Rotterdam.';
+      const art = {
+        chair:
+          '<svg viewBox="0 0 180 180" aria-hidden="true"><ellipse cx="94" cy="155" rx="50" ry="10" fill="#c8c0ae" opacity=".45"/><path d="M54 91L43 150M117 96l16 56M63 110l5 38M121 106l-5 40" stroke="#967a53" stroke-width="8" stroke-linecap="round"/><path d="M48 87Q40 47 49 30Q83 19 119 32L126 85Z" fill="#c49e65"/><path d="M53 84Q86 73 127 88L130 111Q86 124 47 107Z" fill="#dcc39a"/><path d="M57 34L61 76M73 30l2 43M90 30l1 42M108 32l-1 42" stroke="#8f7046" stroke-width="3" opacity=".5"/></svg>',
+        vase: '<svg viewBox="0 0 180 180" aria-hidden="true"><ellipse cx="92" cy="157" rx="40" ry="7" fill="#bbc8b6" opacity=".5"/><path d="M87 71Q83 28 58 12M92 74Q100 35 129 18" stroke="#647557" stroke-width="3" fill="none"/><path d="M72 33Q29 13 57 11Q79 8 72 33M106 46Q124 6 138 15Q147 37 106 46" fill="#879476"/><path d="M71 71L108 71Q101 94 119 111Q136 151 95 155Q48 154 63 112Q79 90 71 71" fill="#c8bca2"/><ellipse cx="89" cy="72" rx="19" ry="5" fill="#928573"/><path d="M77 102Q63 133 78 143" stroke="#e4d8c1" stroke-width="6" fill="none" stroke-linecap="round"/></svg>',
+        cup: '<svg viewBox="0 0 180 180" aria-hidden="true"><ellipse cx="88" cy="150" rx="52" ry="8" fill="#d1baa4" opacity=".55"/><path d="M121 73Q156 60 148 98Q145 117 125 112" fill="none" stroke="#ab6d51" stroke-width="12"/><path d="M42 69L52 132Q90 151 124 128L132 69Z" fill="#c48869"/><ellipse cx="87" cy="69" rx="45" ry="13" fill="#d9a789"/><ellipse cx="87" cy="69" rx="35" ry="8" fill="#88553e"/><path d="M54 88l7 34" stroke="#e5bca0" stroke-width="5" stroke-linecap="round"/></svg>',
+        lamp: '<svg viewBox="0 0 180 180" aria-hidden="true"><ellipse cx="91" cy="158" rx="45" ry="7" fill="#c3bfd0" opacity=".5"/><path d="M92 64v75" stroke="#526c94" stroke-width="8"/><path d="M56 147Q90 132 127 147L131 154H51Z" fill="#647fa8"/><path d="M39 83Q43 29 91 27Q142 31 145 83Z" fill="#7c9ac9"/><ellipse cx="92" cy="83" rx="53" ry="9" fill="#dae5f8"/><path d="M56 69Q66 39 90 38" stroke="#bed2ee" stroke-width="5" fill="none" stroke-linecap="round"/></svg>',
+      };
+      const initial = [
+        {
+          name: 'Mellow lounge chair',
+          category: 'Furniture',
+          price: 249,
+          art: 'chair',
+        },
+        {
+          name: 'Stem ceramic vase',
+          category: 'Objects',
+          price: 48,
+          art: 'vase',
+        },
+        {
+          name: 'Everyday stoneware',
+          category: 'Objects',
+          price: 32,
+          art: 'cup',
+        },
+      ];
+      let state;
+      try {
+        state = JSON.parse(localStorage.getItem('forma-demo'));
+      } catch {}
+      if (!state || !Array.isArray(state.products))
+        state = { products: initial, published: false };
+      const $ = (id) => document.getElementById(id);
+      const test = (id) => document.querySelector('[data-testid="' + id + '"]');
+      function persist() {
+        localStorage.setItem('forma-demo', JSON.stringify(state));
       }
+      function render() {
+        const grid = $('products');
+        grid.replaceChildren();
+        for (const p of state.products) {
+          const card = document.createElement('article');
+          card.className = 'product';
+          card.dataset.testid = 'product-card';
+          const illustration = document.createElement('div');
+          illustration.className = 'art';
+          illustration.innerHTML = art[p.art] || art.lamp;
+          const info = document.createElement('div');
+          info.className = 'product-info';
+          const category = document.createElement('small');
+          category.textContent = p.category;
+          const title = document.createElement('h3');
+          title.textContent = p.name;
+          const price = document.createElement('div');
+          price.className = 'price';
+          price.textContent = '$' + p.price;
+          const stock = document.createElement('span');
+          stock.className = 'stock';
+          stock.textContent = '● In stock';
+          price.append(stock);
+          info.append(category, title, price);
+          card.append(illustration, info);
+          grid.append(card);
+        }
+        if (state.products.length < 4 && !location.pathname.startsWith('/c/')) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-card';
+          empty.innerHTML = '<span>＋</span><p>A little room for more.</p>';
+          grid.append(empty);
+        }
+        test('product-count').textContent = state.products.length + ' products';
+        test('sidebar-count').textContent = String(
+          state.products.length,
+        ).padStart(2, '0');
+        if (state.published) {
+          test('collection-status').textContent = 'Published';
+          test('collection-status').classList.add('live');
+          test('publish-summary').classList.add('live');
+          test('publication-title').textContent = 'Your collection is live.';
+          test('publication-description').textContent =
+            'One link. All ' +
+            state.products.length +
+            ' products. Ready to share.';
+          $('open-catalog').hidden = false;
+          $('publish').textContent = 'Copy link';
+          document.title = 'Forma — The spring edit is live';
+        }
+      }
+      function toast(message) {
+        $('toast').textContent = message;
+        $('toast').hidden = false;
+        setTimeout(() => ($('toast').hidden = true), 2400);
+      }
+      function closeForm() {
+        $('product-form').hidden = true;
+        $('backdrop').hidden = true;
+      }
+      $('new-product').onclick = () => {
+        $('product-form').reset();
+        $('live-name').textContent = 'Your next good thing';
+        $('product-form').hidden = false;
+        $('backdrop').hidden = false;
+        $('product-name').focus();
+      };
+      $('close-form').onclick = closeForm;
+      $('product-name').oninput = () =>
+        ($('live-name').textContent =
+          $('product-name').value || 'Your next good thing');
+      $('form-art').innerHTML = art.lamp;
+      $('product-form').onsubmit = (e) => {
+        e.preventDefault();
+        state.products.push({
+          name: $('product-name').value.trim(),
+          category: $('category').value,
+          price: Number($('price').value),
+          description: $('description').value,
+          art: 'lamp',
+        });
+        persist();
+        render();
+        closeForm();
+        toast('Product added to your collection.');
+      };
+      $('publish').onclick = async () => {
+        if (!state.published) {
+          state.published = true;
+          persist();
+          render();
+          toast('Your collection is ready to share.');
+        } else {
+          try {
+            await navigator.clipboard.writeText(
+              location.origin + '/c/spring-edit',
+            );
+            toast('Catalog link copied.');
+          } catch {
+            toast('Open your catalog to share its address.');
+          }
+        }
+      };
+      if (location.pathname.startsWith('/c/')) {
+        document.body.classList.add('public');
+        test('account').textContent = 'Made with Forma';
+      }
+      render();
     </script>
   </body>
 </html>

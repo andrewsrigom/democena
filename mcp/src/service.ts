@@ -4,6 +4,9 @@ import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import type { CaptureResult } from '../../capture/browser.mjs';
+import type { z } from 'zod';
+import { capturePlanSchema } from './capture-contracts.js';
 import { Workspace, atomicJson } from './storage.js';
 import { AgentError, capabilities, inputs, type Operation, validate, describeProject } from './contracts.js';
 
@@ -19,7 +22,7 @@ export async function probe(file: string) {
   if (!Number.isFinite(duration) || duration <= 0 || !Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) throw new AgentError('INVALID_MEDIA', 'Recording needs a video stream, positive dimensions and a known positive duration.');
   return { duration, width, height };
 }
-export type Job = { jobId: string; projectId: string; revision: string; mode: 'preview' | 'video'; status: 'queued' | 'running' | 'succeeded' | 'failed'; createdAt: string; pid?: number; finishedAt?: string; error?: string; artifacts?: { preview: string; storyboard: string; video?: string; scenes: { id: string; type: string; output: string }[] } };
+export type Job = { jobId: string; projectId: string; revision: string; mode: 'preview' | 'video' | 'capture'; status: 'queued' | 'running' | 'succeeded' | 'failed'; createdAt: string; pid?: number; finishedAt?: string; error?: string; capture?: CaptureResult; artifacts?: { preview: string; storyboard?: string; video?: string; recording?: string; events?: string; scenes: { id: string; type: string; output: string }[] } };
 export class AgentService {
   constructor(public store: Workspace) {}
   async actualProject(id: string) {
@@ -72,10 +75,33 @@ export class AgentService {
     await atomicJson(path.join(dir, 'project.json'), current.project);
     const job: Job = { jobId, projectId: id, revision: current.revision, mode, status: 'queued', createdAt: new Date().toISOString() };
     await atomicJson(path.join(dir, 'job.json'), job);
-    const child = spawn(process.execPath, [fileURLToPath(new URL('./worker.js', import.meta.url)), this.store.root, jobId], { detached: true, stdio: 'ignore', windowsHide: true });
+    await this.launchWorker(job, dir);
+    return { ...job, next: 'Poll get_job; after success, inspect read_preview before requesting the final video.' };
+  }
+  async startCapture(id: string, expectedRevision: string, plan: z.infer<typeof capturePlanSchema>) {
+    const current = await this.store.get(id);
+    if (current.revision !== expectedRevision) throw new AgentError('REVISION_CONFLICT', 'Read the project again before capturing.');
+    if (plan.storageState) await access(await this.store.safe(plan.storageState));
+    const jobId = randomUUID();
+    const dir = await this.store.safe(`jobs/${jobId}`);
+    await mkdir(dir);
+    await atomicJson(path.join(dir, 'capture-plan.json'), plan);
+    const job: Job = { jobId, projectId: id, revision: current.revision, mode: 'capture', status: 'queued', createdAt: new Date().toISOString() };
+    await atomicJson(path.join(dir, 'job.json'), job);
+    await this.launchWorker(job, dir);
+    return { ...job, next: 'Poll get_job, inspect capture marks with read_preview, then use_capture with the current project revision.' };
+  }
+  async useCapture(id: string, expectedRevision: string, jobId: string) {
+    const job = await this.getJob(jobId);
+    if (job.mode !== 'capture' || job.status !== 'succeeded' || !job.capture || !job.artifacts?.recording) throw new AgentError('CAPTURE_NOT_READY', 'Choose a successfully completed capture job.');
+    if (job.projectId !== id) throw new AgentError('WRONG_PROJECT', 'This capture belongs to a different project.');
+    const saved = await this.importMedia(id, expectedRevision, path.relative(this.store.root, job.artifacts.recording));
+    return { ...saved, capture: job.capture };
+  }
+  private async launchWorker(job: Job, dir: string) {
+    const child = spawn(process.execPath, [fileURLToPath(new URL('./worker.js', import.meta.url)), this.store.root, job.jobId], { detached: true, stdio: 'ignore', windowsHide: true });
     await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); }).catch(async error => { await atomicJson(path.join(dir, 'job.json'), { ...job, status: 'failed', error: String(error) }); throw error; });
     child.unref();
-    return { ...job, next: 'Poll get_job; after success, inspect read_preview before requesting the final video.' };
   }
   async getJob(jobId: string): Promise<Job> {
     const file = await this.store.safe(`jobs/${jobId}/job.json`);
@@ -87,11 +113,11 @@ export class AgentService {
           // The worker may have committed success between our read and its process exit.
           const latest = JSON.parse(await readFile(file, 'utf8')) as Job;
           if (latest.status === 'succeeded' || latest.status === 'failed') return latest;
-          return { ...latest, status: 'failed', error: 'Render worker stopped unexpectedly. Start a new render.' };
+          return { ...latest, status: 'failed', error: 'Job worker stopped unexpectedly. Start a new job.' };
         }
       }
     }
-    if (['queued', 'running'].includes(job.status) && Date.now() - Date.parse(job.createdAt) > 25 * 60 * 1000) return { ...job, status: 'failed', error: 'Render exceeded its deadline. Start a new render.' };
+    if (['queued', 'running'].includes(job.status) && Date.now() - Date.parse(job.createdAt) > 25 * 60 * 1000) return { ...job, status: 'failed', error: 'Job exceeded its deadline. Start a new job.' };
     return job;
   }
   async preview(jobId: string, sceneId?: string) {
@@ -101,7 +127,7 @@ export class AgentService {
     if (!artifact) throw new AgentError('NOT_FOUND', 'No preview exists for that scene ID.');
     const file = await this.store.safe(path.relative(this.store.root, artifact));
     const allowed = path.join(this.store.root, 'jobs', jobId, 'output') + path.sep;
-    if (!file.startsWith(allowed) || path.extname(file) !== '.png') throw new AgentError('INVALID_PATH', 'Preview must belong to this render job.');
+    if (!file.startsWith(allowed) || path.extname(file) !== '.png') throw new AgentError('INVALID_PATH', 'Preview must belong to this job.');
     if ((await stat(file)).size > 16 * 1024 * 1024) throw new AgentError('IMAGE_TOO_LARGE', 'Preview exceeds 16 MiB; inspect the local artifact instead.');
     return { jobId, sceneId, path: file, mimeType: 'image/png', data: (await readFile(file)).toString('base64') };
   }
@@ -113,6 +139,8 @@ export class AgentService {
       case 'get_project': { const a = inputs.get_project.parse(value); return this.store.get(a.projectId); }
       case 'save_project': { const a = inputs.save_project.parse(value); return this.store.save(a.projectId, a.expectedRevision, a.project); }
       case 'import_media': { const a = inputs.import_media.parse(value); return this.importMedia(a.projectId, a.expectedRevision, a.source); }
+      case 'start_capture': { const a = inputs.start_capture.parse(value); return this.startCapture(a.projectId, a.expectedRevision, a.plan); }
+      case 'use_capture': { const a = inputs.use_capture.parse(value); return this.useCapture(a.projectId, a.expectedRevision, a.jobId); }
       case 'validate_project': { const a = inputs.validate_project.parse(value); const p = await this.actualProject(a.projectId); return { projectId: p.projectId, revision: p.revision, valid: true, ...describeProject(p.project) }; }
       case 'start_render': { const a = inputs.start_render.parse(value); return this.startRender(a.projectId, a.expectedRevision, a.mode); }
       case 'get_job': { const a = inputs.get_job.parse(value); return this.getJob(a.jobId) as unknown as Record<string, unknown>; }

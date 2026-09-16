@@ -43,7 +43,9 @@ describe('overlayScript', () => {
   it('takes its colours from the theme rather than from a constant', () => {
     expect(script).toContain(defaultTheme.accent);
     expect(overlayScript(lightTheme)).toContain(lightTheme.accent);
-    expect(overlayScript(lightTheme)).not.toContain(defaultTheme.accent);
+    const custom = { ...lightTheme, accent: '#be123c' };
+    expect(overlayScript(custom)).toContain(custom.accent);
+    expect(overlayScript(custom)).not.toContain(defaultTheme.accent);
   });
 
   it('drops the step badge when the theme turns it off', () => {

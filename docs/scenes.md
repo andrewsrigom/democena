@@ -7,9 +7,9 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
 ```json
 {
   "version": 2,
-  "title": "Parcel Desk",
-  "accent": "#28584c",
-  "video": "captures/parcel.webm",
+  "title": "Forma",
+  "accent": "#215acb",
+  "video": "captures/forma-take.webm",
   "sourceDuration": 20,
   "trimBefore": 0.5,
   "viewport": { "width": 1280, "height": 800 },
@@ -17,7 +17,7 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
 }
 ```
 
-This skeleton needs at least one scene. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
+This skeleton needs at least one scene. Example coordinates and times below illustrate the schema; use the generated Forma project or measured events from your own take for an actual recording. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
 
 There are two independent clocks:
 
@@ -55,9 +55,9 @@ Durations include transition time. Allow enough settled time to read the title, 
 ```json
 {
   "id": "chapter-01", "type": "chapter", "duration": 4,
-  "number": "01", "eyebrow": "Find a parcel",
-  "title": "From a question\nto a clear answer.",
-  "body": "One simple journey through Parcel Desk.",
+  "number": "01", "eyebrow": "Build a collection",
+  "title": "From a product\nto a collection.",
+  "body": "One simple journey through Forma.",
   "transition": { "type": "slide", "duration": 0.5 }
 }
 ```
@@ -78,7 +78,7 @@ Durations include transition time. Allow enough settled time to read the title, 
   "source": { "from": 4 },
   "focus": { "x": 133, "y": 574, "width": 320, "height": 45 },
   "dim": 0.4, "zoom": 1.35,
-  "eyebrow": "Start here", "title": "Find your parcel.", "body": "Enter its code in this field."
+  "eyebrow": "Start here", "title": "Name your product.", "body": "Give it a name in this field."
 }
 ```
 
@@ -110,7 +110,7 @@ Rectangles use the original viewport's pixels, not output-video pixels. The capt
   "id": "explain", "type": "annotation", "duration": 6,
   "source": { "from": 13, "freeze": true },
   "focus": { "x": 133, "y": 635, "width": 1014, "height": 23 },
-  "note": { "text": "Destination and status appear together.", "x": 680, "y": 350, "width": 470 },
+  "note": { "text": "Every product is available from one catalog link.", "x": 680, "y": 350, "width": 470 },
   "eyebrow": "A moment to explain", "title": "Pause here.", "body": "Keep the result in view."
 }
 ```
@@ -125,11 +125,11 @@ Use a `result` with `source` and optional `focus` for one final state. Add `comp
 {
   "id": "result", "type": "result", "duration": 5.5,
   "source": { "from": 13, "freeze": true },
-  "eyebrow": "The result", "title": "From a code\nto certainty.", "body": "The form before and after the lookup.",
+  "eyebrow": "The result", "title": "From draft\nto published.", "body": "The collection before and after publishing.",
   "comparison": {
     "before": 8, "after": 13,
     "crop": { "x": 112, "y": 526, "width": 1056, "height": 155 },
-    "beforeLabel": "BEFORE · A PARCEL TO FIND", "afterLabel": "AFTER · AN ANSWER IN SIGHT"
+    "beforeLabel": "BEFORE · A COLLECTION IN PROGRESS", "afterLabel": "AFTER · READY TO SHARE"
   }
 }
 ```
@@ -141,10 +141,10 @@ Comparison times follow the same trimmed recording clock as `source.from`. The c
 ```json
 {
   "id": "closing", "type": "outro", "duration": 5,
-  "eyebrow": "Less searching. More knowing.",
-  "title": "Every parcel.\nA clearer journey.",
+  "eyebrow": "Good products. One clear story.",
+  "title": "Your collection.\nReady to share.",
   "body": "A simple workflow, explained through text and motion.",
-  "reveal": "lines", "highlight": "clearer journey.",
+  "reveal": "lines", "highlight": "Ready to share.",
   "cta": "Make the next step clear"
 }
 ```
@@ -157,4 +157,4 @@ Studio and export share validation for scene types, required fields, unique IDs,
 
 The previous manifest format (`duration` on the project, scenes with increasing `at` timestamps) is accepted and converted in memory to overview/focus scenes with cuts. The original file is never modified by preview or render. Running the capture command generates version 2.
 
-Capture timestamps still use an estimated video offset. Verify fast actions in the exported video; the scene engine does not claim frame-perfect Playwright event synchronization. See [architecture](architecture.md) for that planned work.
+New captures use the first browser-presented frame timestamp as their clock origin. Frame sampling and action scheduling still introduce approximation. Verify fast actions in the exported video; the scene engine does not claim frame-perfect Playwright event synchronization. See [architecture](architecture.md) for that planned work.

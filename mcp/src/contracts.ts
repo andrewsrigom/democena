@@ -1,3 +1,4 @@
+import { capturePlanSchema } from './capture-contracts.js';
 import { z } from 'zod';
 import { prepareProject, buildTimeline, FPS } from '../../studio/src/timeline.js';
 
@@ -22,14 +23,16 @@ const revision = z.string().regex(/^[a-f0-9]{64}$/).describe('Revision returned 
 export const inputs = {
   capabilities: z.strictObject({}),
   list_projects: z.strictObject({}),
-  create_project: z.strictObject({ projectId: idSchema, title: z.string().min(1), accent: z.string().regex(/^#[\da-f]{6}$/i).default('#28584c') }),
+  create_project: z.strictObject({ projectId: idSchema, title: z.string().min(1), accent: z.string().regex(/^#[\da-f]{6}$/i).default('#215acb') }),
   get_project: z.strictObject({ projectId: idSchema }),
   save_project: z.strictObject({ projectId: idSchema, expectedRevision: revision, project: projectSchema }),
   import_media: z.strictObject({ projectId: idSchema, expectedRevision: revision, source: z.string().min(1).describe('Existing video path relative to the configured workspace. No URLs or paths outside it.') }),
+  start_capture: z.strictObject({ projectId: idSchema, expectedRevision: revision, plan: capturePlanSchema }),
+  use_capture: z.strictObject({ projectId: idSchema, expectedRevision: revision, jobId: idSchema }),
   validate_project: z.strictObject({ projectId: idSchema }),
   start_render: z.strictObject({ projectId: idSchema, expectedRevision: revision, mode: z.enum(['preview', 'video']).default('preview') }),
   get_job: z.strictObject({ jobId: idSchema }),
-  read_preview: z.strictObject({ jobId: idSchema, sceneId: z.string().optional().describe('Omit for the representative preview. Use a scene ID for that scene’s still.') }),
+  read_preview: z.strictObject({ jobId: idSchema, sceneId: z.string().optional().describe('Omit for the representative preview. Use a scene ID for its still, or a capture mark ID for its screenshot.') }),
 };
 export type Operation = keyof typeof inputs;
 export const descriptions: Record<Operation, string> = {
@@ -39,10 +42,12 @@ export const descriptions: Record<Operation, string> = {
   get_project: 'Read the editable project, revision, timeline and authoring warnings.',
   save_project: 'Validate and atomically save the full edited manifest using optimistic concurrency. Previous revisions are preserved.',
   import_media: 'Probe and copy an existing local recording into a project, deriving duration and viewport from real media. Does not record a browser.',
+  start_capture: 'Record an authorized HTTP(S) application with declarative browser actions, assertions and markers. May change application data. Returns a background capture job; poll get_job.',
+  use_capture: 'Attach a successful capture to its project with revision protection. Returns real event timestamps, focus rectangles and the updated manifest; does not replace edited scenes.',
   validate_project: 'Validate scene timing, focus bounds and the actual imported recording before rendering. Returns actionable warnings.',
   start_render: 'Start a background preview or MP4 render from an immutable project snapshot. Returns immediately; poll get_job.',
-  get_job: 'Read persisted render status and artifact paths. Jobs survive an MCP client disconnect.',
-  read_preview: 'Return a rendered PNG for visual inspection. Inspect previews before claiming a demo is correct.',
+  get_job: 'Read persisted capture/render status and artifact paths. Jobs survive an MCP client disconnect.',
+  read_preview: 'Return a capture marker or rendered PNG for visual inspection. Inspect previews before claiming a demo is correct.',
 };
 export class AgentError extends Error {
   constructor(public code: string, message: string) { super(message); }
@@ -67,12 +72,12 @@ export function describeProject(value: unknown) {
 }
 export const guide = `Democena agent workflow:
 1. Discover capabilities. Explore the real application before scripting its actions.
-2. Create a project. For app scenes, place an authorized real recording inside the workspace and import_media. Never invent screenshots, outcomes, focus coordinates, or source timestamps.
+2. Create a project. For app scenes, start_capture with an authorized URL and an assertion-based plan, poll get_job, inspect mark images with read_preview, then use_capture. You may also import_media from the workspace. Never invent screenshots, outcomes, focus coordinates, or source timestamps.
 3. get_project, edit the manifest, and save_project with the returned expectedRevision. On REVISION_CONFLICT, read again and reconcile the changes; do not blindly retry with the new revision.
 4. Source timestamps and focus/note coordinates are in the recording's viewport. Presentation durations and transitions use a separate 30fps clock. Annotations freeze the recording. Camera path times are scene-local.
 5. validate_project, start_render in preview mode, poll get_job, then read_preview for visual inspection. Fix clipping, unreadable copy and inaccurate focus before rendering video.
 6. Return artifact paths and observed limitations. Do not claim an application outcome without checking it.
-The server edits and renders existing recordings; generic browser capture remains in the existing CLI/adapter. Media files and prior revisions are preserved. Jobs run locally, no upload or external model is used. Rendering needs the optional Studio installation, Chromium and ffprobe.\n`;
+The server captures one browser page through declarative actions and edits/renders recordings. Capture can change real application data: use only authorized workflows. Existing arbitrary TypeScript scenarios are not automatically converted. Media files and prior revisions are preserved. Jobs run locally, no upload or external model is used. Rendering needs the optional Studio installation, Chromium and ffprobe.\n`;
 export function capabilities() {
   const base = { id: 'example', duration: 4, eyebrow: '', title: 'Show the outcome', body: '', transition: { type: 'fade', duration: 0.4 } };
   const focus = { x: 300, y: 200, width: 400, height: 150 };

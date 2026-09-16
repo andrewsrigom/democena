@@ -6,7 +6,7 @@ Democena records scripted browser walkthroughs and turns them into silent produc
 
 **Status: early alpha.** The optional `studio/` adds eight scene types: animated text, chapter breaks, app overview, spotlight focus, camera paths, paused annotations, before/after results, and closing panels. It is a developer tool, not a hosted editor.
 
-![Democena showing a paused recording with an animated note pointing to the real parcel-tracking result](docs/media/preview.png)
+![Democena explaining the published Forma collection in a blue CatalogForge-inspired presentation](docs/media/preview.png)
 
 ## Start locally
 
@@ -22,7 +22,7 @@ node dist/cli/index.js --help
 npm run example
 ```
 
-The example runs a public, synthetic parcel-tracking application on localhost. It uses no account, API key, or external model.
+The example is **Forma**, an original, synthetic collection app: add a product, publish the collection and open its public catalog. It runs on localhost with no account, API key or external model. Forma and the motion presentation share a CatalogForge-inspired blue palette, white panels and restrained borders.
 
 ## Try the Remotion prototype
 
@@ -57,11 +57,11 @@ npx democena video
 npx democena images 3
 ```
 
-The core CLI still renders its in-page overlays. The clean-capture Remotion prototype currently has its own example adapter; it does not yet convert every existing scenario automatically.
+The core CLI still renders its in-page overlays. The clean-capture Remotion prototype uses a shared declarative browser-capture engine; it does not yet convert every existing scenario automatically.
 
 ## Use with Codex or another agent
 
-The optional local MCP server exposes project discovery, scene editing, media import, validation, background rendering and PNG previews. The same operations are available through a JSON CLI for agents with terminal access.
+The optional local MCP server exposes browser capture, project discovery, scene editing, media import, validation, background rendering and PNG previews. The same operations are available through a JSON CLI for agents with terminal access.
 
 ```bash
 npm run mcp:install
@@ -69,7 +69,7 @@ npm run mcp:build
 node mcp/dist/mcp/src/cli.js capabilities --workspace "$PWD/.democena-agent"
 ```
 
-Configure Codex to launch `mcp/dist/mcp/src/index.js` with an explicit workspace. See the [agent and MCP guide](docs/agents.md) for setup and the complete create → edit → preview → inspect → render workflow. The integration uses existing recordings; browser capture remains a separate step.
+Configure Codex to launch `mcp/dist/mcp/src/index.js` with an explicit workspace. See the [agent and MCP guide](docs/agents.md) for setup and the complete capture → inspect → compose → preview → render workflow. Capture jobs return real action timestamps, measured element rectangles and screenshots; adopting a take preserves existing scene edits.
 
 ## Development
 
@@ -78,6 +78,7 @@ npm run typecheck
 npm test
 npm run build
 npm run test:browser
+npm run test:capture
 npm --prefix studio run typecheck
 ```
 

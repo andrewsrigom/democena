@@ -1,6 +1,6 @@
 # Democena · motion studio
 
-An optional presentation layer for silent product demos. Playwright records the bundled synthetic Parcel Desk application; Remotion turns an editable scene manifest into a video. No account, AI model, voice or external service is involved.
+An optional presentation layer for silent product demos. Playwright records the bundled original Forma collection application; Remotion turns an editable scene manifest into a video. No account, AI model, voice or external service is involved.
 
 From the repository root, install and build the core first, then:
 
@@ -12,7 +12,7 @@ npm run studio:render
 npm run studio:dev
 ```
 
-Capture creates `studio/public/captures/parcel.webm` and `studio/project.json`. Rendering produces `studio/output/democena.mp4` (1920 × 1080, 30 fps, silent H.264), `output/preview.png`, numbered stills in `output/scenes/`, and `output/storyboard.json` with exact output frame positions. Run these commands from the repository root; npm selects the studio working directory.
+Capture creates `studio/public/captures/forma-<take-id>.webm` and `studio/project.json`. Rendering produces `studio/output/democena.mp4` (1920 × 1080, 30 fps, silent H.264), `output/preview.png`, numbered stills in `output/scenes/`, and `output/storyboard.json` with exact output frame positions. Run these commands from the repository root; npm selects the studio working directory.
 
 ## Eight scene types
 
@@ -29,16 +29,16 @@ Capture creates `studio/public/captures/parcel.webm` and `studio/project.json`. 
 
 Each scene has its own duration and incoming `fade`, `slide` or `none` transition. Reorder the scene array to reorder the story. The same composition powers Studio preview and export, with frame-derived animations and system fonts.
 
-See **[the scene authoring guide](../docs/scenes.md)** for the manifest contract, examples, clock behavior and validation. The bundled capture creates a complete, editable example of all eight types. Existing manifests using `at` timestamps are upgraded in memory when opened; their files are not overwritten.
+See **[the scene authoring guide](../docs/scenes.md)** for the manifest contract, examples, clock behavior and validation. The bundled capture creates nine editable scenes covering all eight types, including both the workspace and its published catalog. Shared blue tokens in `src/theme.ts` match CatalogForge’s palette; Forma uses the same colors and font stack. Existing manifests using `at` timestamps are upgraded in memory when opened; their files are not overwritten.
 
 ## Current limits
 
 - This adapter does not yet import existing CLI scenarios automatically.
-- Video markers use the capture clock with an estimated leading offset. The presentation timeline is frame-based, but capture-event alignment is approximate; it is not suitable for frame-accurate click effects yet.
+- Video markers use the first browser-presented frame timestamp as their origin. The presentation timeline is frame-based, but capture-event alignment is approximate; it is not suitable for frame-accurate click effects yet.
 - Coordinates assume a fixed viewport. Recapture or update coordinates after scrolling, resizing or changing the application layout.
 - Remotion Studio previews scenes and accepts JSON props; there is no custom drag-and-drop scene editor yet.
 - Install the core dependencies as well: scripts use its Playwright installation and Chromium binary. FFmpeg/ffprobe must be on PATH.
-- Re-running capture replaces the generated manifest and recording. Copy your edited `project.json` before doing so.
+- Re-running capture replaces the generated manifest, preserving its previous version under `studio/.cache/project-backups/`. Every take has a new recording filename. For an agent workflow that keeps scene edits in place, use MCP `start_capture` then `use_capture`.
 
 Generated projects, recordings and renders remain ignored by Git. The bundled example contains synthetic data. Remotion has [its own license](https://www.remotion.dev/license).
 

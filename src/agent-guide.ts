@@ -108,7 +108,7 @@ DATA, AND SAYING WHAT IS NOT REAL
   wants to watch seeding, and unknown leftover state is how a demo comes to lie.
   Seed through the application, never by editing it. Where there is no seam (data hardcoded in a
   service, a stubbed frontend), film what is there and label it instead.
-  \`demo.note('Stubbed depot data, no real parcels')\` puts a standing label in the corner for the
+  \`demo.note('Sample collection, no real customer data')\` puts a standing label in the corner for the
   whole recording. Use it whenever what is on screen is not what it appears to be: mocked, seeded,
   made up. A demo that overstates is worse than no demo, and this is the cheapest way to be honest.
 
@@ -148,12 +148,11 @@ WHEN SOMETHING IS MISSING
   \`democena auth <url>\`, which opens a browser and waits for a human. That is a person's job, not
   yours: say it is needed and stop.
 
-OPTIONAL SCENE EDITING AND MCP
-  For editable motion scenes, this checkout also provides a local MCP server and a JSON CLI.
-  Read docs/agents.md in the Democena repository for setup and the create → preview → inspect →
-  render workflow. Keep core capture and Studio editing distinct: automatic conversion of every
-  scenario to clean Studio media is not implemented. Inspect rendered previews before claiming
-  the visual result is correct.
+OPTIONAL CAPTURE, SCENE EDITING AND MCP
+  Read docs/agents.md for the local MCP server/JSON CLI: capture → compose → preview → render.
+  start_capture records authorized actions and assertions; inspect its markers, then use_capture
+  to adopt the take while preserving scene edits. Existing core scenarios are not automatically
+  converted. Inspect rendered previews before claiming the visual result is correct.
 
 WHEN YOU ARE DONE
   Say what you changed and leave it for the developer to commit. The scenario belongs in the

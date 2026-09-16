@@ -1,3 +1,4 @@
+import { theme } from './theme';
 import { Freeze, OffthreadVideo, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ReactNode } from 'react';
 import type { Focus, Project, Source } from './model';
@@ -21,7 +22,7 @@ export function Spotlight({ focus, ratio, accent, dim = 0 }: { focus: Focus; rat
   return <div style={{ position: 'absolute', left: focus.x * ratio - 7, top: focus.y * ratio - 7,
     width: focus.width * ratio + 14, height: focus.height * ratio + 14, boxSizing: 'border-box',
     border: `3px solid ${accent}`, borderRadius: 12, opacity: enter,
-    boxShadow: `0 0 0 4000px rgba(16, 29, 24, ${dim}), 0 0 0 5px ${accent}20`, pointerEvents: 'none' }} />;
+    boxShadow: `0 0 0 4000px rgba(20, 45, 82, ${dim}), 0 0 0 5px ${accent}20`, pointerEvents: 'none' }} />;
 }
 
 export function BrowserFrame({ project, source, camera = IDENTITY, focus, dim, children, width = 1170 }: {
@@ -32,11 +33,11 @@ export function BrowserFrame({ project, source, camera = IDENTITY, focus, dim, c
   const entrance = spring({ frame, fps, config: { damping: 30, stiffness: 85 } });
   const ratio = width / project.viewport.width;
   const height = project.viewport.height * ratio;
-  return <div style={{ width, borderRadius: 18, overflow: 'hidden', background: '#fff', border: '1px solid #d5dacf',
-    boxShadow: '0 40px 85px -25px #23352940, 0 4px 10px #2335290a', transform: `translateY(${(1 - entrance) * 24}px)` }}>
-    <div style={{ height: 48, background: '#fcfcf8', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, borderBottom: '1px solid #e2e7de', boxSizing: 'border-box' }}>
-      {['#d7a39b', '#ddce93', '#a6bda1'].map((color) => <span key={color} style={{ width: 10, height: 10, borderRadius: 10, background: color }} />)}
-      <span style={{ margin: 'auto', paddingRight: 44, color: '#778376', fontSize: 15 }}>{project.title}</span>
+  return <div style={{ width, borderRadius: 18, overflow: 'hidden', background: '#fff', border: '1px solid #e1e6ed',
+    boxShadow: '0 40px 85px -25px #142d5240, 0 4px 10px #142d520a', transform: `translateY(${(1 - entrance) * 24}px)` }}>
+    <div style={{ height: 48, background: theme.background, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, borderBottom: '1px solid #e1e6ed', boxSizing: 'border-box' }}>
+      {['#b6c6df', '#93afd7', '#6f95d0'].map((color) => <span key={color} style={{ width: 10, height: 10, borderRadius: 10, background: color }} />)}
+      <span style={{ margin: 'auto', paddingRight: 44, color: theme.muted, fontSize: 15 }}>{project.title}</span>
     </div>
     <div style={{ width, height, overflow: 'hidden', position: 'relative' }}>
       <div style={{ width, height, transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}>
@@ -52,8 +53,8 @@ export function BrowserFrame({ project, source, camera = IDENTITY, focus, dim, c
 export function ComparisonFrame({ project, at, crop, label, after }: { project: Project; at: number; crop: Focus; label: string; after: boolean }) {
   const width = 1170;
   const clip = comparisonLayout(crop, width);
-  return <div style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${after ? project.accent : '#d5dacf'}`, background: '#fff', boxShadow: '0 20px 40px -30px #23352950' }}>
-    <div style={{ height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 12, background: after ? project.accent : '#e7e9e1', color: after ? '#fff' : '#66716b', fontSize: 16, fontWeight: 700, letterSpacing: 1 }}>
+  return <div style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${after ? project.accent : theme.border}`, background: '#fff', boxShadow: '0 20px 40px -30px #142d5250' }}>
+    <div style={{ height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 12, background: after ? project.accent : theme.tint, color: after ? '#fff' : theme.muted, fontSize: 16, fontWeight: 700, letterSpacing: 1 }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor' }} />{label}
     </div>
     <div style={{ width, height: clip.height, position: 'relative', background: '#f8fafc' }}>

@@ -7,16 +7,16 @@ applies: locators, `expect`, fixtures, `test.describe`. What `demo` adds is the 
 ```ts
 import { test, expect } from 'democena';
 
-test('From an order to a shipped parcel', async ({ page, demo }) => {
-  await demo.card('Acme', 'From an order to a shipped parcel');
+test('From product to published collection', async ({ page, demo }) => {
+  await demo.card('Forma', 'From product to published collection');
   await page.goto('/');
   await demo.hideCard();
   // ...
 });
 ```
 
-The test title becomes the file name, slugged. `From an order to a shipped parcel` gives you
-`from-an-order-to-a-shipped-parcel.mp4`.
+The test title becomes the file name, slugged. `From product to published collection` gives you
+`from-product-to-published-collection.mp4`.
 
 ## Shape of a good scenario
 
@@ -41,11 +41,11 @@ fifteen-minute budget with a fully provisioned environment around it.
 ### Text
 
 ```ts
-await demo.card('Acme', 'From an order to a shipped parcel');  // first frame: this, not the app
+await demo.card('Forma', 'From product to published collection');  // first frame: this, not the app
 await page.goto('/');
 await demo.hideCard();
 
-await demo.say('Someone picks the order. Nothing here happens by itself.');
+await demo.say('Add the details that make your product yours.');
 await demo.say('Only for a moment.', { hold: 1200 });          // override the reading time
 await demo.hide();
 ```
@@ -56,9 +56,9 @@ under 1.9 seconds and never over 9. That has held up for Dutch and English subti
 ### Steps
 
 ```ts
-await demo.step('Opening it fetches the order live.', async () => {
-  await demo.click(page.getByRole('link', { name: 'Open' }));
-  await expect(page.getByRole('heading', { name: 'Order' })).toBeVisible();
+await demo.step('Open the catalog to see your collection.', async () => {
+  await demo.click(page.getByRole('link', { name: 'Open catalog' }));
+  await expect(page.getByRole('heading', { name: 'Arc table lamp' })).toBeVisible();
 });
 ```
 
@@ -68,11 +68,11 @@ you would rather not have numbers.
 ### Pointing at things
 
 ```ts
-await demo.spotlight(page.getByTestId('cache-age'), 2400);   // frame it, dim the rest, hold
+await demo.spotlight(page.getByTestId('publish-summary'), 2400);   // frame it, dim the rest, hold
 await demo.clearSpotlight();
 
-await demo.click(page.getByRole('button', { name: 'Start' }));
-await demo.type(page.getByLabel('Order number'), 'PD-1041');
+await demo.click(page.getByRole('button', { name: 'New product' }));
+await demo.type(page.getByLabel('Product name'), 'Arc table lamp');
 ```
 
 `spotlight` scrolls to the element before it measures. `boundingBox()` is viewport-relative and
@@ -106,7 +106,7 @@ Hidden is a fact about the picture.
 
 ```ts
 await expect(page.getByTestId('result')).toBeVisible();
-await demo.still('parcel-result');
+await demo.still('collection-published');
 ```
 
 A still is a screenshot of the application as it is at that line, without the overlay. Call it after
@@ -133,7 +133,7 @@ then reads `Building the container (waited 3m 41s)`, which is the honest version
 ### Chapters
 
 ```ts
-demo.chapter('Approving the order');
+demo.chapter('Publish the collection');
 ```
 
 Nothing appears on screen. It becomes a heading in the transcript and a marker in the subtitle file,
