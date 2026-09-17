@@ -351,7 +351,7 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
 test('saving legacy Direction v1 writes v2 while preserving the exact archived revision', async t => {
   const s = await fixture(t);
   await s.store.create('direction-migration', 'Direction migration', '#215acb');
-  const legacyRaw = JSON.stringify(launchDirection(), null, 2) + '\n';
+  const legacyRaw = JSON.stringify(launchDirection()) + '\r\n  ';
   const legacyRevision = createHash('sha256').update(legacyRaw).digest('hex');
   const directionFile = path.join(s.store.root, 'projects/direction-migration/direction/direction.json');
   await writeFile(directionFile, legacyRaw);
@@ -370,7 +370,7 @@ test('saving legacy Direction v1 writes v2 while preserving the exact archived r
 test('workflow compilation preserves the exact legacy Direction v1 revision', async t => {
   const s = await fixture(t);
   const { project, direction } = await recordedTour(s, 'legacy-compile', 'Legacy compile');
-  const legacyRaw = JSON.stringify(direction, null, 2) + '\n';
+  const legacyRaw = JSON.stringify(direction) + '\r\n  ';
   const legacyRevision = createHash('sha256').update(legacyRaw).digest('hex');
   const directionDir = path.join(s.store.root, 'projects/legacy-compile/direction');
   await mkdir(directionDir, { recursive: true });

@@ -80,7 +80,7 @@ export class Workspace {
     });
     const source = JSON.parse(raw) as unknown;
     const saved = directionSchema.parse(source);
-    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved, source };
+    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved, source, raw };
   }
 
   async getDirection(id: string) {
@@ -89,7 +89,7 @@ export class Workspace {
     const direction = saved.compiledProjectRevision && saved.compiledProjectRevision !== current.projectRevision && ['compiled', 'delivered'].includes(saved.status)
       ? { ...saved, status: 'diverged' as const }
       : saved;
-    const { saved: _saved, source: _source, ...metadata } = current;
+    const { saved: _saved, source: _source, raw: _raw, ...metadata } = current;
     return { ...metadata, direction };
   }
 
@@ -123,16 +123,16 @@ export class Workspace {
     const parsed = directionSchema.parse(direction);
     const dir = await this.safe(`projects/${id}/direction`);
     await mkdir(path.join(dir, 'revisions'), { recursive: true });
-    let archived = previous;
+    let archived = previous ? JSON.stringify(previous, null, 2) + '\n' : undefined;
     if (previousRevision) {
       const current = await this.readCanonicalDirection(id).catch((error: unknown) => {
         if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
         throw error;
       });
-      if (current?.directionRevision === previousRevision) archived = current.source;
+      if (current?.directionRevision === previousRevision) archived = current.raw;
     }
     if (previousRevision && archived) {
-      await writeFile(path.join(dir, 'revisions', `${previousRevision}.json`), JSON.stringify(archived, null, 2) + '\n', { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'EEXIST') throw error; });
+      await writeFile(path.join(dir, 'revisions', `${previousRevision}.json`), archived, { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'EEXIST') throw error; });
     }
     const briefFile = path.join(dir, 'BRIEF.md');
     const storyboardFile = path.join(dir, 'STORYBOARD.md');
