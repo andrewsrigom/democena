@@ -28,10 +28,10 @@ export function fullBleedLayout(viewport: { width: number; height: number }, can
 
 export function productLayout(layout: CompositionLayout, viewport: { width: number; height: number }, canvas: { width: number; height: number }) {
   if (layout === 'full-bleed' || layout === 'full-bleed-proof') return { primary: fullBleedLayout(viewport, canvas) };
-  if (layout === 'product-stage') return { primary: framedStageLayout(viewport, { left: 250, top: 126, width: 1420, height: 928 }) };
-  if (layout === 'detail-crop') return { primary: framedStageLayout(viewport, { left: 604, top: 122, width: 1250, height: 894 }) };
+  if (layout === 'product-stage') return { primary: framedStageLayout(viewport, { left: 250, top: 126, width: 1420, height: 820 }) };
+  if (layout === 'detail-crop') return { primary: framedStageLayout(viewport, { left: 604, top: 122, width: 1250, height: 838 }) };
   if (layout === 'layered-product') return {
-    primary: framedStageLayout(viewport, { left: 494, top: 168, width: 1300, height: 874 }),
+    primary: framedStageLayout(viewport, { left: 494, top: 168, width: 1300, height: 780 }),
     secondary: framedStageLayout(viewport, { left: 690, top: 88, width: 1040, height: 724 }),
   };
   return { primary: browserLayout(viewport) };

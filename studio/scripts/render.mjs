@@ -157,7 +157,8 @@ try {
     && !['side', 'none'].includes(sceneComposition(scene).caption));
   const backgroundCopy = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
     || (scene.type === 'result' && scene.comparison && sceneComposition(scene).caption !== 'none')
-    || sceneComposition(scene).caption === 'side');
+    || sceneComposition(scene).caption === 'side'
+    || sceneComposition(scene).chromeVisible);
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
     || (!['text', 'chapter', 'outro'].includes(scene.type) && !immersiveLayouts.has(scene.presentation?.layout)));
   const chapterBadge = props.scenes.some((scene) => scene.type === 'chapter') ? composite(props.accent, theme.background, 0x18 / 0xff) : undefined;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cameraFor } from '../studio/src/camera.js';
+import { cameraFor, cameraPoint } from '../studio/src/camera.js';
 
 const viewport = { width: 1280, height: 800 };
 const width = 1170;
@@ -27,5 +27,13 @@ describe('motion camera', () => {
   it('preserves the whole viewport for overview scenes and full-page focus', () => {
     expect(cameraFor(undefined, viewport, width)).toEqual({ scale: 1, x: 0, y: 0 });
     expect(cameraFor({ x: 0, y: 0, ...viewport }, viewport, width).scale).toBe(1);
+  });
+
+  it('maps a focused source point into the visible camera viewport', () => {
+    const focus = { x: 760, y: 220, width: 300, height: 180 };
+    const camera = cameraFor(focus, viewport, width, 1.8);
+    const rendered = cameraPoint({ x: focus.x + focus.width / 2, y: focus.y + focus.height / 2 }, viewport, width, camera);
+    expect(rendered.x).toBeCloseTo(width / 2);
+    expect(rendered.y).toBeCloseTo(width * viewport.height / viewport.width / 2);
   });
 });

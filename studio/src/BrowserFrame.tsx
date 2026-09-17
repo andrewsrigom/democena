@@ -52,8 +52,8 @@ export function BrowserFrame({ project, source, theme, camera = IDENTITY, focus,
       <div style={{ width, height, transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}>
         <RecordedVideo project={project} source={source} width={width} />
         {focus ? <Spotlight focus={focus} ratio={ratio} accent={project.accent} dim={dim} scan={scan} /> : null}
-        {children}
       </div>
+      {children ? <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>{children}</div> : null}
     </div>
   </div>;
 }

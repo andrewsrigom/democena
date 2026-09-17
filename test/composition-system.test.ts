@@ -48,6 +48,9 @@ describe('composition system', () => {
       expect(layout.primary.left + layout.primary.width).toBeLessThanOrEqual(canvas.width + 400);
       expect(layout.primary.top + layout.primary.height).toBeLessThanOrEqual(canvas.height + 100);
       expect(Boolean(layout.secondary)).toBe(id === 'layered-product');
+      if (!compositionRegistry[id].immersive) {
+        expect(layout.primary.top + layout.primary.chromeHeight + layout.primary.height).toBeLessThanOrEqual(960);
+      }
     }
     expect(productLayout('product-stage', viewport, canvas).primary).not.toEqual(productLayout('framed', viewport, canvas).primary);
     expect(productLayout('detail-crop', viewport, canvas).primary).not.toEqual(productLayout('product-stage', viewport, canvas).primary);

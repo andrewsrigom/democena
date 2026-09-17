@@ -12,6 +12,16 @@ export function cameraFor(focus: Focus | undefined, viewport: { width: number; h
     y: clamp((height / 2 - (focus.y + focus.height / 2) * ratio) * scale, height * (scale - 1) / 2) };
 }
 
+/** Map source-video coordinates into the rendered camera viewport. */
+export function cameraPoint(point: { x: number; y: number }, viewport: { width: number; height: number }, width: number, camera: Camera) {
+  const ratio = width / viewport.width;
+  const height = viewport.height * ratio;
+  return {
+    x: width / 2 + (point.x * ratio - width / 2) * camera.scale + camera.x,
+    y: height / 2 + (point.y * ratio - height / 2) * camera.scale + camera.y,
+  };
+}
+
 /** Ease between stops, then hold the final target. An absent focus restores the overview. */
 export function cameraAt(path: CameraStop[], time: number, viewport: { width: number; height: number }, width: number): Camera {
   const first = path[0];
