@@ -12,3 +12,10 @@ export function productLayout(
   viewport: { width: number; height: number },
   canvas: { width: number; height: number },
 ): { primary: ProductLayoutBox; secondary?: ProductLayoutBox };
+export function annotationNotePlacement(
+  note: { x: number; y: number; width: number },
+  viewport: { width: number; height: number },
+  box: ProductLayoutBox,
+  canvas: { width: number; height: number },
+  inset?: number,
+): { left: number; width: number; top?: number; bottom?: number; anchorX: number; anchorY: number };

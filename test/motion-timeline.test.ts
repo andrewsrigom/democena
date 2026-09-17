@@ -3,7 +3,7 @@ import { authoredEntranceOffsetFrames, buildTimeline, chapterLifecycleFrames, FP
 import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
-import { fullBleedLayout } from '../studio/src/layout.js';
+import { annotationNotePlacement, fullBleedLayout } from '../studio/src/layout.js';
 import { compactChapterChrome, nestedChromeBackdropOpacity, outgoingChromeCaptionDelayFrames, overlayCaptionBottom, overlayCaptionTop, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
@@ -65,6 +65,18 @@ describe('scene timeline and source clock', () => {
     const prepared = prepareProject({ ...project(), scenes });
     expect(prepared.scenes[1]).toMatchObject({ presentation: { layout: 'full-bleed', caption: 'bottom-right' }, transition: { type: 'slide-up' } });
     expect(fullBleedLayout({ width: 1280, height: 800 }, { width: 1920, height: 1080 })).toEqual({ width: 1920, height: 1200, left: 0, top: -60, chromeHeight: 0 });
+  });
+
+  it('keeps full-bleed annotation notes inside the visible canvas crop', () => {
+    const viewport = { width: 1280, height: 800 };
+    const canvas = { width: 1920, height: 1080 };
+    const box = fullBleedLayout(viewport, canvas);
+    const top = annotationNotePlacement({ x: 0, y: 0, width: 400 }, viewport, box, canvas);
+    const bottom = annotationNotePlacement({ x: 880, y: 660, width: 400 }, viewport, box, canvas);
+    expect(top).toMatchObject({ left: 24, top: 84, width: 600, anchorY: 84 });
+    expect(box.top + top.anchorY).toBe(24);
+    expect(bottom).toMatchObject({ left: 1296, bottom: 84, width: 600, anchorY: 1116 });
+    expect(box.top + bottom.anchorY).toBe(1056);
   });
 
   it('keeps stable chrome states and fades only when visibility changes', () => {

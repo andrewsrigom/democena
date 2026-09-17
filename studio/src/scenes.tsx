@@ -6,7 +6,7 @@ import { cameraAt, cameraFor, cameraPoint, type Camera } from './camera';
 import { defaultCameraZoom, minimumCameraZoom } from './camera-geometry.mjs';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
-import { productLayout } from './layout';
+import { annotationNotePlacement, productLayout, type ProductLayoutBox } from './layout';
 import { motionImplementationFor } from './motion-registry';
 import { chapterLifecycleFrames } from './timeline';
 import { sceneComposition } from './composition-registry.mjs';
@@ -152,26 +152,28 @@ function OverlayCaption({ scene, accent, theme, position, layout, entranceDelayF
     {scene.body ? <p style={{ color: theme.muted, fontSize: compact ? 18 : Math.min(type.body, 22), lineHeight: 1.45, margin: 0 }}>{scene.body}</p> : null}
   </div>;
 }
-function Annotation({ scene, project, theme, width, camera }: { scene: AnnotationScene; project: Project; theme: PresentationTheme; width: number; camera: Camera }) {
+function Annotation({ scene, project, theme, box, camera, canvas }: { scene: AnnotationScene; project: Project; theme: PresentationTheme; box: ProductLayoutBox; camera: Camera; canvas: { width: number; height: number } }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const appear = spring({ frame: frame - 12, fps, config: { damping: 26 } });
   const draw = interpolate(frame, [10, 35], [0, 1], CLAMP);
+  const width = box.width;
   const ratio = width / project.viewport.width;
   const height = project.viewport.height * ratio;
   const { note, focus } = scene;
   const target = cameraPoint({ x: focus.x + focus.width / 2, y: focus.y + focus.height / 2 }, project.viewport, width, camera);
   const x = target.x;
   const y = target.y;
-  const nx = (note.x + note.width / 2) * ratio;
-  const ny = note.y * ratio;
+  const placement = annotationNotePlacement(note, project.viewport, box, canvas);
+  const nx = placement.anchorX;
+  const ny = placement.anchorY;
   const bend = y < ny ? -60 : 60;
   return <>
     <svg viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
       <path d={`M ${nx} ${ny} C ${nx} ${ny + bend}, ${x} ${y - bend}, ${x} ${y}`} pathLength={1} stroke={project.accent} strokeWidth={3} fill="none" strokeDasharray={1} strokeDashoffset={1 - draw} />
       <circle cx={x} cy={y} r={6} fill={project.accent} opacity={draw} />
     </svg>
-    <div style={{ position: 'absolute', left: note.x * ratio, top: note.y * ratio, width: note.width * ratio, boxSizing: 'border-box', padding: '20px 24px', borderRadius: 14,
+    <div style={{ position: 'absolute', left: placement.left, top: placement.top, bottom: placement.bottom, width: placement.width, boxSizing: 'border-box', padding: '20px 24px', borderRadius: 14,
       background: project.accent, color: '#fff', fontSize: 22, lineHeight: 1.5, boxShadow: `0 12px 30px ${theme.shadow}55`, opacity: appear, transform: `translateY(${(1 - appear) * 12}px)` }}>{note.text}</div>
   </>;
 }
@@ -218,7 +220,7 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
     <div style={{ position: 'absolute', left: primary.left, top: primary.top }}>
       <BrowserFrame project={project} source={scene.source} theme={theme} width={primary.width} camera={camera} focus={focus} scan={implementation === 'focus-scan'}
         framed={framed} dim={dim}>
-        {scene.type === 'annotation' ? <Annotation scene={scene} project={project} theme={theme} width={primary.width} camera={camera} /> : null}
+        {scene.type === 'annotation' ? <Annotation scene={scene} project={project} theme={theme} box={primary} camera={camera} canvas={{ width: compositionWidth, height: compositionHeight }} /> : null}
       </BrowserFrame>
     </div>
     <CompositionForeground layout={composition.id} accent={project.accent} />

@@ -1,6 +1,6 @@
 import type { Focus } from './model.js';
 
-export { browserLayout, fullBleedLayout, OUTPUT_CANVAS, productLayout } from './canvas-geometry.mjs';
+export { annotationNotePlacement, browserLayout, fullBleedLayout, OUTPUT_CANVAS, productLayout } from './canvas-geometry.mjs';
 
 export type ProductLayoutBox = { width: number; height: number; left: number; top: number; chromeHeight: number };
 

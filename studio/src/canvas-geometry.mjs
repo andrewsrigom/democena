@@ -33,3 +33,27 @@ export function productLayout(layout, viewport, canvas) {
   };
   return { primary: browserLayout(viewport) };
 }
+
+/** Keep annotation copy inside the part of a product surface that remains visible on the output canvas. */
+export function annotationNotePlacement(note, viewport, box, canvas, inset = 24) {
+  const ratio = box.width / viewport.width;
+  const contentHeight = viewport.height * ratio;
+  const visible = {
+    left: Math.max(0, -box.left),
+    right: Math.min(box.width, canvas.width - box.left),
+    top: Math.max(0, -box.top - box.chromeHeight),
+    bottom: Math.min(contentHeight, canvas.height - box.top - box.chromeHeight),
+  };
+  const horizontalInset = Math.min(inset, Math.max(0, (visible.right - visible.left) / 2));
+  const verticalInset = Math.min(inset, Math.max(0, (visible.bottom - visible.top) / 2));
+  const width = Math.min(note.width * ratio, Math.max(0, visible.right - visible.left - horizontalInset * 2));
+  const left = Math.max(visible.left + horizontalInset, Math.min(note.x * ratio, visible.right - horizontalInset - width));
+  const estimatedHeight = 140 * ratio;
+  const useBottomEdge = note.y * ratio + estimatedHeight > visible.bottom - verticalInset;
+  if (useBottomEdge) {
+    const bottom = contentHeight - visible.bottom + verticalInset;
+    return { left, width, bottom, anchorX: left + width / 2, anchorY: contentHeight - bottom };
+  }
+  const top = Math.max(visible.top + verticalInset, note.y * ratio);
+  return { left, width, top, anchorX: left + width / 2, anchorY: top };
+}
