@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { startExample } from '../../examples/basic/app.mjs';
-import { formaPlan, formaScenes } from '../../examples/basic/story.mjs';
+import { formaLaunchDirection, formaPlan, formaScenes } from '../../examples/basic/story.mjs';
 
 const repo = fileURLToPath(new URL('../../', import.meta.url));
 await mkdir(path.join(repo, 'studio/.cache'), { recursive: true });
@@ -32,16 +32,18 @@ async function wait(jobId, expected = 'succeeded') {
   }
   throw new Error('Job did not complete before the smoke-test deadline.');
 }
-async function inspect(jobId, sceneId) {
+async function inspect(jobId, sceneId, mimeType = 'image/png') {
   const result = await call('read_preview', { jobId, ...(sceneId ? { sceneId } : {}) });
   const image = result.content.find(c => c.type === 'image');
-  assert.equal(image.mimeType, 'image/png');
-  assert.equal(Buffer.from(image.data, 'base64').subarray(1, 4).toString(), 'PNG');
+  assert.equal(image.mimeType, mimeType);
+  const bytes = Buffer.from(image.data, 'base64');
+  if (mimeType === 'image/png') assert.equal(bytes.subarray(1, 4).toString(), 'PNG');
+  else assert.deepEqual([...bytes.subarray(0, 3)], [0xff, 0xd8, 0xff]);
 }
 try {
   await connect();
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 14);
+  assert.equal(tools.tools.length, 19);
   assert.equal(tools.tools.find(t => t.name === 'democena_start_capture').annotations.openWorldHint, true);
   await call('capabilities');
   let p = (await call('create_project', { projectId: 'forma-story', title: 'Forma — the spring edit', branding: { name: 'Forma', tagline: 'COLLECTIONS, IN MOTION', footer: 'YOUR COLLECTION, READY TO SHARE' } })).structuredContent;
@@ -70,6 +72,7 @@ try {
   assert.equal(stale.structuredContent.error.code, 'REVISION_CONFLICT');
   p = (await call('use_capture', { projectId: p.projectId, expectedRevision: p.revision, jobId: take.jobId })).structuredContent;
   assert.equal(p.project.scenes[0].title, initial.project.scenes[0].title);
+  const captureMedia = p.media;
   const scenes = formaScenes(p.capture);
   p = (await call('save_project', { projectId: p.projectId, expectedRevision: p.revision, project: { ...p.project, scenes } })).structuredContent;
   await call('validate_project', { projectId: p.projectId });
@@ -86,8 +89,11 @@ try {
   await client.close();
   await connect();
   const preview = await wait(previewStart.jobId);
-  assert.equal(preview.artifacts.scenes.length, scenes.length);
+  assert(scenes.every(scene => preview.artifacts.scenes.some(artifact => artifact.id === scene.id)));
   for (const scene of scenes) await inspect(preview.jobId, scene.id);
+  await inspect(preview.jobId, 'review-contact-sheet', 'image/jpeg');
+  await inspect(preview.jobId, 'review-poster', 'image/jpeg');
+  assert.equal(JSON.parse(await readFile(preview.artifacts.quality, 'utf8')).status, 'passed');
   console.log(JSON.stringify({ phase: 'preview', workspace, jobId: preview.jobId, artifacts: preview.artifacts }));
   const videoStart = (await call('start_render', { projectId: p.projectId, expectedRevision: p.revision, mode: 'video' })).structuredContent;
   const edited = (await call('save_project', { projectId: p.projectId, expectedRevision: p.revision, project: { ...p.project, title: 'Edited after the render started' } })).structuredContent;
@@ -96,8 +102,25 @@ try {
   assert.notEqual(video.revision, edited.revision);
   const snapshot = JSON.parse(await readFile(path.join(workspace, 'jobs', video.jobId, 'project.json'), 'utf8'));
   assert.equal(snapshot.title, p.project.title);
-  assert.equal(video.artifacts.scenes.length, scenes.length);
-  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, brandingVerified: true, snapshotVerified: true, failedCaptureVerified: true, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, artifacts: video.artifacts };
+  assert(scenes.every(scene => video.artifacts.scenes.some(artifact => artifact.id === scene.id)));
+
+  let launch = (await call('create_project', { projectId: 'forma-launch', title: 'Forma — launch cut', branding: { name: 'Forma', tagline: 'COLLECTIONS, IN MOTION', footer: 'READY TO SHARE' } })).structuredContent;
+  launch = (await call('use_capture', { projectId: launch.projectId, expectedRevision: launch.revision, jobId: captured.jobId, allowCrossProjectReuse: true })).structuredContent;
+  assert.equal(launch.media.captureFingerprint, captureMedia.captureFingerprint);
+  const direction = (await call('save_direction', { projectId: launch.projectId, expectedDirectionRevision: null, direction: formaLaunchDirection(launch.capture, launch.media) })).structuredContent;
+  const compiled = (await call('compile_direction', { projectId: launch.projectId, expectedDirectionRevision: direction.directionRevision, expectedProjectRevision: launch.revision })).structuredContent;
+  assert(compiled.compiledDuration >= 15 && compiled.compiledDuration <= 25);
+  const launchPreview = await wait((await call('start_render', { projectId: launch.projectId, expectedRevision: compiled.project.revision, mode: 'preview' })).structuredContent.jobId);
+  const previewQuality = JSON.parse(await readFile(launchPreview.artifacts.quality, 'utf8'));
+  assert.equal(previewQuality.strict, true);
+  assert.equal(previewQuality.status, 'passed');
+  await inspect(launchPreview.jobId, 'review-contact-sheet', 'image/jpeg');
+  const launchVideo = await wait((await call('start_render', { projectId: launch.projectId, expectedRevision: compiled.project.revision, mode: 'video' })).structuredContent.jobId);
+  const launchQuality = JSON.parse(await readFile(launchVideo.artifacts.quality, 'utf8'));
+  assert.equal(launchQuality.status, 'passed');
+  assert.equal(launchQuality.media.streams.some(stream => stream.codec_type === 'audio'), false);
+
+  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, brandingVerified: true, snapshotVerified: true, failedCaptureVerified: true, crossProjectReuseVerified: true, launchDuration: compiled.compiledDuration, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, launchPreviewJob: launchPreview.jobId, launchVideoJob: launchVideo.jobId, artifacts: video.artifacts, launchArtifacts: launchVideo.artifacts };
   await writeFile(path.join(workspace, 'verification.json'), JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify(result));
 } finally { await client?.close(); await app.close(); }

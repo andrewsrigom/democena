@@ -12,11 +12,12 @@ import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
 import { capturePlanSchema } from '../src/capture-contracts.js';
 import { capabilities, validate } from '../src/contracts.js';
+import { captureFingerprint, compileDirection, digest } from '../src/direction.js';
 import { example } from '../../studio/src/model.js';
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
   const root = await mkdtemp(path.join(tmpdir(), 'democena-agent-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  t.after(() => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }));
   return new AgentService(await Workspace.open(root));
 }
 test('all eight discoverable examples pass the shared Studio validator', () => {
@@ -57,8 +58,12 @@ test('source paths cannot escape the workspace or follow symlinks', async t => {
   const s = await fixture(t);
   await assert.rejects(s.store.safe('../outside.mp4'), { code: 'INVALID_PATH' });
   await assert.rejects(s.store.safe('/tmp/outside.mp4'), { code: 'INVALID_PATH' });
-  await symlink(tmpdir(), path.join(s.store.root, 'assets/link'));
-  await assert.rejects(s.store.safe('assets/link/outside.mp4'), { code: 'INVALID_PATH' });
+  try {
+    await symlink(tmpdir(), path.join(s.store.root, 'assets/link'));
+    await assert.rejects(s.store.safe('assets/link/outside.mp4'), { code: 'INVALID_PATH' });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EPERM') throw error;
+  }
   await assert.rejects(s.call('get_project', { projectId: '../demo' }));
 });
 test('warnings distinguish valid timing from layout and reading concerns', async t => {
@@ -103,7 +108,7 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
   const client = new Client({ name: 'democena-test', version: '1.0.0' });
   t.after(async () => { await client.close(); });
   await client.connect(transport);
-  assert.equal((await client.listTools()).tools.length, 14);
+  assert.equal((await client.listTools()).tools.length, 19);
   assert.equal((await client.listResources()).resources.length, 2);
   assert((await client.readResource({ uri: 'democena://guide' })).contents.length > 0);
   const created = await client.callTool({ name: 'democena_create_project', arguments: { projectId: 'via-mcp', title: 'Agent demo' } });
@@ -179,4 +184,132 @@ test('capture adoption rejects unfinished jobs and wrong projects without modify
   await writeFile(path.join(dir, 'job.json'), JSON.stringify({ jobId: 'capture-job', projectId: 'other', mode: 'capture', status: 'succeeded', capture: {}, artifacts: { recording: '/tmp/unused.webm' } }));
   await assert.rejects(s.useCapture('demo', project.revision, 'capture-job'), { code: 'WRONG_PROJECT' });
   assert.equal((await s.store.get('demo')).revision, project.revision);
+  await writeFile(path.join(dir, 'capture-plan.json'), JSON.stringify({ url: 'http://localhost:4173', steps: [{ id: 'result', action: 'expect', target: { testId: 'result' } }] }));
+  (s as unknown as { importMedia: (...args: unknown[]) => Promise<{ reused: boolean }> }).importMedia = async () => ({ reused: true });
+  assert.equal((await s.useCapture('demo', project.revision, 'capture-job', true) as unknown as { reused: boolean }).reused, true);
+});
+
+function launchDirection() {
+  const capture = {
+    recordingDigest: 'a'.repeat(64),
+    planDigest: 'b'.repeat(64),
+    viewport: { width: 1280, height: 800 },
+    devicePixelRatio: 1,
+    initialRoute: 'http://localhost:4173',
+    buildIdentity: 'fixture-1',
+  };
+  const authored = (claim: string) => [{ kind: 'authored-copy' as const, claim }];
+  const captured = (timestamp: number, verified = false) => [{ kind: 'capture' as const, timestamp, verified }];
+  return {
+    version: 1 as const,
+    status: 'reviewed' as const,
+    executionMode: 'autonomous' as const,
+    profile: 'launch' as const,
+    tone: 'polished' as const,
+    format: 'landscape-1080p' as const,
+    locale: 'en',
+    audience: 'Catalog teams',
+    primaryMessage: 'Publish a useful catalog quickly.',
+    visualDirection: 'Use concise copy and restrained motion.',
+    brandSource: 'project' as const,
+    facts: ['The captured result is published.'],
+    exclusions: [],
+    privacy: ['Use synthetic records.'],
+    reviewedBy: 'director' as const,
+    reviewedAt: '2026-09-16T12:00:00.000Z',
+    captureFingerprint: captureFingerprint(capture),
+    capture,
+    poster: { sceneId: 'result', sceneLocalTime: 2 },
+    scenes: [
+      { narrativeRole: 'hook' as const, reason: 'State the value.', expectedSettledAt: 2, evidence: authored('A concise product promise.'), scene: { id: 'hook', type: 'text' as const, duration: 4, eyebrow: 'Catalog work', title: 'Ready sooner.', body: 'Turn a product list into a useful catalog.' } },
+      { narrativeRole: 'product-reveal' as const, reason: 'Show the real product.', expectedSettledAt: 2, evidence: captured(0), scene: { id: 'reveal', type: 'overview' as const, duration: 4, eyebrow: 'The workspace', title: 'One clear flow.', body: 'Work from the captured application.', source: { from: 0, freeze: true } } },
+      { narrativeRole: 'verified-result' as const, reason: 'Prove the result.', expectedSettledAt: 2, evidence: captured(4, true), scene: { id: 'result', type: 'result' as const, duration: 4, eyebrow: 'Published', title: 'The result is visible.', body: 'The assertion and captured frame agree.', source: { from: 4, freeze: true } } },
+      { narrativeRole: 'closing' as const, reason: 'Close on the benefit.', expectedSettledAt: 2, evidence: authored('Restate the approved benefit.'), scene: { id: 'closing', type: 'outro' as const, duration: 4, eyebrow: 'CatalogForge', title: 'Ready to share.', body: 'A clear catalog with a clear next step.' } },
+    ],
+  };
+}
+
+test('launch compilation enforces shape, evidence and a 15-25 second runtime', () => {
+  const direction = launchDirection();
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [direction.scenes[0].scene] });
+  const compiled = compileDirection(direction, project);
+  assert.equal(compiled.project.scenes.length, 4);
+  assert(compiled.duration >= 15 && compiled.duration <= 25);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, verified: false }] } : entry) }, project), /verified result/);
+});
+
+test('direction revisions generate review views, compile atomically and detect divergence', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('demo', 'Director demo', '#215acb');
+  const direction = {
+    ...launchDirection(),
+    profile: 'tour' as const,
+    capture: undefined,
+    captureFingerprint: undefined,
+    poster: { sceneId: 'hook', sceneLocalTime: 2 },
+    scenes: [launchDirection().scenes[0]],
+  };
+  const saved = await s.store.saveDirection('demo', null, direction);
+  assert.match(await readFile(path.join(s.store.root, 'projects/demo/direction/BRIEF.md'), 'utf8'), /Director demo|Tour brief/);
+  assert.match(await readFile(path.join(s.store.root, 'projects/demo/direction/STORYBOARD.md'), 'utf8'), /hook/);
+  await assert.rejects(s.store.saveDirection('demo', null, direction), { code: 'DIRECTION_REVISION_CONFLICT' });
+  const compiled = await s.compileDirector('demo', saved.directionRevision, project.revision);
+  assert.equal(compiled.direction.direction.status, 'compiled');
+  const packets = await s.prepareScenePackets('demo', compiled.direction.directionRevision, compiled.project.revision);
+  assert.equal(packets.packets.length, 1);
+  assert.equal(JSON.parse(await readFile(packets.packets[0].path, 'utf8')).baseDirectionRevision, compiled.direction.directionRevision);
+  await s.store.save('demo', compiled.project.revision, { ...compiled.project.project, title: 'Manual edit' });
+  assert.equal((await s.store.getDirection('demo')).direction.status, 'diverged');
+});
+
+test('scene drafts are revision-bound and merge back into an unreviewed direction', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('draft-demo', 'Draft demo', '#215acb');
+  const direction = {
+    ...launchDirection(),
+    profile: 'tour' as const,
+    capture: undefined,
+    captureFingerprint: undefined,
+    poster: { sceneId: 'hook', sceneLocalTime: 2 },
+    scenes: [launchDirection().scenes[0]],
+  };
+  const saved = await s.store.saveDirection('draft-demo', null, direction);
+  const compiled = await s.compileDirector('draft-demo', saved.directionRevision, project.revision);
+  const prepared = await s.prepareScenePackets('draft-demo', compiled.direction.directionRevision, compiled.project.revision);
+  const packet = JSON.parse(await readFile(prepared.packets[0].path, 'utf8'));
+  const draftFile = path.join(s.store.root, 'projects/draft-demo', packet.output);
+  await mkdir(path.dirname(draftFile), { recursive: true });
+  await writeFile(draftFile, JSON.stringify({ version: 1, sceneId: packet.sceneId, baseDirectionRevision: packet.baseDirectionRevision, baseProjectRevision: packet.baseProjectRevision, captureFingerprint: packet.captureFingerprint, scene: packet.approvedScene }));
+  const merged = await s.mergeSceneDraftFiles('draft-demo', compiled.direction.directionRevision, compiled.project.revision);
+  assert.equal(merged.direction.status, 'draft');
+  assert.equal(merged.requiresReview, true);
+  assert.equal(merged.mergedSceneCount, 1);
+});
+
+test('matching capture jobs are resumed instead of duplicated', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('demo', 'Capture', '#215acb');
+  const plan = { url: 'http://localhost:4173', steps: [{ id: 'result', action: 'expect' as const, target: { testId: 'result' } }] };
+  const inputDigest = digest({ operation: 'capture', projectRevision: project.revision, plan });
+  const dir = path.join(s.store.root, 'jobs', 'existing-job');
+  await mkdir(dir);
+  await writeFile(path.join(dir, 'job.json'), JSON.stringify({ jobId: 'existing-job', projectId: 'demo', revision: project.revision, inputDigest, mode: 'capture', status: 'queued', createdAt: new Date().toISOString() }));
+  const resumed = await s.startCapture('demo', project.revision, plan);
+  assert.equal(resumed.jobId, 'existing-job');
+  assert.equal('reused' in resumed && resumed.reused, true);
+  assert.equal((await readdir(path.join(s.store.root, 'jobs'))).length, 1);
+});
+
+test('simultaneous matching capture requests create one durable job', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('demo', 'Capture', '#215acb');
+  const plan = { url: 'http://localhost:4173', buildIdentity: 'fixture-commit', steps: [{ id: 'result', action: 'expect' as const, target: { testId: 'result' } }] };
+  (s as unknown as { launchWorker: () => Promise<void> }).launchWorker = async () => { await new Promise((resolve) => setTimeout(resolve, 75)); };
+  const [first, second] = await Promise.all([
+    s.startCapture('demo', project.revision, plan),
+    s.startCapture('demo', project.revision, plan),
+  ]);
+  assert.equal(first.jobId, second.jobId);
+  assert.equal([first, second].filter((job) => 'reused' in job && job.reused).length, 1);
+  assert.equal((await readdir(path.join(s.store.root, 'jobs'))).length, 1);
 });

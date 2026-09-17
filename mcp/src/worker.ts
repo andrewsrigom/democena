@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, writeFile } from 'node:fs/promises';
+import { access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Workspace, atomicJson } from './storage.js';
 import { idSchema } from './contracts.js';
@@ -50,6 +50,8 @@ try {
       '--output',
       output,
     ];
+    const directionFile = path.join(dir, 'direction.json');
+    if (await access(directionFile).then(() => true, () => false)) args.push('--direction', directionFile);
     if (job.mode === 'preview') args.push('--still');
     const { stdout, stderr } = await promisify(execFile)(
       process.execPath,
@@ -72,10 +74,17 @@ try {
       artifacts: {
         preview: path.join(output, 'preview.png'),
         storyboard: path.join(output, 'storyboard.json'),
+        quality: path.join(output, 'review', 'quality.json'),
+        contactSheet: path.join(output, 'review', 'contact-sheet.jpg'),
+        poster: path.join(output, 'review', 'poster.jpg'),
         ...(job.mode === 'video'
           ? { video: path.join(output, 'democena.mp4') }
           : {}),
-        scenes: storyboard.scenes.map(
+        scenes: [...storyboard.scenes, ...(storyboard.transitions ?? []), {
+          id: 'review-contact-sheet', type: 'contact-sheet', output: path.join(output, 'review', 'contact-sheet.jpg'),
+        }, {
+          id: 'review-poster', type: 'poster', output: path.join(output, 'review', 'poster.jpg'),
+        }].map(
           (s: { id: string; type: string; output: string }) => ({
             id: s.id,
             type: s.type,
@@ -91,11 +100,19 @@ try {
     path.join(dir, 'render.log'),
     [e.message, e.stdout, e.stderr].filter(Boolean).join('\n'),
   ).catch(() => {});
+  const output = path.join(dir, 'output');
+  const failedArtifacts = {
+    quality: path.join(output, 'review', 'quality.json'),
+    contactSheet: path.join(output, 'review', 'contact-sheet.jpg'),
+    poster: path.join(output, 'review', 'poster.jpg'),
+  };
+  const available = Object.fromEntries((await Promise.all(Object.entries(failedArtifacts).map(async ([key, value]) => [key, await access(value).then(() => value, () => undefined)]))).filter(([, value]) => value));
   job = {
     ...job,
     status: 'failed',
     finishedAt: new Date().toISOString(),
     error: e.message.slice(-6000),
+    ...(Object.keys(available).length ? { failedArtifacts: available } : {}),
   };
 }
 await atomicJson(file, job);

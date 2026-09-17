@@ -58,6 +58,12 @@ export const capturePlanSchema = z
       .describe(
         'Optional authentication-state JSON path inside the workspace. The server does not perform login.',
       ),
+    buildIdentity: z
+      .string()
+      .min(1)
+      .max(200)
+      .optional()
+      .describe('Optional immutable application build identifier, such as a Git commit SHA.'),
     typingDelayMs: z.number().int().min(0).max(200).optional(),
     timeoutMs: z.number().int().min(5000).max(180000).optional(),
     steps: z

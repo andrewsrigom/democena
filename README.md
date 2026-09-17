@@ -63,7 +63,7 @@ The core CLI still renders its in-page overlays. The clean-capture Remotion prot
 
 ## Use with Codex or another agent
 
-The optional local MCP server exposes browser capture, project discovery, scene editing, media import, validation, background rendering and PNG previews. The same operations are available through a JSON CLI for agents with terminal access.
+The optional local MCP server exposes browser capture, project discovery, revisioned Director plans, launch/tour compilation, scene editing, media import, validation and background rendering. Preview jobs produce scene stills, transition frames, a contact sheet, a poster and a machine-readable quality report. The same operations are available through a JSON CLI for agents with terminal access.
 
 ```bash
 npm run mcp:install
@@ -71,7 +71,7 @@ npm run mcp:build
 node mcp/dist/mcp/src/cli.js capabilities --workspace "$PWD/.democena-agent"
 ```
 
-Configure Codex to launch `mcp/dist/mcp/src/index.js` with an explicit workspace. See the [agent and MCP guide](docs/agents.md) for setup and the complete capture → inspect → compose → preview → render workflow. Capture jobs return real action timestamps, measured element rectangles and screenshots; adopting a take preserves existing scene edits.
+Configure Codex to launch `mcp/dist/mcp/src/index.js` with an explicit workspace. See the [agent and MCP guide](docs/agents.md) for setup and the complete inspect → capture → direct → compile → review → deliver workflow. The reusable [Democena Director skill](skills/democena-director/SKILL.md) keeps claims tied to captured evidence and supports collaborative or autonomous local generation.
 
 ## Development
 

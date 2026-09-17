@@ -27,7 +27,7 @@ function Chapter({ scene, accent }: { scene: ChapterScene; accent: string }) {
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 30, stiffness: 90 } });
   return <>
-    <div style={{ position: 'absolute', right: 105, top: 150, color: accent, opacity: .16, fontSize: 620, lineHeight: 1, letterSpacing: -45, fontWeight: 700, transform: `translateX(${(1 - enter) * 100}px)` }}>{scene.number}</div>
+    <div style={{ position: 'absolute', right: 105, top: 150, color: accent, opacity: .32, fontSize: 620, lineHeight: 1, letterSpacing: -45, fontWeight: 700, transform: `translateX(${(1 - enter) * 100}px)` }}>{scene.number}</div>
     <div style={{ position: 'absolute', left: 148, top: 334, width: 1330, transform: `translateY(${(1 - enter) * 30}px)` }}>
       <Eyebrow accent={accent}>{`${scene.number} — ${scene.eyebrow}`}</Eyebrow>
       <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: 92, maxWidth: 1300 }} />
@@ -40,7 +40,7 @@ function Caption({ scene, accent }: { scene: Scene; accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame - 4, fps, config: { damping: 24, stiffness: 100 } });
-  return <div style={{ position: 'absolute', left: 88, top: 315, width: 506, opacity: enter, transform: `translateY(${(1 - enter) * 22}px)` }}>
+  return <div style={{ position: 'absolute', left: 96, top: 315, width: 498, opacity: enter, transform: `translateY(${(1 - enter) * 22}px)` }}>
     <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
     <h1 style={{ fontSize: 68, fontWeight: 600, letterSpacing: -3, lineHeight: 1.08, margin: '28px 0', whiteSpace: 'pre-line' }}>{scene.title}</h1>
     <p style={{ fontSize: 25, lineHeight: 1.6, color: theme.muted, maxWidth: 450, margin: 0 }}>{scene.body}</p>
@@ -78,7 +78,7 @@ export function SceneContent({ scene, project }: { scene: Scene; project: Projec
     const c = scene.comparison;
     const after = spring({ frame: frame - 16, fps, config: { damping: 28 } });
     return <><Caption scene={scene} accent={project.accent} />
-      <div style={{ position: 'absolute', left: 664, top: 232, width: 1170, display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div style={{ position: 'absolute', left: 664, top: 232, width: 1160, display: 'flex', flexDirection: 'column', gap: 32 }}>
         <ComparisonFrame project={project} at={c.before} crop={c.crop} label={c.beforeLabel} after={false} />
         <div style={{ opacity: after, transform: `translateY(${(1 - after) * 22}px)` }}><ComparisonFrame project={project} at={c.after} crop={c.crop} label={c.afterLabel} after /></div>
       </div>
