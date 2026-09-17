@@ -390,6 +390,10 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   });
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? focusScene(entry, 'detail-crop', true) : entry) }), /zoom must be at least 1.2 for the effective detail-crop layout/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? focusScene(entry, 'full-bleed-proof', false) : entry) }), /zoom must be at least 1.1 for the effective full-bleed-proof layout/);
+  const oversizedProof = focusScene(migrated.scenes[1]!, 'full-bleed-proof', false);
+  oversizedProof.scene.zoom = 1.2;
+  oversizedProof.scene.focus = { x: 100, y: 20, width: 300, height: 721 };
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? oversizedProof : entry) }), /focus cannot fit the visible canvas for the effective full-bleed-proof layout/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 2 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'framed' } }, scene: { ...entry.scene, comparison: { before: 1, after: 4, crop: { x: 100, y: 100, width: 300, height: 120 }, beforeLabel: 'Before', afterLabel: 'After' } } } : entry) }), /Comparison result beats cannot select product layouts or captions/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
 });
