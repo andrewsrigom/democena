@@ -360,6 +360,8 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'unknown-recipe', compatible: ['unknown-recipe', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /Unknown motion recipe/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { compatible: ['standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /current Project v2 renderer applies text-blur-slide/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'standard-scene-motion', compatible: ['text-blur-slide', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /cannot render through Project v2/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { caption: 'side' } } } : entry) }), /effective full-bleed layout cannot use a side caption/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'full-bleed-proof' } } } : entry) }), /requires an evidence-linked focus rectangle/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
 });
 

@@ -9,6 +9,7 @@ import { openBrowser, renderMedia, renderStill, selectComposition } from '@remot
 import { chromium } from 'playwright';
 import { buildTimeline, settledReviewFrame } from '../src/timeline-layout.mjs';
 import { resolveTheme } from '../src/theme-data.mjs';
+import { sceneComposition } from '../src/composition-registry.mjs';
 
 const { values } = parseArgs({ options: {
   project: { type: 'string', default: 'project.json' },
@@ -57,9 +58,8 @@ function readableSceneCopy(scene) {
   ].filter(Boolean).join(' ');
 }
 function sceneCopyVisible(scene) {
-  return ['text', 'chapter', 'outro'].includes(scene.type)
-    || (scene.type === 'result' && scene.comparison)
-    || scene.presentation?.caption !== 'none';
+  if (['text', 'chapter', 'outro'].includes(scene.type)) return true;
+  return sceneComposition(scene).caption !== 'none';
 }
 function luminance(hex) {
   const values = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255).map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
@@ -152,17 +152,12 @@ try {
     }
   };
   const immersiveLayouts = new Set(['full-bleed', 'full-bleed-proof']);
-  const captionFor = (scene) => scene.typographicRole === 'silent-product' ? 'none' : scene.presentation?.caption
-    ?? (immersiveLayouts.has(scene.presentation?.layout) || scene.presentation?.layout === 'layered-product' ? 'bottom-left'
-      : scene.presentation?.layout === 'product-stage' ? 'top-left' : 'side');
-  const immersiveCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
+  const overlayCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
     && !(scene.type === 'result' && scene.comparison)
-    && immersiveLayouts.has(scene.presentation?.layout)
-    && captionFor(scene) !== 'none');
+    && !['side', 'none'].includes(sceneComposition(scene).caption));
   const backgroundCopy = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
-    || (scene.type === 'result' && scene.comparison)
-    || !immersiveLayouts.has(scene.presentation?.layout)
-    || captionFor(scene) === 'side');
+    || (scene.type === 'result' && scene.comparison && sceneComposition(scene).caption !== 'none')
+    || sceneComposition(scene).caption === 'side');
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
     || (!['text', 'chapter', 'outro'].includes(scene.type) && !immersiveLayouts.has(scene.presentation?.layout)));
   const chapterBadge = props.scenes.some((scene) => scene.type === 'chapter') ? composite(props.accent, theme.background, 0x18 / 0xff) : undefined;
@@ -174,7 +169,7 @@ try {
     ] : []),
     ...(mutedOnTint ? [{ name: 'muted-on-tint', foreground: theme.muted, background: theme.tint, ratio: contrast(theme.muted, theme.tint), required: 4.5 }] : []),
     ...(chapterBadge ? [{ name: 'accent-on-chapter-badge', foreground: props.accent, background: chapterBadge, ratio: contrast(props.accent, chapterBadge), required: 4.5 }] : []),
-    ...(immersiveCaption ? [
+    ...(overlayCaption ? [
       { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
       { name: 'muted-on-surface', foreground: theme.muted, background: theme.surface, ratio: contrast(theme.muted, theme.surface), required: 4.5 },
       { name: 'accent-on-surface', foreground: props.accent, background: theme.surface, ratio: contrast(props.accent, theme.surface), required: 4.5 },

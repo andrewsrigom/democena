@@ -171,17 +171,18 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
   const implementation = motionImplementationFor(scene);
   if (scene.type === 'text' || scene.type === 'outro') return <TextPanel scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} />;
   if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} incomingOverlapFrames={incomingOverlapFrames} />;
+  const composition = sceneComposition(scene);
   if (scene.type === 'result' && scene.comparison) {
     const c = scene.comparison;
     const after = spring({ frame: frame - 16, fps, config: { damping: 28 } });
-    return <><Caption scene={scene} accent={project.accent} theme={theme} />
-      <div style={{ position: 'absolute', left: 664, top: 232, width: 1160, display: 'flex', flexDirection: 'column', gap: 32 }}>
+    const silent = composition.caption === 'none';
+    return <>{silent ? null : <Caption scene={scene} accent={project.accent} theme={theme} />}
+      <div style={{ position: 'absolute', left: silent ? 380 : 664, top: 232, width: 1160, display: 'flex', flexDirection: 'column', gap: 32 }}>
         <ComparisonFrame project={project} theme={theme} at={c.before} crop={c.crop} label={c.beforeLabel} after={false} />
         <div style={{ opacity: after, transform: `translateY(${(1 - after) * 22}px)` }}><ComparisonFrame project={project} theme={theme} at={c.after} crop={c.crop} label={c.afterLabel} after /></div>
       </div>
     </>;
   }
-  const composition = sceneComposition(scene);
   const caption = composition.caption;
   const layout = productLayout(composition.id, project.viewport, { width: compositionWidth, height: compositionHeight });
   const primary = layout.primary;

@@ -157,13 +157,19 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
     if (entry.beat.typographicRole === 'silent-product' && ['text', 'chapter', 'outro'].includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'typographicRole'], message: 'silent-product is available only to product scenes.' });
     const composition = entry.beat.composition;
     const productScene = !['text', 'chapter', 'outro'].includes(entry.scene.type);
+    const scenePresentation = productScene && 'presentation' in entry.scene ? entry.scene.presentation : undefined;
+    const effectiveLayout = composition?.layout ?? scenePresentation?.layout ?? 'framed';
+    const effectiveCaption = entry.beat.typographicRole === 'silent-product' ? 'none' : composition?.caption ?? scenePresentation?.caption ?? compositionRegistry[effectiveLayout].defaultCaption;
     if (composition && !productScene && (composition.layout !== undefined || composition.caption !== undefined)) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition'], message: 'Authored scenes can choose chrome and typography, but product layouts and captions require a product scene.' });
     }
-    if (composition?.layout && compositionRegistry[composition.layout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
-      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'layout'], message: `${composition.layout} requires an evidence-linked focus rectangle.` });
+    if (productScene && effectiveCaption === 'side' && !['framed', 'detail-crop'].includes(effectiveLayout)) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition'], message: `The effective ${effectiveLayout} layout cannot use a side caption.` });
     }
-    if (entry.beat.typographicRole === 'silent-product' && composition?.caption && composition.caption !== 'none') {
+    if (productScene && compositionRegistry[effectiveLayout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'layout'], message: `${effectiveLayout} requires an evidence-linked focus rectangle.` });
+    }
+    if (entry.beat.typographicRole === 'silent-product' && ((composition?.caption && composition.caption !== 'none') || (scenePresentation?.caption && scenePresentation.caption !== 'none'))) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'caption'], message: 'silent-product beats cannot render a caption.' });
     }
     if (entry.scene.typographicRole && entry.scene.typographicRole !== entry.beat.typographicRole) {
