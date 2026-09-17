@@ -77,6 +77,8 @@ describe('transition matrix', () => {
       .toEqual({ midpoint: true, after: true });
     expect(matrix.find((entry) => entry.id === 'chrome-visible-immersive-to-framed')?.expectedBackdrop)
       .toEqual({ before: true, midpoint: true, after: false });
+    const topRightScene = matrix.find((entry) => entry.id === 'chrome-explicit-hide-to-show')?.project.scenes[1];
+    expect(topRightScene && 'presentation' in topRightScene ? topRightScene.presentation?.caption : undefined).toBe('top-right');
     for (const entry of matrix) {
       expect(() => prepareProject(entry.project)).not.toThrow();
       expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);

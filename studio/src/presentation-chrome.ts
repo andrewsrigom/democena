@@ -38,7 +38,7 @@ export function presentationChromeUsesBackdrop(activeBacked: boolean, previousBa
 
 export function overlayCaptionTop(position: CaptionPlacement, layout: CompositionLayout, chromeVisible: boolean) {
   if (!position.startsWith('top')) return undefined;
-  if (position === 'top-left' && chromeVisible) return 190;
+  if (chromeVisible) return 190;
   return layout === 'product-stage' ? 150 : 96;
 }
 

@@ -94,7 +94,8 @@ describe('scene timeline and source clock', () => {
   it('keeps top-left overlay copy below visible presentation chrome', () => {
     expect(overlayCaptionTop('top-left', 'full-bleed', true)).toBe(190);
     expect(overlayCaptionTop('top-left', 'full-bleed', false)).toBe(96);
-    expect(overlayCaptionTop('top-right', 'full-bleed', true)).toBe(96);
+    expect(overlayCaptionTop('top-right', 'full-bleed', true)).toBe(190);
+    expect(overlayCaptionTop('top-right', 'full-bleed', false)).toBe(96);
     expect(overlayCaptionTop('top-left', 'product-stage', false)).toBe(150);
     expect(overlayCaptionTop('bottom-left', 'full-bleed', true)).toBeUndefined();
     expect(compactChapterChrome('product-stage')).toBe(true);
