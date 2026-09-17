@@ -1,7 +1,7 @@
 import type { CameraStop, Focus } from './model.js';
 import { cameraFocusFitsVisibleViewport, fittedCameraScale } from './camera-geometry.mjs';
 
-export { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, fittedCameraScale } from './camera-geometry.mjs';
+export { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, defaultCameraZoom, fittedCameraScale, minimumCameraZoom } from './camera-geometry.mjs';
 
 export type Camera = { scale: number; x: number; y: number };
 const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));

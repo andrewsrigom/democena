@@ -1,6 +1,6 @@
 import type { Focus, Project, Source } from './model.js';
 import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from './composition-registry.mjs';
-import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom } from './camera-geometry.mjs';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, defaultCameraZoom, minimumCameraZoom } from './camera-geometry.mjs';
 import { OUTPUT_CANVAS, productLayout } from './canvas-geometry.mjs';
 
 import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
@@ -108,7 +108,7 @@ export function prepareProject(value: unknown, fps = FPS): Project {
       const layout = String(scene.presentation.layout ?? 'framed') as keyof typeof compositionRegistry;
       const definition = compositionRegistry[layout];
       requireValue(definition !== undefined && (!definition.requiresFocus || (record(scene.focus) && finite(scene.focus.x))), `${name}.presentation.layout ${layout} requires an evidence-linked focus rectangle`);
-      const minimumZoom = layout === 'detail-crop' ? 1.2 : layout === 'full-bleed-proof' ? 1.1 : 1;
+      const minimumZoom = minimumCameraZoom(layout);
       if (scene.type === 'focus' && scene.zoom !== undefined) {
         requireValue(finite(scene.zoom) && scene.zoom >= minimumZoom, `${name}.zoom must be at least ${minimumZoom} for the ${layout} layout`);
       }
@@ -122,7 +122,7 @@ export function prepareProject(value: unknown, fps = FPS): Project {
         if (record(stop) && usableFocus(stop.focus)) focuses.push({ focus: stop.focus, pathIndex, zoom: finite(stop.zoom) ? stop.zoom : 1.8 });
       });
       else if (usableFocus(scene.focus) && (scene.type !== 'annotation' || definition.requiresFocus)) {
-        const defaultZoom = layout === 'detail-crop' ? 1.85 : layout === 'full-bleed-proof' ? 1.24 : 1.14;
+        const defaultZoom = defaultCameraZoom(layout, scene.type === 'focus');
         focuses.push({ focus: scene.focus, zoom: scene.type === 'focus' && finite(scene.zoom) ? scene.zoom : defaultZoom });
       }
       for (const candidate of focuses) {

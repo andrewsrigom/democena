@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, cameraFor, cameraPoint } from '../studio/src/camera.js';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, cameraFor, cameraPoint, defaultCameraZoom } from '../studio/src/camera.js';
 
 const viewport = { width: 1280, height: 800 };
 const width = 1170;
 const ratio = width / viewport.width;
 
 describe('motion camera', () => {
+  it('preserves the documented default zoom for ordinary focus scenes', () => {
+    expect(defaultCameraZoom('framed', true)).toBe(1.35);
+    expect(defaultCameraZoom('full-bleed', true)).toBe(1.35);
+    expect(defaultCameraZoom('framed', false)).toBe(1.14);
+    expect(defaultCameraZoom('detail-crop', true)).toBe(1.85);
+    expect(defaultCameraZoom('full-bleed-proof', true)).toBe(1.24);
+  });
   it('keeps a centered result fully readable when zooming', () => {
     const focus = { x: 133, y: 634.5, width: 1014, height: 22.5 };
     const camera = cameraFor(focus, viewport, width);

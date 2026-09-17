@@ -1,4 +1,5 @@
 import type { Focus } from './model.js';
+import type { CompositionLayout } from './model.js';
 
 export function cameraFocusFitsVisibleViewport(
   focus: Focus,
@@ -21,3 +22,5 @@ export function cameraFocusSupportsMinimumZoom(
   minimumZoom: number,
   visibleViewport?: { width: number; height: number },
 ): boolean;
+export function minimumCameraZoom(layout: CompositionLayout): number;
+export function defaultCameraZoom(layout: CompositionLayout, focusScene: boolean): number;

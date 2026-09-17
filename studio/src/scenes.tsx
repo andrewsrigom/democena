@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import type { AnnotationScene, CaptionPlacement, ChapterScene, CompositionLayout, OutroScene, Project, Scene, TextScene, TypographicRole } from './model';
 import type { PresentationTheme } from './theme';
 import { cameraAt, cameraFor, cameraPoint, type Camera } from './camera';
+import { defaultCameraZoom, minimumCameraZoom } from './camera-geometry.mjs';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
 import { productLayout } from './layout';
@@ -198,8 +199,8 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
   const primary = layout.primary;
   const focus = 'focus' in scene ? scene.focus : undefined;
   const strength = spring({ frame, fps, config: { damping: 30, stiffness: 60 } });
-  const defaultZoom = composition.id === 'detail-crop' ? 1.85 : composition.id === 'full-bleed-proof' ? 1.24 : 1.14;
-  const minimumZoom = composition.id === 'detail-crop' ? 1.2 : composition.id === 'full-bleed-proof' ? 1.1 : 1;
+  const defaultZoom = defaultCameraZoom(composition.id, scene.type === 'focus');
+  const minimumZoom = minimumCameraZoom(composition.id);
   const visibleCameraViewport = composition.immersive ? { width: compositionWidth, height: compositionHeight } : undefined;
   const target = cameraFor(focus, project.viewport, primary.width, scene.type === 'focus' ? scene.zoom ?? defaultZoom : defaultZoom, visibleCameraViewport, minimumZoom);
   const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, primary.width, visibleCameraViewport, minimumZoom)

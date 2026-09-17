@@ -16,3 +16,13 @@ export function fittedCameraScale(focus, viewport, width, zoom, visibleViewport)
 export function cameraFocusSupportsMinimumZoom(focus, viewport, width, zoom, minimumZoom, visibleViewport) {
   return fittedCameraScale(focus, viewport, width, zoom, visibleViewport) + 1e-9 >= minimumZoom;
 }
+
+export function minimumCameraZoom(layout) {
+  return layout === 'detail-crop' ? 1.2 : layout === 'full-bleed-proof' ? 1.1 : 1;
+}
+
+export function defaultCameraZoom(layout, focusScene) {
+  if (layout === 'detail-crop') return 1.85;
+  if (layout === 'full-bleed-proof') return 1.24;
+  return focusScene ? 1.35 : 1.14;
+}
