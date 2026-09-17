@@ -130,6 +130,9 @@ try {
   throw new Error('Studio dependencies are required for visual benchmarks. Run npm run studio:install first.');
 }
 
+const workingTree = execFileSync('git', ['status', '--porcelain'], { cwd: repoRoot, encoding: 'utf8' }).trim();
+if (workingTree) throw new Error('Visual benchmark generation requires a clean Git working tree. Commit or stash changes, then run it again.');
+
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
 const outputRoot = path.resolve(values.output ?? path.join(repoRoot, 'output', 'benchmarks', commit));
 await mkdir(outputRoot, { recursive: true });
