@@ -157,16 +157,18 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
     if (entry.beat.typographicRole === 'silent-product' && ['text', 'chapter', 'outro'].includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'typographicRole'], message: 'silent-product is available only to product scenes.' });
     const composition = entry.beat.composition;
     const productScene = !['text', 'chapter', 'outro'].includes(entry.scene.type);
-    const scenePresentation = productScene && 'presentation' in entry.scene ? entry.scene.presentation : undefined;
+    const comparisonResult = entry.scene.type === 'result' && entry.scene.comparison !== undefined;
+    const presentationScene = productScene && !comparisonResult;
+    const scenePresentation = presentationScene && 'presentation' in entry.scene ? entry.scene.presentation : undefined;
     const effectiveLayout = composition?.layout ?? scenePresentation?.layout ?? 'framed';
     const effectiveCaption = entry.beat.typographicRole === 'silent-product' ? 'none' : composition?.caption ?? scenePresentation?.caption ?? compositionRegistry[effectiveLayout].defaultCaption;
-    if (composition && !productScene && (composition.layout !== undefined || composition.caption !== undefined)) {
-      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition'], message: 'Authored scenes can choose chrome and typography, but product layouts and captions require a product scene.' });
+    if ((composition && !presentationScene && (composition.layout !== undefined || composition.caption !== undefined)) || (comparisonResult && 'presentation' in entry.scene && entry.scene.presentation !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition'], message: comparisonResult ? 'Comparison result beats cannot select product layouts or captions.' : 'Authored scenes can choose chrome and typography, but product layouts and captions require a product scene.' });
     }
-    if (productScene && effectiveCaption === 'side' && !['framed', 'detail-crop'].includes(effectiveLayout)) {
+    if (presentationScene && effectiveCaption === 'side' && !['framed', 'detail-crop'].includes(effectiveLayout)) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition'], message: `The effective ${effectiveLayout} layout cannot use a side caption.` });
     }
-    if (productScene && compositionRegistry[effectiveLayout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
+    if (presentationScene && compositionRegistry[effectiveLayout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'layout'], message: `${effectiveLayout} requires an evidence-linked focus rectangle.` });
     }
     if (entry.beat.typographicRole === 'silent-product' && ((composition?.caption && composition.caption !== 'none') || (scenePresentation?.caption && scenePresentation.caption !== 'none'))) {
@@ -355,7 +357,7 @@ function applyBeatComposition(entry: DirectionScene, scene: SceneInput): SceneIn
     typographicRole: entry.beat.typographicRole,
     ...(composition?.chrome ? { chrome: composition.chrome } : {}),
   } as SceneInput;
-  if (!composition || !('source' in result) || (composition.layout === undefined && composition.caption === undefined)) return result;
+  if (!composition || !('source' in result) || (result.type === 'result' && result.comparison !== undefined) || (composition.layout === undefined && composition.caption === undefined)) return result;
   return {
     ...result,
     presentation: {

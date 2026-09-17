@@ -2,7 +2,7 @@ import { capturePlanSchema } from './capture-contracts.js';
 import { z } from 'zod';
 import { prepareProject, buildTimeline, FPS } from '../../studio/src/timeline.js';
 import { motionRecipeFor, motionRecipeVocabulary, transitionPresetRegistry, transitionRegistry } from '../../studio/src/motion-recipes.js';
-import { captionPlacements, chromeModes, compositionRegistry, typographicRoles } from '../../studio/src/composition-registry.mjs';
+import { captionPlacements, chromeModes, compositionRegistry, sceneComposition, typographicRoles } from '../../studio/src/composition-registry.mjs';
 import { appearanceSchema, brandingSchema, projectSchema, sceneSchema } from './schema.js';
 import { directionSchema } from './direction.js';
 
@@ -69,12 +69,15 @@ export function describeProject(value: unknown) {
   const timeline = buildTimeline(project.scenes, FPS);
   const warnings: { sceneId: string; code: string; message: string }[] = [];
   for (const s of project.scenes) {
-    const copy = `${s.title} ${s.body}`.trim();
+    const authoredCopyVisible = ['text', 'chapter', 'outro'].includes(s.type) || sceneComposition(s).caption !== 'none';
+    const supportingCopy = s.type === 'annotation' ? s.note.text
+      : s.type === 'result' && s.comparison ? `${s.comparison.beforeLabel} ${s.comparison.afterLabel}` : '';
+    const copy = `${authoredCopyVisible ? `${s.title} ${s.body}` : ''} ${supportingCopy}`.trim();
     const words = [...new Intl.Segmenter('und', { granularity: 'word' }).segment(copy)].filter((part) => part.isWordLike).length;
-    const floor = Math.max(s.body.trim() ? 2 : s.title.trim() ? 1.5 : 1, words / 3);
+    const floor = words === 0 ? 0 : Math.max((authoredCopyVisible && s.body.trim()) || supportingCopy ? 2 : 1.5, words / 3);
     const settled = Math.max(0, s.duration - 0.8 - (s.transition?.duration ?? 0));
     if (settled < floor) warnings.push({ sceneId: s.id, code: 'READING_TIME', message: `Allow at least ${floor.toFixed(2)} settled seconds for this copy; the current estimate is ${settled.toFixed(2)} seconds after entrance and transition.` });
-    if (s.title.length > 70 || ('highlight' in s && (s.highlight?.length ?? 0) > 30)) warnings.push({ sceneId: s.id, code: 'TEXT_LAYOUT', message: 'Long titles or highlights may overflow. Inspect the preview and shorten or split the copy.' });
+    if (authoredCopyVisible && (s.title.length > 70 || ('highlight' in s && (s.highlight?.length ?? 0) > 30))) warnings.push({ sceneId: s.id, code: 'TEXT_LAYOUT', message: 'Long titles or highlights may overflow. Inspect the preview and shorten or split the copy.' });
     if (s.type === 'annotation') warnings.push({ sceneId: s.id, code: 'ANNOTATION_LAYOUT', message: 'Annotation height depends on text; bounds validation alone cannot guarantee it fits. Inspect the preview.' });
   }
   return { project, fps: FPS, durationInFrames: timeline.at(-1)!.end, timeline: timeline.map(({ scene, ...timing }) => ({ id: scene.id, type: scene.type, motionRecipe: motionRecipeFor(scene), ...timing })), warnings };

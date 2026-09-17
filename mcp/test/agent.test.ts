@@ -12,7 +12,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
 import { capturePlanSchema } from '../src/capture-contracts.js';
-import { capabilities, validate } from '../src/contracts.js';
+import { capabilities, describeProject, validate } from '../src/contracts.js';
 import { captureFingerprint, compileDirection, digest, directionSchema } from '../src/direction.js';
 import { example } from '../../studio/src/model.js';
 
@@ -61,6 +61,12 @@ test('project appearance can be created and edited through the shared contract',
   assert.equal(created.timeline[0]?.motionRecipe, 'text-blur-slide');
   const saved = await s.store.save('dark-demo', created.revision, { ...created.project, appearance: { ...created.project.appearance, fontFamily: 'Inter, sans-serif' } });
   assert.equal(saved.project.appearance?.fontFamily, 'Inter, sans-serif');
+});
+test('silent product copy does not create reading-time or text-layout warnings', () => {
+  const project = describeProject({ version: 2, title: 'Silent product', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [{
+    id: 'silent', type: 'overview', duration: 1, eyebrow: 'Hidden metadata', title: 'This deliberately long hidden title must not produce a visible text layout warning in the authoring service.', body: 'This hidden body also has no reading-time requirement.', source: { from: 0, freeze: true }, typographicRole: 'silent-product',
+  }] });
+  assert.deepEqual(project.warnings.filter(warning => ['READING_TIME', 'TEXT_LAYOUT'].includes(warning.code)), []);
 });
 test('concurrent writers cannot silently replace each other', async t => {
   const s = await fixture(t);
@@ -362,6 +368,7 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'standard-scene-motion', compatible: ['text-blur-slide', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /cannot render through Project v2/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { caption: 'side' } } } : entry) }), /effective full-bleed layout cannot use a side caption/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'full-bleed-proof' } } } : entry) }), /requires an evidence-linked focus rectangle/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 2 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'framed' } }, scene: { ...entry.scene, comparison: { before: 1, after: 4, crop: { x: 100, y: 100, width: 300, height: 120 }, beforeLabel: 'Before', afterLabel: 'After' } } } : entry) }), /Comparison result beats cannot select product layouts or captions/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
 });
 
