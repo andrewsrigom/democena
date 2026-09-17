@@ -78,8 +78,9 @@ export class Workspace {
       if (error.code === 'ENOENT') throw new AgentError('DIRECTION_NOT_FOUND', `Project ${id} has no Director plan yet.`);
       throw error;
     });
-    const saved = directionSchema.parse(JSON.parse(raw));
-    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved };
+    const source = JSON.parse(raw) as unknown;
+    const saved = directionSchema.parse(source);
+    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved, source };
   }
 
   async getDirection(id: string) {
@@ -88,7 +89,7 @@ export class Workspace {
     const direction = saved.compiledProjectRevision && saved.compiledProjectRevision !== current.projectRevision && ['compiled', 'delivered'].includes(saved.status)
       ? { ...saved, status: 'diverged' as const }
       : saved;
-    const { saved: _saved, ...metadata } = current;
+    const { saved: _saved, source: _source, ...metadata } = current;
     return { ...metadata, direction };
   }
 
@@ -111,7 +112,7 @@ export class Workspace {
       if (current ? current.directionRevision !== expectedDirectionRevision : expectedDirectionRevision !== null) {
         throw new AgentError('DIRECTION_REVISION_CONFLICT', 'The direction has changed. Read it again and reconcile your edits. Use null only for the first save.');
       }
-      await this.commitDirection(id, current?.directionRevision, current?.saved, direction);
+      await this.commitDirection(id, current?.directionRevision, current?.source, direction);
       return this.getDirection(id);
     } finally {
       await rm(lock, { recursive: true, force: true });

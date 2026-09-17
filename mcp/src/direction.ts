@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
-import { motionRecipeFor } from '../../studio/src/motion-recipes.js';
+import { motionRecipeFor, motionRecipes } from '../../studio/src/motion-recipes.js';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -27,7 +27,7 @@ const captureEventSchema = z.strictObject({
   path: ['settledUntil'],
   message: 'A capture event cannot settle before it starts.',
 });
-const directionSceneSchema = z.strictObject({
+const directionSceneV1Schema = z.strictObject({
   narrativeRole: z.enum(['hook', 'chapter', 'product-reveal', 'product-moment', 'explanation', 'verified-result', 'closing']),
   reason: z.string().min(1).max(500),
   transitionPreset: z.enum(['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover', 'restrained-zoom']).optional(),
@@ -36,11 +36,29 @@ const directionSceneSchema = z.strictObject({
   scene: sceneSchema,
 });
 
-export const directionSchema = z.strictObject({
-  version: z.literal(1),
+export const storyModeSchema = z.enum(['tour', 'launch', 'spotlight', 'change-story', 'agent-run', 'explainer', 'loop']);
+export const motionLanguageSchema = z.enum(['editorial', 'precise', 'kinetic', 'cinematic', 'quiet']);
+export const typographicRoleSchema = z.enum(['hero', 'statement', 'metadata', 'proof', 'label', 'silent-product']);
+export const transitionIntentSchema = z.enum(['continue', 'advance', 'reveal', 'focus', 'prove', 'contrast', 'close']);
+const recipeIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
+export const beatConceptSchema = z.strictObject({
+  concept: z.string().min(1).max(500),
+  focalAction: z.enum(['introduce', 'orient', 'reveal', 'focus', 'explain', 'compare', 'prove', 'close']),
+  primarySubject: z.enum(['authored-copy', 'product', 'evidence', 'brand']),
+  typographicRole: typographicRoleSchema,
+  density: z.enum(['sparse', 'balanced', 'dense']),
+  transitionIntent: transitionIntentSchema,
+  recipe: z.strictObject({
+    selected: recipeIdSchema.optional(),
+    compatible: z.array(recipeIdSchema).min(1).max(20),
+    fallback: recipeIdSchema,
+  }),
+});
+const directionSceneSchema = directionSceneV1Schema.extend({ beat: beatConceptSchema });
+
+const commonDirectionFields = {
   status: z.enum(['draft', 'reviewed', 'compiled', 'stale', 'diverged', 'delivered']),
   executionMode: z.enum(['plan-only', 'collaborative', 'autonomous']),
-  profile: z.enum(['tour', 'launch']),
   tone: z.enum(['polished', 'cinematic', 'app-store', 'deadpan', 'custom']),
   format: z.literal('landscape-1080p'),
   locale: z.string().regex(/^(?:und|[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)$/),
@@ -66,8 +84,27 @@ export const directionSchema = z.strictObject({
   }).optional(),
   compiledProjectRevision: sha256Schema.optional(),
   poster: z.strictObject({ sceneId: z.string().min(1), sceneLocalTime: z.number().nonnegative() }).optional(),
+};
+
+const directionV1Schema = z.strictObject({
+  version: z.literal(1),
+  ...commonDirectionFields,
+  profile: z.enum(['tour', 'launch']),
+  scenes: z.array(directionSceneV1Schema).min(1).max(100),
+});
+
+const directionV2CoreSchema = z.strictObject({
+  version: z.literal(2),
+  ...commonDirectionFields,
+  storyMode: storyModeSchema,
+  motionLanguage: motionLanguageSchema,
   scenes: z.array(directionSceneSchema).min(1).max(100),
-}).superRefine((direction, ctx) => {
+});
+
+const recipeById = new Map<string, (typeof motionRecipes)[number]>(motionRecipes.map((recipe) => [recipe.id, recipe]));
+const standardRecipe = 'standard-scene-motion';
+
+const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => {
   if (['reviewed', 'compiled', 'delivered'].includes(direction.status) && (!direction.reviewedBy || !direction.reviewedAt)) {
     ctx.addIssue({ code: 'custom', path: ['status'], message: 'Reviewed, compiled and delivered directions require review provenance.' });
   }
@@ -88,12 +125,84 @@ export const directionSchema = z.strictObject({
     if (ids.has(entry.scene.id)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'id'], message: 'Scene IDs must be unique.' });
     ids.add(entry.scene.id);
     if (entry.expectedSettledAt >= entry.scene.duration) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'expectedSettledAt'], message: 'The settled moment must be inside the scene.' });
+    const recipeIds = [...entry.beat.recipe.compatible, entry.beat.recipe.fallback, ...(entry.beat.recipe.selected ? [entry.beat.recipe.selected] : [])];
+    for (const recipeId of new Set(recipeIds)) {
+      const recipe = recipeById.get(recipeId);
+      if (recipeId !== standardRecipe && !recipe) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Unknown motion recipe: ${recipeId}.` });
+      if (recipe && !recipe.sceneTypes.includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} does not support ${entry.scene.type} scenes.` });
+      if (recipe?.evidence === 'authored-copy' && !entry.evidence.some((item) => item.kind === 'authored-copy')) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} requires authored-copy evidence.` });
+      if (recipe?.evidence === 'capture-rectangle' && !entry.evidence.some((item) => item.kind === 'capture' && item.rect)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} requires captured rectangle evidence.` });
+    }
+    if (entry.beat.recipe.selected && !entry.beat.recipe.compatible.includes(entry.beat.recipe.selected)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'selected'], message: 'The selected recipe must appear in the compatible recipe shortlist.' });
+    if (!entry.beat.recipe.compatible.includes(entry.beat.recipe.fallback)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'fallback'], message: 'The fallback recipe must appear in the compatible recipe shortlist.' });
+    if (entry.beat.typographicRole === 'silent-product' && ['text', 'chapter', 'outro'].includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'typographicRole'], message: 'silent-product is available only to product scenes.' });
   }
   if (direction.poster) {
     const selected = direction.scenes.find((entry) => entry.scene.id === direction.poster!.sceneId)?.scene;
     if (!selected || direction.poster.sceneLocalTime >= selected.duration) ctx.addIssue({ code: 'custom', path: ['poster'], message: 'Poster scene and local time must identify a frame inside the direction.' });
   }
 });
+
+type DirectionV1 = z.infer<typeof directionV1Schema>;
+
+function migratedMotionLanguage(tone: DirectionV1['tone']) {
+  if (tone === 'cinematic') return 'cinematic' as const;
+  if (tone === 'app-store') return 'kinetic' as const;
+  if (tone === 'deadpan') return 'quiet' as const;
+  if (tone === 'custom') return 'precise' as const;
+  return 'editorial' as const;
+}
+
+function migratedBeat(entry: DirectionV1['scenes'][number]) {
+  const candidate = motionRecipeFor(entry.scene);
+  const candidateRecipe = candidate ? recipeById.get(candidate) : undefined;
+  const candidateEvidenceFits = candidateRecipe?.evidence === 'authored-copy'
+    ? entry.evidence.some((item) => item.kind === 'authored-copy')
+    : candidateRecipe?.evidence === 'capture-rectangle'
+      ? entry.evidence.some((item) => item.kind === 'capture' && item.rect)
+      : true;
+  const selected = candidateEvidenceFits ? candidate : undefined;
+  const compatible = [...new Set([...(selected ? [selected] : []), standardRecipe])];
+  const role = entry.narrativeRole;
+  return {
+    concept: entry.reason,
+    focalAction: role === 'hook' ? 'introduce' as const
+      : role === 'chapter' ? 'orient' as const
+        : role === 'product-reveal' ? 'reveal' as const
+          : role === 'product-moment' ? 'focus' as const
+            : role === 'explanation' ? 'explain' as const
+              : role === 'verified-result' ? 'prove' as const
+                : 'close' as const,
+    primarySubject: ['product-reveal', 'product-moment'].includes(role) ? 'product' as const
+      : role === 'verified-result' ? 'evidence' as const
+        : role === 'closing' ? 'brand' as const
+          : 'authored-copy' as const,
+    typographicRole: role === 'hook' ? 'hero' as const
+      : role === 'chapter' ? 'label' as const
+        : role === 'verified-result' ? 'proof' as const
+          : role === 'closing' ? 'statement' as const
+            : 'presentation' in entry.scene && entry.scene.presentation?.caption === 'none' ? 'silent-product' as const
+              : 'statement' as const,
+    density: entry.scene.body.trim() ? 'balanced' as const : 'sparse' as const,
+    transitionIntent: role === 'hook' ? 'advance' as const
+      : role === 'chapter' || role === 'product-reveal' ? 'reveal' as const
+        : role === 'product-moment' ? 'focus' as const
+          : role === 'verified-result' ? 'prove' as const
+            : role === 'closing' ? 'close' as const
+              : 'continue' as const,
+    recipe: { ...(selected ? { selected } : {}), compatible, fallback: standardRecipe },
+  };
+}
+
+function migrateDirection(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || (value as { version?: unknown }).version !== 1) return value;
+  const result = directionV1Schema.safeParse(value);
+  if (!result.success) return value;
+  const { profile, scenes, ...direction } = result.data;
+  return { ...direction, version: 2, storyMode: profile, motionLanguage: migratedMotionLanguage(direction.tone), scenes: scenes.map((entry) => ({ ...entry, beat: migratedBeat(entry) })) };
+}
+
+export const directionSchema = z.preprocess(migrateDirection, directionV2Schema);
 
 export type Direction = z.infer<typeof directionSchema>;
 export type DirectionScene = z.infer<typeof directionSceneSchema>;
@@ -178,18 +287,18 @@ function requiredRectangles(scene: SceneInput, trimBefore: number) {
   return values;
 }
 
-function applyTransition(entry: DirectionScene, index: number, profile: Direction['profile']): SceneInput {
+function applyTransition(entry: DirectionScene, index: number, storyMode: Direction['storyMode']): SceneInput {
   if (entry.scene.transition) return entry.scene;
-  const preset = entry.transitionPreset ?? (index === 0 ? 'hard-cut' : profile === 'launch' ? 'soft-crossfade' : 'soft-crossfade');
+  const preset = entry.transitionPreset ?? (index === 0 ? 'hard-cut' : 'soft-crossfade');
   const transition = preset === 'hard-cut'
     ? { type: 'none' as const, duration: 0 }
     : preset === 'clean-slide'
-      ? { type: 'slide' as const, duration: profile === 'launch' ? 0.35 : 0.45 }
+      ? { type: 'slide' as const, duration: storyMode === 'launch' ? 0.35 : 0.45 }
       : preset === 'rise-cover'
-        ? { type: 'slide-up' as const, duration: profile === 'launch' ? 0.4 : 0.55 }
+        ? { type: 'slide-up' as const, duration: storyMode === 'launch' ? 0.4 : 0.55 }
         : preset === 'drop-cover'
-          ? { type: 'slide-down' as const, duration: profile === 'launch' ? 0.4 : 0.55 }
-      : { type: 'fade' as const, duration: profile === 'launch' ? 0.3 : 0.4 };
+          ? { type: 'slide-down' as const, duration: storyMode === 'launch' ? 0.4 : 0.55 }
+      : { type: 'fade' as const, duration: storyMode === 'launch' ? 0.3 : 0.4 };
   return { ...entry.scene, transition } as SceneInput;
 }
 
@@ -197,6 +306,7 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
   const direction = directionSchema.parse(directionValue);
   if (direction.status !== 'reviewed') throw new Error('Direction must be reviewed before compilation.');
   if (direction.executionMode === 'plan-only') throw new Error('Plan-only directions cannot compile or render. Change executionMode after authorizing execution.');
+  if (!['tour', 'launch'].includes(direction.storyMode)) throw new Error(`Story mode ${direction.storyMode} is defined but is not renderable yet.`);
   const appEntries = direction.scenes.filter((entry) => !['text', 'chapter', 'outro'].includes(entry.scene.type));
   if (appEntries.length > 0) {
     if (!direction.capture || !direction.captureFingerprint) throw new Error('Application scenes require compatible capture metadata.');
@@ -215,14 +325,14 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
       }
     }
   }
-  const scenes = direction.scenes.map((entry, index) => applyTransition(entry, index, direction.profile));
+  const scenes = direction.scenes.map((entry, index) => applyTransition(entry, index, direction.storyMode));
   const project = prepareProject({ ...currentProject, scenes }) as unknown as ProjectInput;
   const duration = buildTimeline(project.scenes, FPS).at(-1)!.end / FPS;
-  if (direction.profile === 'tour') {
+  if (direction.storyMode === 'tour') {
     if (!direction.scenes.some((entry) => ['product-reveal', 'product-moment'].includes(entry.narrativeRole) && !['text', 'chapter', 'outro'].includes(entry.scene.type))) throw new Error('A product tour requires a real product moment.');
     if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry, currentProject.trimBefore))) throw new Error('A product tour requires a verified result displayed from its verified capture evidence.');
   }
-  if (direction.profile === 'launch') {
+  if (direction.storyMode === 'launch') {
     if (scenes.length < 4 || scenes.length > 6) throw new Error('Launch directions require four to six scenes.');
     if (duration < 15 || duration > 25) throw new Error(`Launch duration must be 15-25 seconds; compiled duration is ${duration.toFixed(2)} seconds.`);
     if (direction.scenes[0]?.narrativeRole !== 'hook') throw new Error('A launch direction must begin with a hook.');
@@ -235,16 +345,17 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
 
 export function renderBrief(directionValue: unknown) {
   const d = directionSchema.parse(directionValue);
-  return `# ${d.profile === 'launch' ? 'Launch' : 'Tour'} brief\n\n- **Audience:** ${d.audience}\n- **Primary message:** ${d.primaryMessage}\n- **Profile:** ${d.profile}\n- **Format:** ${d.format}\n- **Locale:** ${d.locale}\n- **Tone:** ${d.tone}\n- **Execution mode:** ${d.executionMode}\n- **Brand source:** ${d.brandSource}\n- **Audio:** silent; no audio stream\n${d.authorizedTarget ? `- **Authorized target:** ${d.authorizedTarget}\n` : ''}\n## Visual direction\n\n${d.visualDirection}\n\n## Facts\n\n${d.facts.length ? d.facts.map((fact) => `- ${fact}`).join('\n') : '- None recorded.'}\n\n## Exclusions and privacy\n\n${[...d.exclusions, ...d.privacy].length ? [...d.exclusions, ...d.privacy].map((item) => `- ${item}`).join('\n') : '- No additional constraints recorded.'}\n`;
+  const mode = d.storyMode.split('-').map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`).join(' ');
+  return `# ${mode} brief\n\n- **Audience:** ${d.audience}\n- **Primary message:** ${d.primaryMessage}\n- **Story mode:** ${d.storyMode}\n- **Motion language:** ${d.motionLanguage}\n- **Format:** ${d.format}\n- **Locale:** ${d.locale}\n- **Tone:** ${d.tone}\n- **Execution mode:** ${d.executionMode}\n- **Brand source:** ${d.brandSource}\n- **Audio:** silent; no audio stream\n${d.authorizedTarget ? `- **Authorized target:** ${d.authorizedTarget}\n` : ''}\n## Visual direction\n\n${d.visualDirection}\n\n## Facts\n\n${d.facts.length ? d.facts.map((fact) => `- ${fact}`).join('\n') : '- None recorded.'}\n\n## Exclusions and privacy\n\n${[...d.exclusions, ...d.privacy].length ? [...d.exclusions, ...d.privacy].map((item) => `- ${item}`).join('\n') : '- No additional constraints recorded.'}\n`;
 }
 
 export function renderStoryboard(directionValue: unknown) {
   const d = directionSchema.parse(directionValue);
   const rows = d.scenes.map((entry, index) => {
     const evidence = entry.evidence.map((item) => item.kind === 'capture' ? `capture @ ${item.timestamp.toFixed(2)}s${item.markId ? ` (${item.markId})` : ''}${item.verified ? ' verified' : ''}` : `authored: ${item.claim}`).join('; ');
-    return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Type:** ${entry.scene.type}\n- **Motion recipe:** ${motionRecipeFor(entry.scene) ?? 'standard scene motion'}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
+    return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Beat concept:** ${entry.beat.concept}\n- **Focal action:** ${entry.beat.focalAction}\n- **Typography:** ${entry.beat.typographicRole} · ${entry.beat.density}\n- **Transition intent:** ${entry.beat.transitionIntent}\n- **Type:** ${entry.scene.type}\n- **Motion recipe:** ${entry.beat.recipe.selected ?? motionRecipeFor(entry.scene) ?? entry.beat.recipe.fallback}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
   });
-  return `# Storyboard\n\nProfile: **${d.profile}** · Tone: **${d.tone}** · Status: **${d.status}**\n\n${rows.join('\n')}\n`;
+  return `# Storyboard\n\nStory mode: **${d.storyMode}** · Motion language: **${d.motionLanguage}** · Tone: **${d.tone}** · Status: **${d.status}**\n\n${rows.join('\n')}\n`;
 }
 
 export function scenePackets(directionValue: unknown, directionRevision: string, projectRevision: string) {
@@ -255,7 +366,9 @@ export function scenePackets(directionValue: unknown, directionRevision: string,
     baseDirectionRevision: directionRevision,
     baseProjectRevision: projectRevision,
     captureFingerprint: direction.captureFingerprint,
-    profile: direction.profile,
+    storyMode: direction.storyMode,
+    motionLanguage: direction.motionLanguage,
+    beat: entry.beat,
     tone: direction.tone,
     narrativeRole: entry.narrativeRole,
     reason: entry.reason,

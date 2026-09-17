@@ -2,7 +2,7 @@
 
 `direction.json` is the canonical editorial plan. `BRIEF.md` and `STORYBOARD.md` are generated views. `project.json` remains the render contract.
 
-Record one audience and one primary message, plus profile, tone, locale, visual direction, brand source, authorized target, verified facts, exclusions and privacy constraints. Select `plan-only`, `collaborative` or `autonomous` explicitly.
+Record one audience and one primary message, plus story mode, motion language, tone, locale, visual direction, brand source, authorized target, verified facts, exclusions and privacy constraints. Select `plan-only`, `collaborative` or `autonomous` explicitly. Direction v2 is canonical; v1 inputs are migrated in memory and written as v2 on their next save.
 
 Lifecycle:
 

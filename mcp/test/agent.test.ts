@@ -13,7 +13,7 @@ import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
 import { capturePlanSchema } from '../src/capture-contracts.js';
 import { capabilities, validate } from '../src/contracts.js';
-import { captureFingerprint, compileDirection, digest } from '../src/direction.js';
+import { captureFingerprint, compileDirection, digest, directionSchema } from '../src/direction.js';
 import { example } from '../../studio/src/model.js';
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
@@ -29,6 +29,10 @@ test('all eight discoverable examples pass the shared Studio validator', () => {
   assert.deepEqual(discovered.motionRecipes.map(recipe => recipe.id), ['text-blur-slide', 'chapter-demote-to-label', 'focus-scan-lock', 'outro-strip-away']);
   assert(discovered.motionRecipes.every(recipe => recipe.useWhen.length > 0 && recipe.avoidWhen.length > 0));
   assert(discovered.motionRecipes.every(recipe => recipe.recommendedSeconds[0] < recipe.recommendedSeconds[1]));
+  assert.deepEqual(discovered.motionLanguages, ['editorial', 'precise', 'kinetic', 'cinematic', 'quiet']);
+  assert.equal(discovered.storyModes.launch.renderable, true);
+  assert.equal(discovered.storyModes.spotlight.renderable, false);
+  assert.deepEqual((discovered.directionSchema as { properties?: { version?: { const?: number } } }).properties?.version?.const, 2);
   assert.equal(validate({ version: 2, title: 'Demo', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes }).scenes.length, 8);
 });
 test('create, read, save and list preserve revisions and reject stale writes', async t => {
@@ -309,6 +313,55 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
     } : entry),
   };
   assert.equal(compileDirection(comparison, project).project.scenes[2]?.type, 'result');
+});
+
+test('Direction v1 migrates in memory to creative Direction v2 without changing Project v2 output', () => {
+  const legacy = launchDirection();
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [legacy.scenes[0].scene] });
+  const migrated = directionSchema.parse(legacy);
+  assert.equal(migrated.version, 2);
+  assert.equal(migrated.storyMode, 'launch');
+  assert.equal(migrated.motionLanguage, 'editorial');
+  assert.equal(migrated.scenes[0]?.beat.typographicRole, 'hero');
+  assert.equal(migrated.scenes[1]?.beat.primarySubject, 'product');
+  assert.equal(migrated.scenes[2]?.beat.transitionIntent, 'prove');
+  assert.deepEqual(compileDirection(legacy, project).project, compileDirection(migrated, project).project);
+  const legacyWithUnmatchedRecipeEvidence = { ...legacy, scenes: legacy.scenes.map((entry, index) => index === 0 ? { ...entry, evidence: [{ kind: 'capture' as const, timestamp: 0, markId: 'reveal', verified: false }] } : entry) };
+  assert.equal(directionSchema.parse(legacyWithUnmatchedRecipeEvidence).scenes[0]?.beat.recipe.selected, undefined);
+});
+
+test('Direction v2 rejects incompatible recipes and gates story modes that are not implemented', () => {
+  const migrated = directionSchema.parse(launchDirection());
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [migrated.scenes[0]!.scene] });
+  const incompatible = {
+    ...migrated,
+    scenes: migrated.scenes.map((entry, index) => index === 0 ? {
+      ...entry,
+      beat: { ...entry.beat, recipe: { selected: 'focus-scan-lock', compatible: ['focus-scan-lock', 'standard-scene-motion'], fallback: 'standard-scene-motion' } },
+    } : entry),
+  };
+  assert.throws(() => directionSchema.parse(incompatible), /does not support text scenes/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'unknown-recipe', compatible: ['unknown-recipe', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /Unknown motion recipe/);
+  assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
+});
+
+test('saving legacy Direction v1 writes v2 while preserving the exact archived revision', async t => {
+  const s = await fixture(t);
+  await s.store.create('direction-migration', 'Direction migration', '#215acb');
+  const legacyRaw = JSON.stringify(launchDirection(), null, 2) + '\n';
+  const legacyRevision = createHash('sha256').update(legacyRaw).digest('hex');
+  const directionFile = path.join(s.store.root, 'projects/direction-migration/direction/direction.json');
+  await writeFile(directionFile, legacyRaw);
+  const read = await s.store.getDirection('direction-migration');
+  assert.equal(read.directionRevision, legacyRevision);
+  assert.equal(read.direction.version, 2);
+  await s.store.saveDirection('direction-migration', legacyRevision, read.direction);
+  const saved = JSON.parse(await readFile(directionFile, 'utf8'));
+  assert.equal(saved.version, 2);
+  assert.equal(saved.storyMode, 'launch');
+  assert.equal(saved.profile, undefined);
+  const archived = await readFile(path.join(s.store.root, 'projects/direction-migration/direction/revisions', `${legacyRevision}.json`), 'utf8');
+  assert.equal(createHash('sha256').update(archived).digest('hex'), legacyRevision);
 });
 
 test('capture evidence follows the raw recording clock after project trimming', () => {
