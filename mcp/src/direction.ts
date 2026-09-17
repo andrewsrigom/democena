@@ -19,7 +19,7 @@ const authoredEvidenceSchema = z.strictObject({
 const directionSceneSchema = z.strictObject({
   narrativeRole: z.enum(['hook', 'chapter', 'product-reveal', 'product-moment', 'explanation', 'verified-result', 'closing']),
   reason: z.string().min(1).max(500),
-  transitionPreset: z.enum(['hard-cut', 'soft-crossfade', 'clean-slide', 'restrained-zoom']).optional(),
+  transitionPreset: z.enum(['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover', 'restrained-zoom']).optional(),
   expectedSettledAt: z.number().nonnegative(),
   evidence: z.array(z.discriminatedUnion('kind', [captureEvidenceSchema, authoredEvidenceSchema])).min(1),
   scene: sceneSchema,
@@ -137,6 +137,10 @@ function applyTransition(entry: DirectionScene, index: number, profile: Directio
     ? { type: 'none' as const, duration: 0 }
     : preset === 'clean-slide'
       ? { type: 'slide' as const, duration: profile === 'launch' ? 0.35 : 0.45 }
+      : preset === 'rise-cover'
+        ? { type: 'slide-up' as const, duration: profile === 'launch' ? 0.4 : 0.55 }
+        : preset === 'drop-cover'
+          ? { type: 'slide-down' as const, duration: profile === 'launch' ? 0.4 : 0.55 }
       : { type: 'fade' as const, duration: profile === 'launch' ? 0.3 : 0.4 };
   return { ...entry.scene, transition } as SceneInput;
 }

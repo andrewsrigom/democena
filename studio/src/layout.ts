@@ -10,6 +10,13 @@ export function browserLayout(viewport: { width: number; height: number }) {
     top: stage.top + (stage.height - chromeHeight - height) / 2, chromeHeight };
 }
 
+/** Cover the output canvas with the recorded viewport and crop only the overflow. */
+export function fullBleedLayout(viewport: { width: number; height: number }, canvas: { width: number; height: number }) {
+  const width = Math.max(canvas.width, canvas.height * viewport.width / viewport.height);
+  const height = width * viewport.height / viewport.width;
+  return { width, height, left: (canvas.width - width) / 2, top: (canvas.height - height) / 2, chromeHeight: 0 };
+}
+
 /** The clip has its own bounds: letterboxing must never reveal neighboring UI. */
 export function comparisonLayout(crop: Focus, width = 1160, maxHeight = 280) {
   const scale = Math.min(width / crop.width, maxHeight / crop.height);

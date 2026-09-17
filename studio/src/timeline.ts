@@ -89,10 +89,18 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     requireValue(finite(scene.duration) && frames(scene.duration, fps) >= 1, `${name}.duration must cover at least one frame`);
     for (const key of ['eyebrow', 'title', 'body']) requireValue(text(scene[key]), `${name}.${key} is required`);
     const transition = scene.transition ?? DEFAULT_TRANSITION;
-    requireValue(record(transition) && ['fade', 'slide', 'none'].includes(String(transition.type)) && finite(transition.duration) && transition.duration >= 0, `${name}.transition is invalid`);
+    requireValue(record(transition) && ['fade', 'slide', 'slide-up', 'slide-down', 'slide-left', 'slide-right', 'none'].includes(String(transition.type)) && finite(transition.duration) && transition.duration >= 0, `${name}.transition is invalid`);
     const incoming = i === 0 || transition.type === 'none' ? 0 : frames(transition.duration, fps);
     const previous = p.scenes[i - 1];
     requireValue(incoming * 2 < frames(scene.duration, fps) && (!previous || incoming * 2 < frames(Number(previous.duration), fps)), `${name}.transition must be shorter than half of both adjacent scenes`);
+    const productScene = !['text', 'chapter', 'outro'].includes(String(scene.type));
+    requireValue(productScene || scene.presentation === undefined, `${name}.presentation is only available on product scenes`);
+    if (productScene && scene.presentation !== undefined) {
+      requireValue(record(scene.presentation), `${name}.presentation must be an object`);
+      requireValue(scene.presentation.layout === undefined || ['framed', 'full-bleed'].includes(String(scene.presentation.layout)), `${name}.presentation.layout is invalid`);
+      requireValue(scene.presentation.caption === undefined || ['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none'].includes(String(scene.presentation.caption)), `${name}.presentation.caption is invalid`);
+      requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
+    }
     switch (scene.type) {
       case 'text': case 'outro':
         requireValue(scene.reveal === undefined || scene.reveal === 'words' || scene.reveal === 'lines', `${name}.reveal must be words or lines`);

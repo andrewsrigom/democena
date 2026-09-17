@@ -34,20 +34,20 @@ export function Spotlight({ focus, ratio, accent, dim = 0, scan = false }: { foc
   </>;
 }
 
-export function BrowserFrame({ project, source, theme, camera = IDENTITY, focus, dim, scan, children, width = 1170 }: {
-  project: Project; source: Source; theme: PresentationTheme; camera?: Camera; focus?: Focus; dim?: number; scan?: boolean; children?: ReactNode; width?: number;
+export function BrowserFrame({ project, source, theme, camera = IDENTITY, focus, dim, scan, children, width = 1170, framed = true }: {
+  project: Project; source: Source; theme: PresentationTheme; camera?: Camera; focus?: Focus; dim?: number; scan?: boolean; children?: ReactNode; width?: number; framed?: boolean;
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entrance = spring({ frame, fps, config: { damping: 30, stiffness: 85 } });
   const ratio = width / project.viewport.width;
   const height = project.viewport.height * ratio;
-  return <div style={{ width, borderRadius: theme.radius, overflow: 'hidden', background: theme.surface, border: `1px solid ${theme.border}`,
-    boxShadow: `0 40px 85px -25px ${theme.shadow}55, 0 4px 10px ${theme.shadow}18`, transform: `translateY(${(1 - entrance) * 24}px)` }}>
-    <div style={{ height: 48, background: theme.tint, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, borderBottom: `1px solid ${theme.border}`, boxSizing: 'border-box' }}>
+  return <div style={{ width, borderRadius: framed ? theme.radius : 0, overflow: 'hidden', background: theme.surface, border: framed ? `1px solid ${theme.border}` : undefined,
+    boxShadow: framed ? `0 40px 85px -25px ${theme.shadow}55, 0 4px 10px ${theme.shadow}18` : undefined, transform: framed ? `translateY(${(1 - entrance) * 24}px)` : undefined }}>
+    {framed ? <div style={{ height: 48, background: theme.tint, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, borderBottom: `1px solid ${theme.border}`, boxSizing: 'border-box' }}>
       {['#b6c6df', '#93afd7', '#6f95d0'].map((color) => <span key={color} style={{ width: 10, height: 10, borderRadius: 10, background: color }} />)}
       <span style={{ margin: 'auto', paddingRight: 44, color: theme.muted, fontSize: 15 }}>{project.title}</span>
-    </div>
+    </div> : null}
     <div style={{ width, height, overflow: 'hidden', position: 'relative' }}>
       <div style={{ width, height, transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}>
         <RecordedVideo project={project} source={source} width={width} />

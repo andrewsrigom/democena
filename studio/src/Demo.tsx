@@ -1,6 +1,6 @@
 import { resolveTheme } from './theme';
 import type { PresentationTheme } from './theme';
-import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ChapterScene, Project, Scene } from './model';
 import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
@@ -21,8 +21,15 @@ function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: P
   const { fps } = useVideoConfig();
   const transition = scene.transition ?? DEFAULT_TRANSITION;
   const duration = transitionFrames(scene, fps);
-  const enter = duration === 0 || first ? 1 : interpolate(frame, [0, duration], [0, 1], CLAMP);
-  return <AbsoluteFill style={{ background: theme.background, opacity: enter, transform: transition.type === 'slide' ? `translateY(${(1 - enter) * 36}px)` : undefined }}>
+  const directional = transition.type.startsWith('slide-');
+  const enter = duration === 0 || first ? 1 : interpolate(frame, [0, duration], [0, 1], { ...CLAMP,
+    easing: directional ? Easing.inOut(Easing.cubic) : Easing.out(Easing.cubic) });
+  const transform = transition.type === 'slide' ? `translateY(${(1 - enter) * 36}px)`
+    : transition.type === 'slide-up' ? `translateY(${(1 - enter) * 100}%)`
+      : transition.type === 'slide-down' ? `translateY(${(enter - 1) * 100}%)`
+        : transition.type === 'slide-left' ? `translateX(${(1 - enter) * 100}%)`
+          : transition.type === 'slide-right' ? `translateX(${(enter - 1) * 100}%)` : undefined;
+  return <AbsoluteFill style={{ background: theme.background, opacity: directional ? 1 : enter, transform }}>
     <div style={{ position: 'absolute', width: 1220, height: 1080, right: 0, top: 0, background: `linear-gradient(125deg, ${theme.background}00, ${theme.tint})`, opacity: .9 }} />
     <SceneContent scene={scene} project={project} theme={theme} />
   </AbsoluteFill>;
@@ -34,6 +41,13 @@ export function Demo(project: Project) {
   const timeline = buildTimeline(project.scenes, fps);
   const index = Math.max(0, timeline.findLastIndex((entry) => entry.from <= frame));
   const active = timeline[index]!;
+  const previous = timeline[index - 1];
+  const activeFullBleed = 'presentation' in active.scene && active.scene.presentation?.layout === 'full-bleed';
+  const previousFullBleed = previous && 'presentation' in previous.scene && previous.scene.presentation?.layout === 'full-bleed';
+  const activeTransitionFrames = transitionFrames(active.scene, fps);
+  const activeEnter = activeTransitionFrames === 0 || index === 0 ? 1 : interpolate(frame - active.from, [0, activeTransitionFrames], [0, 1], CLAMP);
+  const chromeOpacity = activeFullBleed ? interpolate(activeEnter, [0, .35], [1, 0], CLAMP)
+    : previousFullBleed ? interpolate(activeEnter, [.65, 1], [0, 1], CLAMP) : 1;
   const chapter = project.scenes.slice(0, index).findLast((scene): scene is ChapterScene => scene.type === 'chapter');
   const showsChapterContext = chapter && ['overview', 'focus', 'camera', 'annotation', 'result'].includes(active.scene.type);
   const chapterEnter = interpolate(frame - active.from, [0, Math.max(1, Math.round(fps * .28))], [0, 1], CLAMP);
@@ -41,15 +55,17 @@ export function Demo(project: Project) {
     {timeline.map(({ scene, from, duration }, i) => <Sequence key={scene.id} name={`${String(i + 1).padStart(2, '0')} · ${scene.type} · ${scene.title.replaceAll('\n', ' ')}`} from={from} durationInFrames={duration}>
       <SceneLayer scene={scene} project={project} theme={theme} first={i === 0} />
     </Sequence>)}
-    <BrandHeader project={project} theme={theme} />
-    {showsChapterContext ? <ChapterLabel scene={chapter} accent={project.accent} theme={theme} style={{ opacity: chapterEnter, transform: `translateY(${(1 - chapterEnter) * 8}px)` }} /> : null}
-    <div style={{ position: 'absolute', left: 96, right: 96, bottom: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>
-      <span>{project.title}{project.branding?.footer ? <> &nbsp; / &nbsp; {project.branding.footer}</> : null}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-        <div style={{ display: 'flex', gap: 7 }}>{timeline.map(({ scene }, i) => <span key={scene.id} style={{ width: index === i ? 30 : 8, height: 4, borderRadius: 4, background: index === i ? project.accent : theme.border }} />)}</div>
-        <span>{String(index + 1).padStart(2, '0')} / {String(project.scenes.length).padStart(2, '0')}</span>
+    <div style={{ opacity: chromeOpacity }}>
+      <BrandHeader project={project} theme={theme} />
+      {showsChapterContext ? <ChapterLabel scene={chapter} accent={project.accent} theme={theme} style={{ opacity: chapterEnter, transform: `translateY(${(1 - chapterEnter) * 8}px)` }} /> : null}
+      <div style={{ position: 'absolute', left: 96, right: 96, bottom: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>
+        <span>{project.title}{project.branding?.footer ? <> &nbsp; / &nbsp; {project.branding.footer}</> : null}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+          <div style={{ display: 'flex', gap: 7 }}>{timeline.map(({ scene }, i) => <span key={scene.id} style={{ width: index === i ? 30 : 8, height: 4, borderRadius: 4, background: index === i ? project.accent : theme.border }} />)}</div>
+          <span>{String(index + 1).padStart(2, '0')} / {String(project.scenes.length).padStart(2, '0')}</span>
+        </div>
       </div>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, height: 4, width: `${100 * (frame + 1) / durationInFrames}%`, background: project.accent }} />
     </div>
-    <div style={{ position: 'absolute', bottom: 0, left: 0, height: 4, width: `${100 * (frame + 1) / durationInFrames}%`, background: project.accent }} />
   </AbsoluteFill>;
 }

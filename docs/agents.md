@@ -58,7 +58,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 
 | Tool | Purpose |
 | --- | --- |
-| `democena_capabilities` | Discover schemas, all eight scene examples, motion recipes and the authoring workflow. |
+| `democena_capabilities` | Discover schemas, all eight scene examples, framed/full-bleed presentation, directional transitions, motion recipes and the authoring workflow. |
 | `democena_list_projects` | List project IDs, titles and current revisions. |
 | `democena_list_jobs` | Recover recent capture and render job IDs after reconnecting. |
 | `democena_create_project` | Create a new text project without overwriting an existing ID. |

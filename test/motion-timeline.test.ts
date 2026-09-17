@@ -3,6 +3,7 @@ import { buildTimeline, FPS, prepareProject, sourceFrame } from '../studio/src/t
 import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
+import { fullBleedLayout } from '../studio/src/layout.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -54,6 +55,17 @@ describe('scene timeline and source clock', () => {
     expect(buildTimeline(scenes, FPS).map(({ from, end }) => [from, end])).toEqual([[0, 3], [3, 8]]);
   });
 
+  it('accepts full-bleed product presentation and directional cover transitions', () => {
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text' },
+      { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true }, presentation: { layout: 'full-bleed', caption: 'bottom-right' }, transition: { type: 'slide-up', duration: .5 } },
+      { ...base, id: 'closing', type: 'outro', transition: { type: 'slide-down', duration: .5 } },
+    ];
+    const prepared = prepareProject({ ...project(), scenes });
+    expect(prepared.scenes[1]).toMatchObject({ presentation: { layout: 'full-bleed', caption: 'bottom-right' }, transition: { type: 'slide-up' } });
+    expect(fullBleedLayout({ width: 1280, height: 800 }, { width: 1920, height: 1080 })).toEqual({ width: 1920, height: 1200, left: 0, top: -60, chromeHeight: 0 });
+  });
+
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {
     const legacy = { title: 'Legacy', video: 'captures/test.webm', accent: '#28584c', viewport: { width: 1280, height: 800 }, duration: 10, trimBefore: .2,
       scenes: [{ at: 0, eyebrow: 'Start', title: 'Overview', body: '' }, { at: 6, eyebrow: 'Next', title: 'Field', body: '', focus }] };
@@ -83,6 +95,15 @@ describe('scene timeline and source clock', () => {
     for (const appearance of [{ surfaceMode: 'night' }, { background: 'black' }, { radius: 41 }, { fontFamily: '' }]) {
       expect(() => prepareProject({ ...project(), appearance })).toThrow(/appearance/);
     }
+  });
+
+  it('rejects invalid product presentation', () => {
+    const scene = { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true } };
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'edge-to-edge' } }] })).toThrow(/presentation.layout/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { caption: 'center' } }] })).toThrow(/presentation.caption/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'text', type: 'text', presentation: { layout: 'full-bleed' } }] })).toThrow(/only available on product scenes/);
+    const comparison = project().scenes[6];
+    expect(() => prepareProject({ ...project(), scenes: [{ ...comparison, presentation: { layout: 'full-bleed' } }] })).toThrow(/not available on comparison results/);
   });
 
 

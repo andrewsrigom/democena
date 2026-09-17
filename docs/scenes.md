@@ -40,10 +40,10 @@ Seconds are rounded to frames at 30 fps. Every scene has a unique `id`, a `type`
 ### Transitions
 
 ```json
-"transition": { "type": "slide", "duration": 0.5 }
+"transition": { "type": "slide-up", "duration": 0.5 }
 ```
 
-Transitions are incoming and overlap the previous scene. They do not add runtime. Two 5-second scenes with a 0.5-second incoming transition have a total duration of 9.5 seconds. Supported types are `fade`, `slide` and `none`; default is a 0.4-second fade. Use `{ "type": "none", "duration": 0 }` for a cut. The first scene has no incoming overlap. Scene thumbnails are chosen between transitions so the next scene cannot leak into the preview. Transition duration must be shorter than half of both neighboring scenes, preventing triple overlaps.
+Transitions are incoming and overlap the previous scene. They do not add runtime. Two 5-second scenes with a 0.5-second incoming transition have a total duration of 9.5 seconds. Supported types are `fade`, the subtle legacy `slide`, directional `slide-up`, `slide-down`, `slide-left`, `slide-right`, and `none`; default is a 0.4-second fade. Direction names describe the new scene's travel: `slide-up` enters from below, while `slide-down` enters from above. Horizontal variants follow the same rule. Use `{ "type": "none", "duration": 0 }` for a cut. The first scene has no incoming overlap. Scene thumbnails are chosen between transitions so the next scene cannot leak into the preview. Transition duration must be shorter than half of both neighboring scenes, preventing triple overlaps.
 
 Durations include transition time. Allow enough settled time to read the title, body and any note; the example uses longer holds for explanations. Keep titles and notes concise and inspect the generated stills for your copy.
 
@@ -82,6 +82,17 @@ The chapter title settles into a compact label that remains above subsequent pro
   "eyebrow": "The workspace", "title": "A clear view.", "body": "Everything in one place."
 }
 ```
+
+Product scenes accept an optional `presentation`. The default keeps the browser in the side-by-side editorial frame. `full-bleed` covers the output canvas with the recording, removes browser chrome and hides global Democena presentation chrome while the scene is active. The recording keeps its aspect ratio and crops only the overflow.
+
+```json
+"presentation": {
+  "layout": "full-bleed",
+  "caption": "bottom-left"
+}
+```
+
+Caption options are `side`, `top-left`, `top-right`, `bottom-left`, `bottom-right` and `none`. Full-bleed scenes default to `bottom-left`; framed scenes default to `side`. Overlay captions use project appearance tokens, so they remain readable on light and dark products. Use `none` when the surrounding beats already provide enough context.
 
 ```json
 {

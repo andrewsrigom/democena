@@ -233,10 +233,10 @@ function launchDirection() {
     capture,
     poster: { sceneId: 'result', sceneLocalTime: 2 },
     scenes: [
-      { narrativeRole: 'hook' as const, reason: 'State the value.', expectedSettledAt: 2, evidence: authored('A concise product promise.'), scene: { id: 'hook', type: 'text' as const, duration: 4, eyebrow: 'Catalog work', title: 'Ready sooner.', body: 'Turn a product list into a useful catalog.' } },
-      { narrativeRole: 'product-reveal' as const, reason: 'Show the real product.', expectedSettledAt: 2, evidence: captured(0), scene: { id: 'reveal', type: 'overview' as const, duration: 4, eyebrow: 'The workspace', title: 'One clear flow.', body: 'Work from the captured application.', source: { from: 0, freeze: true } } },
-      { narrativeRole: 'verified-result' as const, reason: 'Prove the result.', expectedSettledAt: 2, evidence: captured(4, true), scene: { id: 'result', type: 'result' as const, duration: 4, eyebrow: 'Published', title: 'The result is visible.', body: 'The assertion and captured frame agree.', source: { from: 4, freeze: true } } },
-      { narrativeRole: 'closing' as const, reason: 'Close on the benefit.', expectedSettledAt: 2, evidence: authored('Restate the approved benefit.'), scene: { id: 'closing', type: 'outro' as const, duration: 4, eyebrow: 'CatalogForge', title: 'Ready to share.', body: 'A clear catalog with a clear next step.' } },
+      { narrativeRole: 'hook' as const, reason: 'State the value.', expectedSettledAt: 2, evidence: authored('A concise product promise.'), scene: { id: 'hook', type: 'text' as const, duration: 4.1, eyebrow: 'Catalog work', title: 'Ready sooner.', body: 'Turn a product list into a useful catalog.' } },
+      { narrativeRole: 'product-reveal' as const, reason: 'Show the real product.', transitionPreset: 'rise-cover' as const, expectedSettledAt: 2, evidence: captured(0), scene: { id: 'reveal', type: 'overview' as const, duration: 4.1, eyebrow: 'The workspace', title: 'One clear flow.', body: 'Work from the captured application.', source: { from: 0, freeze: true }, presentation: { layout: 'full-bleed' as const, caption: 'bottom-right' as const } } },
+      { narrativeRole: 'verified-result' as const, reason: 'Prove the result.', expectedSettledAt: 2, evidence: captured(4, true), scene: { id: 'result', type: 'result' as const, duration: 4.1, eyebrow: 'Published', title: 'The result is visible.', body: 'The assertion and captured frame agree.', source: { from: 4, freeze: true } } },
+      { narrativeRole: 'closing' as const, reason: 'Close on the benefit.', transitionPreset: 'drop-cover' as const, expectedSettledAt: 2, evidence: authored('Restate the approved benefit.'), scene: { id: 'closing', type: 'outro' as const, duration: 4.1, eyebrow: 'CatalogForge', title: 'Ready to share.', body: 'A clear catalog with a clear next step.' } },
     ],
   };
 }
@@ -246,6 +246,9 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [direction.scenes[0].scene] });
   const compiled = compileDirection(direction, project);
   assert.equal(compiled.project.scenes.length, 4);
+  assert.equal(compiled.project.scenes[1]?.transition?.type, 'slide-up');
+  assert.equal(compiled.project.scenes[3]?.transition?.type, 'slide-down');
+  assert.deepEqual('presentation' in compiled.project.scenes[1]! ? compiled.project.scenes[1].presentation : undefined, { layout: 'full-bleed', caption: 'bottom-right' });
   assert(compiled.duration >= 15 && compiled.duration <= 25);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, verified: false }] } : entry) }, project), /verified result/);
 });

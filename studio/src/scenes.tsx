@@ -1,31 +1,31 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { CSSProperties } from 'react';
-import type { AnnotationScene, ChapterScene, OutroScene, Project, Scene, TextScene } from './model';
+import type { AnnotationScene, ChapterScene, OutroScene, ProductPresentation, Project, Scene, TextScene } from './model';
 import type { PresentationTheme } from './theme';
 import { cameraAt, cameraFor } from './camera';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
-import { browserLayout } from './layout';
+import { browserLayout, fullBleedLayout } from './layout';
 import { motionRecipeFor } from './motion-recipes';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
-function StripAwayBackdrop({ theme }: { theme: PresentationTheme }) {
+function StripAwayBackdrop({ accent }: { accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const panels = [
-    { left: 44, top: 176, width: 500, height: 210, exitX: -620 },
-    { left: 106, top: 420, width: 620, height: 150, exitX: -760 },
-    { left: 1376, top: 150, width: 470, height: 230, exitX: 620 },
-    { left: 1260, top: 422, width: 610, height: 168, exitX: 760 },
-    { left: 230, top: 684, width: 560, height: 118, exitX: -760 },
-    { left: 1130, top: 690, width: 560, height: 118, exitX: 760 },
+    { left: 32, top: 188, width: 560, height: 5, exitX: -680 },
+    { left: 112, top: 332, width: 720, height: 8, exitX: -840 },
+    { left: 1328, top: 220, width: 540, height: 6, exitX: 680 },
+    { left: 1210, top: 402, width: 680, height: 9, exitX: 820 },
+    { left: 218, top: 726, width: 620, height: 6, exitX: -800 },
+    { left: 1080, top: 770, width: 670, height: 8, exitX: 820 },
   ];
   return <>{panels.map((panel, index) => {
     const exit = spring({ frame: frame - index * 2, fps, config: { damping: 24, stiffness: 105 } });
     const { exitX, ...position } = panel;
-    return <div key={index} style={{ position: 'absolute', ...position, borderRadius: theme.radius, background: index % 2 ? theme.tint : theme.surface,
-      border: `1px solid ${theme.border}`, opacity: 1 - exit, transform: `translateX(${exitX * exit}px) scale(${1 - exit * .04})`,
-      boxShadow: `0 18px 40px -30px ${theme.shadow}80` }} />;
+    return <div key={index} style={{ position: 'absolute', ...position, borderRadius: 999,
+      background: `linear-gradient(90deg, ${accent}00, ${accent}${index % 2 ? '80' : '45'}, ${accent}00)`,
+      opacity: 1 - exit, transform: `translateX(${exitX * exit}px) scaleX(${1 - exit * .08})` }} />;
   })}</>;
 }
 
@@ -51,7 +51,7 @@ function TextPanel({ scene, accent, theme }: { scene: TextScene | OutroScene; ac
   const closing = scene.type === 'outro';
   const enter = spring({ frame: frame - (closing ? 28 : 20), fps, config: { damping: 26 } });
   return <>
-    {closing ? <StripAwayBackdrop theme={theme} /> : <KeywordEcho scene={scene} accent={accent} />}
+    {closing ? <StripAwayBackdrop accent={accent} /> : <KeywordEcho scene={scene} accent={accent} />}
     <div style={{ position: 'absolute', left: 148, right: 148, top: closing ? 250 : 270 }}>
       <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
       <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} />
@@ -102,6 +102,22 @@ function Caption({ scene, accent, theme }: { scene: Scene; accent: string; theme
     <div style={{ width: 42, height: 4, borderRadius: 4, background: accent, marginTop: 34 }} />
   </div>;
 }
+function OverlayCaption({ scene, accent, theme, position }: { scene: Scene; accent: string; theme: PresentationTheme; position: Exclude<NonNullable<ProductPresentation['caption']>, 'side' | 'none'> }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame: frame - 8, fps, config: { damping: 26, stiffness: 95 } });
+  const top = position.startsWith('top') ? 96 : undefined;
+  const bottom = position.startsWith('bottom') ? 96 : undefined;
+  const left = position.endsWith('left') ? 96 : undefined;
+  const right = position.endsWith('right') ? 96 : undefined;
+  return <div style={{ position: 'absolute', top, bottom, left, right, width: 570, boxSizing: 'border-box', padding: '28px 32px 30px',
+    borderRadius: Math.max(16, theme.radius), border: `1px solid ${theme.border}`, background: `${theme.surface}F2`,
+    boxShadow: `0 24px 70px -28px ${theme.shadow}A0`, opacity: enter, transform: `translateY(${(1 - enter) * 24}px)` }}>
+    <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
+    <h1 style={{ color: theme.foreground, fontSize: 44, fontWeight: 650, letterSpacing: -2, lineHeight: 1.06, margin: '20px 0 16px', whiteSpace: 'pre-line' }}>{scene.title}</h1>
+    {scene.body ? <p style={{ color: theme.muted, fontSize: 21, lineHeight: 1.45, margin: 0 }}>{scene.body}</p> : null}
+  </div>;
+}
 function Annotation({ scene, project, theme, width }: { scene: AnnotationScene; project: Project; theme: PresentationTheme; width: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -126,7 +142,7 @@ function Annotation({ scene, project, theme, width }: { scene: AnnotationScene; 
 
 export function SceneContent({ scene, project, theme }: { scene: Scene; project: Project; theme: PresentationTheme }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width: compositionWidth, height: compositionHeight } = useVideoConfig();
   const recipe = motionRecipeFor(scene);
   if (scene.type === 'text' || scene.type === 'outro') return <TextPanel scene={scene} accent={project.accent} theme={theme} />;
   if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} />;
@@ -140,19 +156,22 @@ export function SceneContent({ scene, project, theme }: { scene: Scene; project:
       </div>
     </>;
   }
-  const layout = browserLayout(project.viewport);
+  const fullBleed = scene.presentation?.layout === 'full-bleed';
+  const caption = scene.presentation?.caption ?? (fullBleed ? 'bottom-left' : 'side');
+  const layout = fullBleed ? fullBleedLayout(project.viewport, { width: compositionWidth, height: compositionHeight }) : browserLayout(project.viewport);
   const focus = 'focus' in scene ? scene.focus : undefined;
   const strength = spring({ frame, fps, config: { damping: 30, stiffness: 60 } });
   const target = cameraFor(focus, project.viewport, layout.width, scene.type === 'focus' ? scene.zoom ?? 1.35 : 1.14);
   const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, layout.width)
     : scene.type === 'annotation' ? cameraFor(undefined, project.viewport, layout.width)
     : { scale: 1 + (target.scale - 1) * strength, x: target.x * strength, y: target.y * strength };
-  return <><Caption scene={scene} accent={project.accent} theme={theme} />
+  return <>{caption === 'side' ? <Caption scene={scene} accent={project.accent} theme={theme} /> : null}
     <div style={{ position: 'absolute', left: layout.left, top: layout.top }}>
       <BrowserFrame project={project} source={scene.source} theme={theme} width={layout.width} camera={camera} focus={focus} scan={recipe === 'focus-scan-lock'}
-        dim={scene.type === 'focus' ? scene.dim ?? .38 : scene.type === 'annotation' ? .14 : 0}>
+        framed={!fullBleed} dim={scene.type === 'focus' ? scene.dim ?? .38 : scene.type === 'annotation' ? .14 : 0}>
         {scene.type === 'annotation' ? <Annotation scene={scene} project={project} theme={theme} width={layout.width} /> : null}
       </BrowserFrame>
     </div>
+    {caption !== 'side' && caption !== 'none' ? <OverlayCaption scene={scene} accent={project.accent} theme={theme} position={caption} /> : null}
   </>;
 }

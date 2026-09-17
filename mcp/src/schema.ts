@@ -13,8 +13,13 @@ export const sourceSchema = z.strictObject({
 });
 
 export const transitionSchema = z.strictObject({
-  type: z.enum(['fade', 'slide', 'none']),
+  type: z.enum(['fade', 'slide', 'slide-up', 'slide-down', 'slide-left', 'slide-right', 'none']),
   duration: z.number().nonnegative(),
+});
+
+const presentationSchema = z.strictObject({
+  layout: z.enum(['framed', 'full-bleed']).optional(),
+  caption: z.enum(['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none']).optional(),
 });
 
 export const brandingSchema = z.strictObject({
@@ -49,15 +54,16 @@ const text = {
   reveal: z.enum(['words', 'lines']).optional(),
   highlight: z.string().optional(),
 };
+const product = { presentation: presentationSchema.optional() };
 
 export const sceneSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...base, ...text, type: z.literal('text') }),
   z.strictObject({ ...base, type: z.literal('chapter'), number: z.string() }),
-  z.strictObject({ ...base, type: z.literal('overview'), source: sourceSchema }),
-  z.strictObject({ ...base, type: z.literal('focus'), source: sourceSchema, focus: rectSchema, dim: z.number().min(0).max(0.85).optional(), zoom: z.number().min(1).max(3).optional() }),
-  z.strictObject({ ...base, type: z.literal('camera'), source: sourceSchema, path: z.array(z.strictObject({ at: z.number().nonnegative(), focus: rectSchema.optional(), zoom: z.number().min(1).max(3).optional() })).min(2) }),
-  z.strictObject({ ...base, type: z.literal('annotation'), source: sourceSchema.extend({ freeze: z.literal(true) }), focus: rectSchema, note: z.strictObject({ text: z.string(), x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive() }) }),
-  z.strictObject({ ...base, type: z.literal('result'), source: sourceSchema, focus: rectSchema.optional(), comparison: z.strictObject({ before: z.number().nonnegative(), after: z.number().nonnegative(), crop: rectSchema, beforeLabel: z.string(), afterLabel: z.string() }).optional() }),
+  z.strictObject({ ...base, ...product, type: z.literal('overview'), source: sourceSchema }),
+  z.strictObject({ ...base, ...product, type: z.literal('focus'), source: sourceSchema, focus: rectSchema, dim: z.number().min(0).max(0.85).optional(), zoom: z.number().min(1).max(3).optional() }),
+  z.strictObject({ ...base, ...product, type: z.literal('camera'), source: sourceSchema, path: z.array(z.strictObject({ at: z.number().nonnegative(), focus: rectSchema.optional(), zoom: z.number().min(1).max(3).optional() })).min(2) }),
+  z.strictObject({ ...base, ...product, type: z.literal('annotation'), source: sourceSchema.extend({ freeze: z.literal(true) }), focus: rectSchema, note: z.strictObject({ text: z.string(), x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive() }) }),
+  z.strictObject({ ...base, ...product, type: z.literal('result'), source: sourceSchema, focus: rectSchema.optional(), comparison: z.strictObject({ before: z.number().nonnegative(), after: z.number().nonnegative(), crop: rectSchema, beforeLabel: z.string(), afterLabel: z.string() }).optional() }),
   z.strictObject({ ...base, ...text, type: z.literal('outro'), cta: z.string().optional() }),
 ]);
 
