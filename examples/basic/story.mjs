@@ -257,7 +257,7 @@ export function formaLaunchDirection(capture, media) {
   const draft = event('draft');
   const name = event('name-field');
   const result = event('public-result');
-  const at = (value) => value.at + 0.1;
+  const at = (value) => value.verified ? value.end : value.at + 0.1;
   const authored = (claim) => [{ kind: 'authored-copy', claim }];
   const captured = (value, verified = false, rect) => [{ kind: 'capture', timestamp: at(value), markId: value.id, verified, ...(rect ? { rect } : {}) }];
   const scene = (narrativeRole, reason, value, evidence, transitionPreset = 'soft-crossfade') => ({ narrativeRole, reason, expectedSettledAt: 2, evidence, transitionPreset, scene: value });

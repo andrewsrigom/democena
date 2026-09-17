@@ -212,6 +212,8 @@ function launchDirection() {
     buildIdentity: 'fixture-1',
     events: [
       { markId: 'reveal', timestamp: 0, settledUntil: 0.25, verified: false },
+      { markId: 'camera-start', timestamp: 1, settledUntil: 1.25, rect: { x: 50, y: 50, width: 100, height: 50 }, verified: false },
+      { markId: 'camera-stop', timestamp: 2, settledUntil: 2.25, rect: { x: 300, y: 200, width: 120, height: 60 }, verified: false },
       { markId: 'result', timestamp: 4, settledUntil: 4.25, rect: { x: 100, y: 100, width: 300, height: 120 }, verified: true },
     ],
   };
@@ -258,6 +260,7 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, verified: false }] } : entry) }, project), /verified result/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'invented', verified: true }] } : entry) }, project), /outside the adopted take/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 5, markId: 'result', verified: true }] } : entry) }, project), /timestamp outside capture marker/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 3.9, markId: 'result', verified: true }] } : entry) }, project), /timestamp outside capture marker/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'result', rect: { x: 0, y: 0, width: 10, height: 10 }, verified: true }] } : entry) }, project), /rectangle that does not match/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [
     { kind: 'capture', timestamp: 0, markId: 'reveal', verified: false },
@@ -266,6 +269,52 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, scene: { id: 'result', type: 'text', duration: 4.1, eyebrow: 'Published', title: 'The result is visible.', body: 'Authored copy alone is not verified product evidence.' } } : entry) }, project), /verified result displayed from its verified capture evidence/);
   const unverifiedCapture = { ...direction.capture, events: direction.capture.events.map((event) => event.markId === 'result' ? { ...event, verified: false } : event) };
   assert.throws(() => compileDirection({ ...direction, capture: unverifiedCapture, captureFingerprint: captureFingerprint(unverifiedCapture) }, project), /did not verify it/);
+});
+
+test('capture evidence follows the raw recording clock after project trimming', () => {
+  const direction = launchDirection();
+  const capture = {
+    ...direction.capture,
+    events: direction.capture.events.map((event) => ({ ...event, timestamp: event.timestamp + 1, settledUntil: event.settledUntil + 1 })),
+  };
+  const shifted = {
+    ...direction,
+    capture,
+    captureFingerprint: captureFingerprint(capture),
+    scenes: direction.scenes.map((entry) => ({
+      ...entry,
+      evidence: entry.evidence.map((item) => item.kind === 'capture' ? { ...item, timestamp: item.timestamp + 1 } : item),
+    })),
+  };
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 21, trimBefore: 1, viewport: { width: 1280, height: 800 }, scenes: [shifted.scenes[0].scene] });
+  assert.equal(compileDirection(shifted, project).project.scenes.length, 4);
+});
+
+test('camera stops require matching rectangle evidence at each displayed source time', () => {
+  const direction = launchDirection();
+  const start = { x: 50, y: 50, width: 100, height: 50 };
+  const end = { x: 300, y: 200, width: 120, height: 60 };
+  const cameraEntry = {
+    ...direction.scenes[1],
+    evidence: [
+      { kind: 'capture' as const, timestamp: 1, markId: 'camera-start', rect: start, verified: false },
+      { kind: 'capture' as const, timestamp: 2, markId: 'camera-stop', rect: end, verified: false },
+    ],
+    scene: {
+      ...direction.scenes[1].scene,
+      type: 'camera' as const,
+      source: { from: 1, freeze: false },
+      path: [{ at: 0, focus: start, zoom: 1.2 }, { at: 1, focus: end, zoom: 1.4 }],
+    },
+  };
+  const cameraDirection = { ...direction, scenes: direction.scenes.map((entry, index) => index === 1 ? cameraEntry : entry) };
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [direction.scenes[0].scene] });
+  assert.equal(compileDirection(cameraDirection, project).project.scenes[1]?.type, 'camera');
+  const mistimed = {
+    ...cameraDirection,
+    scenes: cameraDirection.scenes.map((entry, index) => index === 1 ? { ...entry, scene: { ...entry.scene, path: [{ at: 0, focus: start, zoom: 1.2 }, { at: 1, focus: start, zoom: 1.4 }] } } : entry),
+  };
+  assert.throws(() => compileDirection(mistimed, project), /rectangle outside its approved evidence at displayed capture time/);
 });
 
 test('client saves cannot author Director-managed lifecycle states', async t => {

@@ -45,6 +45,18 @@ function words(value, locale) {
     return spaced || Math.ceil([...value].length / 4);
   }
 }
+function readableSceneCopy(scene) {
+  return [
+    scene.eyebrow,
+    scene.title,
+    scene.body,
+    scene.type === 'chapter' ? scene.number : undefined,
+    scene.type === 'annotation' ? scene.note.text : undefined,
+    scene.type === 'outro' ? scene.cta : undefined,
+    scene.type === 'result' && scene.comparison ? scene.comparison.beforeLabel : undefined,
+    scene.type === 'result' && scene.comparison ? scene.comparison.afterLabel : undefined,
+  ].filter(Boolean).join(' ');
+}
 function luminance(hex) {
   const values = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255).map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
   return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
@@ -154,7 +166,7 @@ try {
     const entry = timeline[index];
     const settledFrames = Math.max(0, (timeline[index + 1]?.from ?? entry.end) - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));
     const settledSeconds = settledFrames / composition.fps;
-    const count = words(`${scene.title} ${scene.body}`.trim(), locale);
+    const count = words(readableSceneCopy(scene), locale);
     const requiredSeconds = Math.max(scene.body.trim() ? 2 : scene.title.trim() ? 1.5 : 1, count / 3);
     if (settledSeconds < requiredSeconds) findings.push({ level: direction ? 'error' : 'warning', code: 'READING_TIME', sceneId: scene.id, message: `Needs ${requiredSeconds.toFixed(2)} settled seconds; has ${settledSeconds.toFixed(2)}.` });
     const limits = [

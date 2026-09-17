@@ -131,9 +131,9 @@ function sourceEvidence(entry: DirectionScene) {
   return entry.evidence.filter((e): e is z.infer<typeof captureEvidenceSchema> => e.kind === 'capture');
 }
 
-function hasVerifiedDisplayedResult(entry: DirectionScene) {
+function hasVerifiedDisplayedResult(entry: DirectionScene, trimBefore: number) {
   if (!('source' in entry.scene)) return false;
-  const displayedAt = entry.scene.type === 'result' && entry.scene.comparison ? entry.scene.comparison.after : entry.scene.source.from;
+  const displayedAt = trimBefore + (entry.scene.type === 'result' && entry.scene.comparison ? entry.scene.comparison.after : entry.scene.source.from);
   return sourceEvidence(entry).some((item) => item.verified && Math.abs(item.timestamp - displayedAt) <= 1 / FPS);
 }
 
@@ -151,18 +151,23 @@ function assertBoundCaptureEvidence(direction: Direction, sceneId: string, evide
   if (evidence.verified && !captured.verified) throw new Error(`Scene ${sceneId} cites capture marker ${evidence.markId} as verified, but the adopted take did not verify it.`);
 }
 
-function requiredTimestamps(scene: SceneInput) {
+function requiredTimestamps(scene: SceneInput, trimBefore: number) {
   if (!('source' in scene)) return [];
-  const values = [scene.source.from];
-  if (scene.type === 'result' && scene.comparison) values.push(scene.comparison.before, scene.comparison.after);
+  const values = [trimBefore + scene.source.from];
+  if (scene.type === 'result' && scene.comparison) values.push(trimBefore + scene.comparison.before, trimBefore + scene.comparison.after);
   return [...new Set(values)];
 }
 
-function requiredRectangles(scene: SceneInput) {
-  const values: Array<{ x: number; y: number; width: number; height: number }> = [];
-  if ('focus' in scene && scene.focus) values.push(scene.focus);
-  if (scene.type === 'camera') for (const stop of scene.path) if (stop.focus) values.push(stop.focus);
-  if (scene.type === 'result' && scene.comparison) values.push(scene.comparison.crop);
+function requiredRectangles(scene: SceneInput, trimBefore: number) {
+  const values: Array<{ rect: { x: number; y: number; width: number; height: number }; timestamp: number }> = [];
+  if (!('source' in scene)) return values;
+  const sourceStart = trimBefore + scene.source.from;
+  if ('focus' in scene && scene.focus) values.push({ rect: scene.focus, timestamp: sourceStart });
+  if (scene.type === 'camera') for (const stop of scene.path) if (stop.focus) values.push({ rect: stop.focus, timestamp: sourceStart + (scene.source.freeze ? 0 : stop.at) });
+  if (scene.type === 'result' && scene.comparison) {
+    values.push({ rect: scene.comparison.crop, timestamp: trimBefore + scene.comparison.before });
+    values.push({ rect: scene.comparison.crop, timestamp: trimBefore + scene.comparison.after });
+  }
   return values;
 }
 
@@ -193,12 +198,13 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
     const evidence = sourceEvidence(entry);
     if (evidence.length === 0) throw new Error(`Scene ${entry.scene.id} requires capture evidence.`);
     for (const item of evidence) assertBoundCaptureEvidence(direction, entry.scene.id, item);
-    for (const timestamp of requiredTimestamps(entry.scene)) {
+    for (const timestamp of requiredTimestamps(entry.scene, currentProject.trimBefore)) {
       if (!evidence.some((item) => Math.abs(item.timestamp - timestamp) <= 1 / FPS)) throw new Error(`Scene ${entry.scene.id} uses timestamp ${timestamp} without approved capture evidence.`);
     }
-    const allowedRects = new Set(evidence.flatMap((item) => item.rect ? [rectKey(item.rect)] : []));
-    for (const rectangle of requiredRectangles(entry.scene)) {
-      if (!allowedRects.has(rectKey(rectangle))) throw new Error(`Scene ${entry.scene.id} uses a rectangle outside its approved capture evidence.`);
+    for (const requirement of requiredRectangles(entry.scene, currentProject.trimBefore)) {
+      if (!evidence.some((item) => item.rect && rectKey(item.rect) === rectKey(requirement.rect) && Math.abs(item.timestamp - requirement.timestamp) <= 1 / FPS)) {
+        throw new Error(`Scene ${entry.scene.id} uses a rectangle outside its approved evidence at displayed capture time ${requirement.timestamp}.`);
+      }
     }
   }
   const scenes = direction.scenes.map((entry, index) => applyTransition(entry, index, direction.profile));
@@ -206,14 +212,14 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
   const duration = buildTimeline(project.scenes, FPS).at(-1)!.end / FPS;
   if (direction.profile === 'tour' && appEntries.length > 0) {
     if (!direction.scenes.some((entry) => ['product-reveal', 'product-moment'].includes(entry.narrativeRole) && !['text', 'chapter', 'outro'].includes(entry.scene.type))) throw new Error('A product tour requires a real product moment.');
-    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry))) throw new Error('A product tour requires a verified result displayed from its verified capture evidence.');
+    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry, currentProject.trimBefore))) throw new Error('A product tour requires a verified result displayed from its verified capture evidence.');
   }
   if (direction.profile === 'launch') {
     if (scenes.length < 4 || scenes.length > 6) throw new Error('Launch directions require four to six scenes.');
     if (duration < 15 || duration > 25) throw new Error(`Launch duration must be 15-25 seconds; compiled duration is ${duration.toFixed(2)} seconds.`);
     if (direction.scenes[0]?.narrativeRole !== 'hook') throw new Error('A launch direction must begin with a hook.');
     if (!direction.scenes.some((entry) => ['product-reveal', 'product-moment'].includes(entry.narrativeRole) && !['text', 'chapter', 'outro'].includes(entry.scene.type))) throw new Error('A launch direction requires a real product moment.');
-    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry))) throw new Error('A launch direction requires a verified result displayed from its verified capture evidence.');
+    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry, currentProject.trimBefore))) throw new Error('A launch direction requires a verified result displayed from its verified capture evidence.');
     if (direction.scenes.at(-1)?.narrativeRole !== 'closing') throw new Error('A launch direction must end with a closing scene.');
   }
   return { direction, project, duration };

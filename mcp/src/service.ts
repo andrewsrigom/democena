@@ -153,7 +153,7 @@ export class AgentService {
             const holdMs = context.plan.steps.find((step) => step.id === event.id)?.holdMs ?? 200;
             return {
               markId: event.id,
-              timestamp: event.at,
+              timestamp: event.verified ? event.end : event.at,
               settledUntil: event.end + holdMs / 1000,
               ...(event.box ? { rect: event.box } : {}),
               verified: event.verified === true,
