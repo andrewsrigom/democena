@@ -17,6 +17,7 @@ export const inputs = {
   get_direction: z.strictObject({ projectId: idSchema }),
   save_direction: z.strictObject({ projectId: idSchema, expectedDirectionRevision: z.union([revision, z.null()]), direction: directionSchema }),
   compile_direction: z.strictObject({ projectId: idSchema, expectedDirectionRevision: revision, expectedProjectRevision: revision }),
+  deliver_direction: z.strictObject({ projectId: idSchema, expectedDirectionRevision: revision, expectedProjectRevision: revision, jobId: idSchema }),
   prepare_scene_packets: z.strictObject({ projectId: idSchema, expectedDirectionRevision: revision, expectedProjectRevision: revision }),
   merge_scene_drafts: z.strictObject({ projectId: idSchema, expectedDirectionRevision: revision, expectedProjectRevision: revision }),
   save_project: z.strictObject({ projectId: idSchema, expectedRevision: revision, project: projectSchema }),
@@ -39,6 +40,7 @@ export const descriptions: Record<Operation, string> = {
   get_direction: 'Read the canonical Director plan, its independent revision, generated lifecycle state and linked project revision.',
   save_direction: 'Validate and save draft, reviewed or stale Director data with an independent optimistic revision. Compiled lifecycle states are workflow-managed; Markdown brief and storyboard views are regenerated.',
   compile_direction: 'Compile a reviewed Director revision into project.json after checking both direction and project revisions, evidence and launch constraints.',
+  deliver_direction: 'Mark a compiled direction delivered only after a matching successful final-video job and its strict quality report are verified.',
   prepare_scene_packets: 'Write immutable, revision-bound scene packets for isolated serial or parallel scene work.',
   merge_scene_drafts: 'Validate one isolated draft per scene, reject stale or invented evidence, and merge them into a new draft direction that must be reviewed again.',
   save_project: 'Validate and atomically save the full edited manifest using optimistic concurrency. Previous revisions are preserved.',
@@ -83,7 +85,7 @@ export const guide = `Democena Director workflow:
 4. Compile only a reviewed direction with compile_direction and both returned revisions. The compiler enforces capture evidence and launch shape. Direct project edits after compilation make the direction diverged and are never overwritten silently.
 5. Optionally prepare revision-bound scene packets. The orchestrator remains the only active manifest writer.
 6. Validate, render a preview, and inspect scene and review images. Fix blocking quality findings before video render. Reuse matching nonterminal jobs rather than starting duplicates.
-7. Return local artifact paths and observed limitations. Publishing or upload is a separate action.
+7. After a matching final-video job succeeds and its artifacts are inspected, call deliver_direction with the exact project and compiled direction revisions. Return local artifact paths and observed limitations. Publishing or upload is a separate action.
 The server captures one browser page through declarative actions and edits/renders recordings. Capture can change real application data: use only authorized workflows. Existing arbitrary TypeScript scenarios are not automatically converted. Media files and prior revisions are preserved. Jobs run locally, no upload or external model is used. Rendering needs the optional Studio installation, Chromium and ffprobe.\n`;
 export function capabilities() {
   const base = { id: 'example', duration: 4, eyebrow: '', title: 'Show the outcome', body: '', transition: { type: 'fade', duration: 0.4 } };

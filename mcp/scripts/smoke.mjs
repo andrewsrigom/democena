@@ -43,7 +43,7 @@ async function inspect(jobId, sceneId, mimeType = 'image/png') {
 try {
   await connect();
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 19);
+  assert.equal(tools.tools.length, 20);
   assert.equal(tools.tools.find(t => t.name === 'democena_start_capture').annotations.openWorldHint, true);
   await call('capabilities');
   let p = (await call('create_project', { projectId: 'forma-story', title: 'Forma — the spring edit', branding: { name: 'Forma', tagline: 'COLLECTIONS, IN MOTION', footer: 'YOUR COLLECTION, READY TO SHARE' } })).structuredContent;
@@ -119,8 +119,10 @@ try {
   const launchQuality = JSON.parse(await readFile(launchVideo.artifacts.quality, 'utf8'));
   assert.equal(launchQuality.status, 'passed');
   assert.equal(launchQuality.media.streams.some(stream => stream.codec_type === 'audio'), false);
+  const delivered = (await call('deliver_direction', { projectId: launch.projectId, expectedDirectionRevision: compiled.direction.directionRevision, expectedProjectRevision: compiled.project.revision, jobId: launchVideo.jobId })).structuredContent;
+  assert.equal(delivered.direction.status, 'delivered');
 
-  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, brandingVerified: true, snapshotVerified: true, failedCaptureVerified: true, crossProjectReuseVerified: true, launchDuration: compiled.compiledDuration, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, launchPreviewJob: launchPreview.jobId, launchVideoJob: launchVideo.jobId, artifacts: video.artifacts, launchArtifacts: launchVideo.artifacts };
+  const result = { ok: true, workspace, projectId: p.projectId, revision: video.revision, tools: tools.tools.length, sceneCount: scenes.length, sceneTypes: new Set(scenes.map(s => s.type)).size, reconnectVerified: true, jobRecoveryVerified: true, brandingVerified: true, snapshotVerified: true, failedCaptureVerified: true, crossProjectReuseVerified: true, deliveryVerified: true, launchDuration: compiled.compiledDuration, captureJob: captured.jobId, previewJob: preview.jobId, videoJob: video.jobId, launchPreviewJob: launchPreview.jobId, launchVideoJob: launchVideo.jobId, artifacts: video.artifacts, launchArtifacts: launchVideo.artifacts };
   await writeFile(path.join(workspace, 'verification.json'), JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify(result));
 } finally { await client?.close(); await app.close(); }

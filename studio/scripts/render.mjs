@@ -128,11 +128,25 @@ try {
   const theme = resolveTheme(props);
   const findings = [];
   const boundsChecks = [];
+  const fullBleedCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
+    && !(scene.type === 'result' && scene.comparison)
+    && scene.presentation?.layout === 'full-bleed'
+    && (scene.presentation?.caption ?? 'bottom-left') !== 'none');
+  const accentOnBackground = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
+    || (scene.type === 'result' && scene.comparison)
+    || scene.presentation?.layout !== 'full-bleed'
+    || scene.presentation?.caption === 'side');
   const contrastChecks = [
     { name: 'foreground-on-background', foreground: theme.foreground, background: theme.background, ratio: contrast(theme.foreground, theme.background), required: 4.5 },
     { name: 'muted-on-background', foreground: theme.muted, background: theme.background, ratio: contrast(theme.muted, theme.background), required: 4.5 },
+    ...(accentOnBackground ? [{ name: 'accent-on-background', foreground: props.accent, background: theme.background, ratio: contrast(props.accent, theme.background), required: 4.5 }] : []),
+    ...(fullBleedCaption ? [
+      { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
+      { name: 'muted-on-surface', foreground: theme.muted, background: theme.surface, ratio: contrast(theme.muted, theme.surface), required: 4.5 },
+      { name: 'accent-on-surface', foreground: props.accent, background: theme.surface, ratio: contrast(props.accent, theme.surface), required: 4.5 },
+    ] : []),
   ];
-  for (const check of contrastChecks) if (check.ratio < check.required) findings.push({ level: direction ? 'error' : 'warning', code: 'AUTHORED_CONTRAST', message: `${check.name} has ${check.ratio.toFixed(2)}:1 contrast; ${check.required.toFixed(1)}:1 is required.` });
+  for (const check of contrastChecks) if (check.ratio < check.required) findings.push({ level: direction ? 'error' : 'warning', code: check.name.startsWith('accent-') ? 'ACCENT_CONTRAST' : 'AUTHORED_CONTRAST', message: `${check.name} has ${check.ratio.toFixed(2)}:1 contrast; ${check.required.toFixed(1)}:1 is required.` });
   for (const [index, scene] of props.scenes.entries()) {
     const entry = timeline[index];
     const settledFrames = Math.max(0, (timeline[index + 1]?.from ?? entry.end) - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));

@@ -7,7 +7,7 @@ export function createServer(service: AgentService) {
   const server = new McpServer({ name: 'democena', version: '0.1.0-alpha.1' }, { instructions: guide });
   for (const name of Object.keys(inputs) as Operation[]) {
     const readOnly = ['capabilities', 'list_projects', 'list_jobs', 'get_project', 'get_direction', 'validate_project', 'get_job', 'read_preview'].includes(name);
-    server.registerTool(`democena_${name}`, { description: descriptions[name], inputSchema: inputs[name].shape, annotations: { readOnlyHint: readOnly, destructiveHint: ['save_project', 'save_direction', 'compile_direction', 'merge_scene_drafts', 'import_media', 'import_brand_logo', 'use_capture', 'start_capture'].includes(name), idempotentHint: readOnly || name === 'prepare_scene_packets', openWorldHint: name === 'start_capture' } }, async (args: Record<string, unknown>): Promise<CallToolResult> => {
+    server.registerTool(`democena_${name}`, { description: descriptions[name], inputSchema: inputs[name].shape, annotations: { readOnlyHint: readOnly, destructiveHint: ['save_project', 'save_direction', 'compile_direction', 'deliver_direction', 'merge_scene_drafts', 'import_media', 'import_brand_logo', 'use_capture', 'start_capture'].includes(name), idempotentHint: readOnly || name === 'prepare_scene_packets', openWorldHint: name === 'start_capture' } }, async (args: Record<string, unknown>): Promise<CallToolResult> => {
       try {
         const result = await service.call(name, args);
         if (name === 'read_preview') {

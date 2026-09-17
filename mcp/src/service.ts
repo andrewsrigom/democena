@@ -44,6 +44,9 @@ async function fileDigest(file: string) {
 function projectRevision(project: unknown) {
   return createHash('sha256').update(JSON.stringify(project, null, 2) + '\n').digest('hex');
 }
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 export type MediaMetadata = CaptureMetadata & { captureFingerprint: string };
 export type Job = {
   jobId: string;
@@ -237,6 +240,68 @@ export class AgentService {
       await rm(projectLock, { recursive: true, force: true });
     }
   }
+  async deliverDirection(id: string, expectedDirectionRevision: string, expectedProjectRevision: string, jobId: string) {
+    const job = await this.getJob(jobId);
+    if (job.projectId !== id) throw new AgentError('WRONG_PROJECT', 'The final render belongs to a different project.');
+    if (job.mode !== 'video' || job.status !== 'succeeded' || !job.artifacts?.video || !job.artifacts.quality || !job.artifacts.poster || !job.artifacts.contactSheet || !job.artifacts.storyboard) {
+      throw new AgentError('DELIVERY_NOT_READY', 'Choose a successful final-video job with its complete review bundle.');
+    }
+    if (job.revision !== expectedProjectRevision || job.directionRevision !== expectedDirectionRevision) {
+      throw new AgentError('STALE_RENDER', 'The final render does not match the requested compiled project and direction revisions.');
+    }
+    const output = await this.store.safe(`jobs/${jobId}/output`);
+    const artifacts = [job.artifacts.video, job.artifacts.quality, job.artifacts.poster, job.artifacts.contactSheet, job.artifacts.storyboard];
+    for (const artifact of artifacts) {
+      const file = await this.store.safe(path.relative(this.store.root, artifact));
+      const relative = path.relative(output, file);
+      if (path.isAbsolute(relative) || relative === '..' || relative.startsWith(`..${path.sep}`)) throw new AgentError('INVALID_PATH', 'Delivery artifacts must belong to the selected render job.');
+      const info = await stat(file).catch(() => { throw new AgentError('DELIVERY_NOT_READY', 'A required delivery artifact is missing.'); });
+      if (!info.isFile() || info.size === 0) throw new AgentError('DELIVERY_NOT_READY', 'Every required delivery artifact must be a nonempty file.');
+    }
+    let quality: unknown;
+    try { quality = JSON.parse(await readFile(job.artifacts.quality, 'utf8')) as unknown; }
+    catch { throw new AgentError('DELIVERY_NOT_READY', 'The final quality report is unreadable.'); }
+    if (!record(quality)) throw new AgentError('DELIVERY_NOT_READY', 'The final quality report is invalid.');
+    const media = record(quality.media) ? quality.media : {};
+    const projectReport = record(quality.project) ? quality.project : {};
+    const format = record(media.format) ? media.format : {};
+    const streams = Array.isArray(media.streams) ? media.streams.filter(record) : [];
+    const video = streams.find((stream) => stream.codec_type === 'video');
+    const expectedDuration = Number(projectReport.durationInFrames) / Number(projectReport.fps);
+    const actualDuration = Number(format.duration);
+    const validMedia = video?.codec_name === 'h264' && video.width === 1920 && video.height === 1080 && video.pix_fmt === 'yuv420p' && video.r_frame_rate === '30/1'
+      && !streams.some((stream) => stream.codec_type === 'audio')
+      && Number.isFinite(expectedDuration) && Number.isFinite(actualDuration) && Math.abs(expectedDuration - actualDuration) <= 0.1;
+    if (quality.status !== 'passed' || quality.strict !== true || !validMedia) {
+      throw new AgentError('DELIVERY_NOT_READY', 'The final render must pass strict quality and the silent H.264 1080p media contract before delivery.');
+    }
+    const projectLock = await this.store.safe(`projects/${id}/.write-lock`);
+    const directionLock = await this.store.safe(`projects/${id}/.direction-lock`);
+    await mkdir(projectLock).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'EEXIST') throw new AgentError('PROJECT_BUSY', 'Another writer is saving this project. Read both revisions before retrying delivery.');
+      throw error;
+    });
+    let directionLocked = false;
+    try {
+      await mkdir(directionLock).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'EEXIST') throw new AgentError('PROJECT_BUSY', 'Another writer is saving Director state. Read both revisions before retrying delivery.');
+        throw error;
+      });
+      directionLocked = true;
+      const project = await this.store.get(id);
+      const planned = await this.store.getDirection(id);
+      if (project.revision !== expectedProjectRevision) throw new AgentError('REVISION_CONFLICT', 'The project changed after the final render. Keep the artifact, but render the current project before delivery.');
+      if (planned.directionRevision !== expectedDirectionRevision) throw new AgentError('DIRECTION_REVISION_CONFLICT', 'The direction changed after the final render. Keep the artifact, but render the current direction before delivery.');
+      if (planned.direction.status !== 'compiled' || planned.direction.compiledProjectRevision !== project.revision) {
+        throw new AgentError('INVALID_DIRECTION', 'Only the matching compiled direction can transition to delivered.');
+      }
+      await this.store.commitDirection(id, planned.directionRevision, planned.direction, { ...planned.direction, status: 'delivered' });
+      return { ...await this.store.getDirection(id), delivery: { jobId, artifacts: job.artifacts } };
+    } finally {
+      if (directionLocked) await rm(directionLock, { recursive: true, force: true });
+      await rm(projectLock, { recursive: true, force: true });
+    }
+  }
   async prepareScenePackets(id: string, expectedDirectionRevision: string, expectedProjectRevision: string) {
     const project = await this.store.get(id);
     const planned = await this.store.getDirection(id);
@@ -355,7 +420,12 @@ export class AgentService {
       return job;
     });
     if (reserved.reused) return { ...reserved.job, reused: true, next: 'Resume polling this matching nonterminal job instead of starting a duplicate.' };
-    return { ...reserved.value, next: 'Poll get_job; after success, inspect read_preview before requesting the final video.' };
+    const next = mode === 'preview'
+      ? 'Poll get_job; after success, inspect read_preview before requesting the final video.'
+      : directionRevision
+        ? 'Poll get_job; after success, inspect the final review bundle, then call deliver_direction with this job ID and the compiled revisions.'
+        : 'Poll get_job; after success, inspect the final local artifacts.';
+    return { ...reserved.value, next };
   }
   async startCapture(id: string, expectedRevision: string, plan: z.infer<typeof capturePlanSchema>) {
     const current = await this.store.get(id);
@@ -442,6 +512,7 @@ export class AgentService {
       case 'get_direction': { const a = inputs.get_direction.parse(value); return this.store.getDirection(a.projectId); }
       case 'save_direction': { const a = inputs.save_direction.parse(value); return this.store.saveDirection(a.projectId, a.expectedDirectionRevision, a.direction); }
       case 'compile_direction': { const a = inputs.compile_direction.parse(value); return this.compileDirector(a.projectId, a.expectedDirectionRevision, a.expectedProjectRevision); }
+      case 'deliver_direction': { const a = inputs.deliver_direction.parse(value); return this.deliverDirection(a.projectId, a.expectedDirectionRevision, a.expectedProjectRevision, a.jobId); }
       case 'prepare_scene_packets': { const a = inputs.prepare_scene_packets.parse(value); return this.prepareScenePackets(a.projectId, a.expectedDirectionRevision, a.expectedProjectRevision); }
       case 'merge_scene_drafts': { const a = inputs.merge_scene_drafts.parse(value); return this.mergeSceneDraftFiles(a.projectId, a.expectedDirectionRevision, a.expectedProjectRevision); }
       case 'save_project': { const a = inputs.save_project.parse(value); return this.store.save(a.projectId, a.expectedRevision, a.project); }

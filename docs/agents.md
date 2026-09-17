@@ -66,6 +66,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 | `democena_get_direction` | Read canonical Director data, its independent revision and lifecycle state. |
 | `democena_save_direction` | Save direction data and regenerate the brief and storyboard views. |
 | `democena_compile_direction` | Compile a reviewed direction after checking project, direction and evidence revisions. |
+| `democena_deliver_direction` | Mark a compiled direction delivered after verifying a matching successful final-video job and strict quality report. |
 | `democena_prepare_scene_packets` | Create immutable revision-bound packets for isolated scene work. |
 | `democena_merge_scene_drafts` | Validate isolated drafts and merge them into a new direction that requires review. |
 | `democena_save_project` | Validate and save the edited manifest with `expectedRevision`. |
@@ -89,7 +90,7 @@ Read-only resources: `democena://guide` and `democena://scenes`. Tool successes 
 5. Compile with the exact direction and project revisions. A launch compilation enforces 4–6 scenes, 15–25 seconds, a hook, a real product moment, a verified result and a closing scene. Resolve `diverged` state instead of overwriting manual edits.
 6. Validate, then start a preview render. Matching nonterminal capture/render requests return the existing job ID instead of consuming duplicate work.
 7. Inspect scene images, transition images, `review-contact-sheet`, `review-poster` and `review/quality.json`. Captured application text still requires human or agent visual inspection.
-8. Start a video render only after blocking findings are fixed. Return the local MP4 and review artifact paths. Publishing is separate.
+8. Start a video render only after blocking findings are fixed. Inspect the final artifacts, then call `deliver_direction` with the video job ID and the exact compiled direction and project revisions. Return the local MP4 and review artifact paths. Publishing is separate.
 
 A useful prompt for Codex:
 

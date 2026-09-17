@@ -121,7 +121,7 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
   const client = new Client({ name: 'democena-test', version: '1.0.0' });
   t.after(async () => { await client.close(); });
   await client.connect(transport);
-  assert.equal((await client.listTools()).tools.length, 19);
+  assert.equal((await client.listTools()).tools.length, 20);
   assert.equal((await client.listResources()).resources.length, 2);
   assert((await client.readResource({ uri: 'democena://guide' })).contents.length > 0);
   const created = await client.callTool({ name: 'democena_create_project', arguments: { projectId: 'via-mcp', title: 'Agent demo' } });
@@ -307,6 +307,58 @@ test('direction revisions generate review views, compile atomically and detect d
   const archived = await readFile(path.join(s.store.root, 'projects/demo/direction/revisions', `${compiled.direction.directionRevision}.json`), 'utf8');
   assert.equal(createHash('sha256').update(archived).digest('hex'), compiled.direction.directionRevision);
   assert.equal(JSON.parse(archived).status, 'compiled');
+});
+
+test('delivery requires a matching successful final render and strict media report', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('delivery-demo', 'Delivery demo', '#215acb');
+  const direction = {
+    ...launchDirection(),
+    profile: 'tour' as const,
+    capture: undefined,
+    captureFingerprint: undefined,
+    poster: { sceneId: 'hook', sceneLocalTime: 2 },
+    scenes: [launchDirection().scenes[0]],
+  };
+  const saved = await s.store.saveDirection('delivery-demo', null, direction);
+  const compiled = await s.compileDirector('delivery-demo', saved.directionRevision, project.revision);
+  const jobId = 'delivery-job';
+  const output = path.join(s.store.root, 'jobs', jobId, 'output');
+  const review = path.join(output, 'review');
+  await mkdir(review, { recursive: true });
+  const artifacts = {
+    video: path.join(output, 'democena.mp4'),
+    quality: path.join(review, 'quality.json'),
+    poster: path.join(review, 'poster.jpg'),
+    contactSheet: path.join(review, 'contact-sheet.jpg'),
+    storyboard: path.join(output, 'storyboard.json'),
+    preview: path.join(output, 'preview.png'),
+    scenes: [],
+  };
+  for (const file of [artifacts.video, artifacts.poster, artifacts.contactSheet, artifacts.storyboard, artifacts.preview]) await writeFile(file, 'artifact');
+  await writeFile(path.join(s.store.root, 'jobs', jobId, 'job.json'), JSON.stringify({
+    jobId,
+    projectId: 'delivery-demo',
+    revision: compiled.project.revision,
+    directionRevision: compiled.direction.directionRevision,
+    mode: 'video',
+    status: 'succeeded',
+    createdAt: new Date().toISOString(),
+    artifacts,
+  }));
+  const quality = {
+    status: 'passed',
+    strict: true,
+    project: { fps: 30, durationInFrames: 30 },
+    media: { streams: [{ codec_type: 'video', codec_name: 'h264', width: 1920, height: 1080, pix_fmt: 'yuv420p', r_frame_rate: '30/1' }], format: { duration: '1.000000' } },
+  };
+  await assert.rejects(s.deliverDirection('delivery-demo', 'c'.repeat(64), compiled.project.revision, jobId), { code: 'STALE_RENDER' });
+  await writeFile(artifacts.quality, JSON.stringify({ ...quality, strict: false }));
+  await assert.rejects(s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId), { code: 'DELIVERY_NOT_READY' });
+  await writeFile(artifacts.quality, JSON.stringify(quality));
+  const delivered = await s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId);
+  assert.equal(delivered.direction.status, 'delivered');
+  assert.equal(delivered.delivery.jobId, jobId);
 });
 
 test('scene drafts are revision-bound and merge back into an unreviewed direction', async t => {
