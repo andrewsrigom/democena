@@ -50,6 +50,18 @@ export function regionMeanLuma(rgba, { x, y, width, height }, frameWidth = 1920,
   return sum / count;
 }
 
+export function regionMeanAbsoluteDifference(a, b, { x, y, width, height }, frameWidth = 1920, stride = 2) {
+  assert.equal(a.length, b.length, 'region difference inputs must use the same dimensions');
+  let difference = 0;
+  let samples = 0;
+  for (let py = y; py < y + height; py += stride) for (let px = x; px < x + width; px += stride) {
+    const offset = (py * frameWidth + px) * 4;
+    for (let channel = 0; channel < 3; channel += 1) difference += Math.abs(a[offset + channel] - b[offset + channel]);
+    samples += 3;
+  }
+  return difference / samples;
+}
+
 export function psnr(a, b, byteStride = 16) {
   assert.equal(a.length, b.length, 'PSNR inputs must use the same dimensions');
   let squaredError = 0;

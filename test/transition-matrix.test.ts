@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Project } from '../studio/src/model.js';
 import { transitionRegistry } from '../studio/src/motion-registry.js';
-import { transitionMatrix, transitionPhases } from '../studio/src/transition-matrix.mjs';
+import { chromeMatrix, transitionMatrix, transitionPhases } from '../studio/src/transition-matrix.mjs';
 
 const fixture = JSON.parse(readFileSync(fileURLToPath(new URL('../examples/motion-registry/project.json', import.meta.url)), 'utf8')) as Project;
 
@@ -32,5 +32,29 @@ describe('transition matrix', () => {
     const matrix = transitionMatrix(fixture);
     expect(matrix.find((entry) => entry.id === 'none')?.transitionFrames).toBe(0);
     expect(matrix.filter((entry) => entry.id !== 'none').every((entry) => entry.transitionFrames > 0)).toBe(true);
+  });
+
+  it('covers every presentation chrome handoff with explicit visibility expectations', () => {
+    const matrix = chromeMatrix(fixture);
+    expect(matrix.map((entry) => entry.id)).toEqual([
+      'chrome-framed-to-full-bleed',
+      'chrome-full-bleed-to-framed',
+      'chrome-full-bleed-to-full-bleed',
+    ]);
+    expect(matrix.map((entry) => entry.project.scenes.map((scene) => 'presentation' in scene ? scene.presentation?.layout : undefined))).toEqual([
+      ['framed', 'full-bleed'],
+      ['full-bleed', 'framed'],
+      ['full-bleed', 'full-bleed'],
+    ]);
+    expect(matrix.map((entry) => entry.expectedChrome)).toEqual([
+      { before: true, after: false },
+      { before: false, after: true },
+      { before: false, after: false },
+    ]);
+    for (const entry of matrix) {
+      expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);
+      expect(entry.frames.midpoint).toBeLessThan(entry.frames.after);
+      expect(entry.frames.settledCheck).toBeLessThan(entry.durationInFrames);
+    }
   });
 });

@@ -81,7 +81,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 
 Read-only resources: `democena://guide`, `democena://scenes` and `democena://motion`. The motion resource is the same recipe, rendered-transition and Director-preset catalog used by Studio and the local Playbook. Tool successes include `structuredContent` and equivalent JSON text. Failures set `isError` and return an error code and message; malformed protocol arguments are rejected by the SDK.
 
-Run `npm run benchmark:transitions` after changing transition rendering, scene entrances, presentation chrome or settled-frame selection. Inspect both `studio/output/transition-matrix/contact-sheet.jpg` and the machine-readable report. The adjacent `index.html` compares any two registered transitions without source edits.
+Run `npm run benchmark:transitions` after changing transition rendering, scene entrances, presentation chrome or settled-frame selection. Inspect both `studio/output/transition-matrix/contact-sheet.jpg` and the machine-readable report. The matrix includes every registered transition plus framed/full-bleed chrome handoffs, and the adjacent `index.html` compares any two cases without source edits.
 
 ## Suggested agent workflow
 

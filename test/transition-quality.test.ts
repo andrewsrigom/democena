@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { frameStats, psnr, regionMeanLuma } from '../studio/src/transition-quality.mjs';
+import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma } from '../studio/src/transition-quality.mjs';
 
 function image(width: number, height: number, pixel: (x: number, y: number) => [number, number, number, number]) {
   const buffer = Buffer.alloc(width * height * 4);
@@ -32,5 +32,16 @@ describe('transition frame quality', () => {
     const pixels = image(8, 8, (_x, y) => y < 4 ? [255, 255, 255, 255] : [0, 0, 0, 255]);
     expect(regionMeanLuma(pixels, { x: 0, y: 0, width: 8, height: 4 }, 8, 1)).toBeCloseTo(255);
     expect(regionMeanLuma(pixels, { x: 0, y: 4, width: 8, height: 4 }, 8, 1)).toBe(0);
+  });
+
+  it('measures visual chrome presence against an unbranded reference', () => {
+    const reference = image(8, 8, () => [245, 245, 245, 255]);
+    const branded = Buffer.from(reference);
+    for (let y = 1; y < 4; y += 1) for (let x = 1; x < 6; x += 1) {
+      const offset = (y * 8 + x) * 4;
+      branded.set([20, 40, 80, 255], offset);
+    }
+    expect(regionMeanAbsoluteDifference(reference, reference, { x: 0, y: 0, width: 8, height: 5 }, 8, 1)).toBe(0);
+    expect(regionMeanAbsoluteDifference(branded, reference, { x: 0, y: 0, width: 8, height: 5 }, 8, 1)).toBeGreaterThan(40);
   });
 });

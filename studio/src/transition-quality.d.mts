@@ -9,4 +9,5 @@ export type FrameStats = {
 };
 export function frameStats(rgba: Buffer, width?: number, height?: number, stride?: number): FrameStats;
 export function regionMeanLuma(rgba: Buffer, region: { x: number; y: number; width: number; height: number }, frameWidth?: number, stride?: number): number;
+export function regionMeanAbsoluteDifference(a: Buffer, b: Buffer, region: { x: number; y: number; width: number; height: number }, frameWidth?: number, stride?: number): number;
 export function psnr(a: Buffer, b: Buffer, byteStride?: number): number;
