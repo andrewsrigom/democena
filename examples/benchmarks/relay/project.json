@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "title": "Relay visual benchmark",
+  "accent": "#8b7cff",
+  "branding": { "name": "Relay", "tagline": "Agent workspace", "footer": "Inspectable work" },
+  "appearance": {
+    "surfaceMode": "dark",
+    "background": "#100e1c",
+    "foreground": "#f3f0ff",
+    "muted": "#bdb5d4",
+    "surface": "#1b182b",
+    "border": "#443c60",
+    "tint": "#241f3a",
+    "fontFamily": "Arial, sans-serif",
+    "radius": 18
+  },
+  "video": "captures/relay.mp4",
+  "sourceDuration": 1,
+  "trimBefore": 0,
+  "viewport": { "width": 1280, "height": 800 },
+  "scenes": [
+    { "id": "hook", "type": "text", "duration": 4.8, "eyebrow": "AGENT WORKSPACE", "title": "Ask once.\nInspect every step.", "body": "A scoped request becomes visible, verified product work.", "reveal": "lines", "highlight": "Inspect", "transition": { "type": "none", "duration": 0 } },
+    { "id": "product", "type": "overview", "duration": 5, "eyebrow": "FOLLOW THE RUN", "title": "Progress stays connected to evidence.", "body": "Tasks, results, and verification remain in one workspace.", "source": { "from": 0, "freeze": true }, "presentation": { "layout": "framed", "caption": "side" }, "transition": { "type": "slide-left", "duration": 0.5 } },
+    { "id": "proof", "type": "focus", "duration": 5, "eyebrow": "WORK VERIFIED", "title": "Every requested change passed its checks.", "body": "The completed run is the visible proof, not an invented success state.", "source": { "from": 0, "freeze": true }, "focus": { "x": 890, "y": 190, "width": 314, "height": 212 }, "dim": 0.3, "zoom": 1.3, "presentation": { "layout": "full-bleed", "caption": "bottom-left" }, "transition": { "type": "fade", "duration": 0.4 } },
+    { "id": "close", "type": "outro", "duration": 4.6, "eyebrow": "RELAY", "title": "From request to result, visibly.", "body": "A complete agent story with product truth attached.", "cta": "Review the completed run", "reveal": "words", "highlight": "visibly", "transition": { "type": "slide-up", "duration": 0.5 } }
+  ]
+}

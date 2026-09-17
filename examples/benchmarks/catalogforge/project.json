@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "title": "CatalogForge visual benchmark",
+  "accent": "#3457d5",
+  "branding": { "name": "CatalogForge", "tagline": "Catalog operations", "footer": "Trusted product data" },
+  "appearance": {
+    "surfaceMode": "light",
+    "background": "#eef2fa",
+    "foreground": "#17213a",
+    "muted": "#52617d",
+    "surface": "#ffffff",
+    "border": "#c9d2e6",
+    "tint": "#e1e7f8",
+    "fontFamily": "Arial, sans-serif",
+    "radius": 18
+  },
+  "video": "captures/catalogforge.mp4",
+  "sourceDuration": 1,
+  "trimBefore": 0,
+  "viewport": { "width": 1280, "height": 800 },
+  "scenes": [
+    { "id": "hook", "type": "text", "duration": 4.8, "eyebrow": "CATALOG OPERATIONS", "title": "Messy sources.\nOne reliable catalog.", "body": "Turn scattered product data into a trusted publishing flow.", "reveal": "lines", "highlight": "reliable", "transition": { "type": "none", "duration": 0 } },
+    { "id": "product", "type": "overview", "duration": 5, "eyebrow": "SEE THE SYSTEM", "title": "Every source stays accountable.", "body": "Feed health and product readiness share one operational view.", "source": { "from": 0, "freeze": true }, "presentation": { "layout": "framed", "caption": "side" }, "transition": { "type": "slide-left", "duration": 0.5 } },
+    { "id": "proof", "type": "focus", "duration": 5, "eyebrow": "VERIFIED RESULT", "title": "Critical checks are already resolved.", "body": "The result comes from the visible feed-health panel.", "source": { "from": 0, "freeze": true }, "focus": { "x": 890, "y": 190, "width": 314, "height": 212 }, "dim": 0.38, "zoom": 1.3, "presentation": { "layout": "full-bleed", "caption": "bottom-left" }, "transition": { "type": "fade", "duration": 0.4 } },
+    { "id": "close", "type": "outro", "duration": 4.6, "eyebrow": "CATALOGFORGE", "title": "Publish with product truth intact.", "body": "One catalog, ready for every destination.", "cta": "Review the trusted feed", "reveal": "words", "highlight": "truth", "transition": { "type": "slide-up", "duration": 0.5 } }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "title": "Northstar visual benchmark",
+  "accent": "#79a7ff",
+  "branding": { "name": "Northstar", "tagline": "System observability", "footer": "Signal over noise" },
+  "appearance": {
+    "surfaceMode": "dark",
+    "background": "#0b1020",
+    "foreground": "#edf3ff",
+    "muted": "#a9b6cd",
+    "surface": "#141c31",
+    "border": "#34415e",
+    "tint": "#17213b",
+    "fontFamily": "Arial, sans-serif",
+    "radius": 16
+  },
+  "video": "captures/northstar.mp4",
+  "sourceDuration": 1,
+  "trimBefore": 0,
+  "viewport": { "width": 1280, "height": 800 },
+  "scenes": [
+    { "id": "hook", "type": "text", "duration": 4.8, "eyebrow": "SYSTEM OBSERVABILITY", "title": "Find the signal.\nHold the context.", "body": "Move from system noise to a verified recovery.", "reveal": "lines", "highlight": "signal", "transition": { "type": "none", "duration": 0 } },
+    { "id": "product", "type": "overview", "duration": 5, "eyebrow": "LIVE SYSTEM", "title": "The whole service map stays readable.", "body": "Availability, latency, and active alerts keep their hierarchy.", "source": { "from": 0, "freeze": true }, "presentation": { "layout": "framed", "caption": "side" }, "transition": { "type": "slide-left", "duration": 0.5 } },
+    { "id": "proof", "type": "focus", "duration": 5, "eyebrow": "RECOVERY VERIFIED", "title": "Checkout latency is back in range.", "body": "The highlighted service state remains visible and attributable.", "source": { "from": 0, "freeze": true }, "focus": { "x": 890, "y": 190, "width": 314, "height": 212 }, "dim": 0.3, "zoom": 1.3, "presentation": { "layout": "full-bleed", "caption": "bottom-left" }, "transition": { "type": "fade", "duration": 0.4 } },
+    { "id": "close", "type": "outro", "duration": 4.6, "eyebrow": "NORTHSTAR", "title": "Resolve incidents with the full signal.", "body": "A quiet close after the system proves recovery.", "cta": "Inspect the recovered trace", "reveal": "words", "highlight": "signal", "transition": { "type": "slide-up", "duration": 0.5 } }
+  ]
+}

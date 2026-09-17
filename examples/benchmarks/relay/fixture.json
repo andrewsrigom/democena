@@ -1,0 +1,26 @@
+{
+  "id": "relay",
+  "name": "Relay",
+  "kicker": "AGENT WORKSPACE",
+  "headline": "A request becomes verified work.",
+  "description": "Follow an agent from scoped instruction to inspectable product evidence.",
+  "mode": "dark",
+  "accent": "#8b7cff",
+  "background": "#100e1c",
+  "surface": "#1b182b",
+  "foreground": "#f3f0ff",
+  "muted": "#b4accd",
+  "nav": ["Runs", "Tasks", "Evidence", "Settings"],
+  "metrics": [
+    { "label": "Steps", "value": "08" },
+    { "label": "Verified", "value": "08" },
+    { "label": "Blocked", "value": "00" }
+  ],
+  "panelTitle": "Run complete",
+  "panelNote": "All requested changes verified",
+  "rows": [
+    { "name": "Inspect workspace", "detail": "Requirements matched", "state": "Done" },
+    { "name": "Apply changes", "detail": "4 files updated", "state": "Done" },
+    { "name": "Verify result", "detail": "12 checks passed", "state": "Done" }
+  ]
+}

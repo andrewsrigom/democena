@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "title": "Forma visual benchmark",
+  "accent": "#215acb",
+  "branding": {
+    "name": "Forma",
+    "tagline": "Collections, in motion",
+    "footer": "The spring edit"
+  },
+  "appearance": {
+    "surfaceMode": "light",
+    "background": "#f3f6fb",
+    "foreground": "#122139",
+    "muted": "#52657f",
+    "surface": "#ffffff",
+    "border": "#cad5e5",
+    "tint": "#e8eef9",
+    "fontFamily": "Arial, sans-serif",
+    "radius": 20
+  },
+  "video": "captures/forma.mp4",
+  "sourceDuration": 1,
+  "trimBefore": 0,
+  "viewport": { "width": 1280, "height": 800 },
+  "scenes": [
+    {
+      "id": "hook",
+      "type": "text",
+      "duration": 4.8,
+      "eyebrow": "A COLLECTION STARTS WITH AN IDEA",
+      "title": "Good products.\nA story to share.",
+      "body": "Bring your collection into focus.",
+      "reveal": "lines",
+      "highlight": "story",
+      "transition": { "type": "none", "duration": 0 }
+    },
+    {
+      "id": "product",
+      "type": "overview",
+      "duration": 5,
+      "eyebrow": "ORGANIZE",
+      "title": "Everything in one composed view.",
+      "body": "Products, readiness, and publishing context stay visible.",
+      "source": { "from": 0, "freeze": true },
+      "presentation": { "layout": "framed", "caption": "side" },
+      "transition": { "type": "slide-left", "duration": 0.5 }
+    },
+    {
+      "id": "proof",
+      "type": "focus",
+      "duration": 5,
+      "eyebrow": "READY TO SHARE",
+      "title": "The collection tells you when it is ready.",
+      "body": "A measured product region remains the visual proof.",
+      "source": { "from": 0, "freeze": true },
+      "focus": { "x": 894, "y": 190, "width": 310, "height": 212 },
+      "dim": 0.34,
+      "zoom": 1.28,
+      "presentation": { "layout": "full-bleed", "caption": "bottom-left" },
+      "transition": { "type": "fade", "duration": 0.4 }
+    },
+    {
+      "id": "close",
+      "type": "outro",
+      "duration": 4.6,
+      "eyebrow": "FORMA",
+      "title": "Your collection, ready to share.",
+      "body": "A composed close after a verified product moment.",
+      "cta": "Open the spring edit",
+      "reveal": "words",
+      "highlight": "ready",
+      "transition": { "type": "slide-up", "duration": 0.5 }
+    }
+  ]
+}
