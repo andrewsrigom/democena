@@ -1,7 +1,7 @@
 import type { Focus, Project, Source } from './model.js';
 import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from './composition-registry.mjs';
-import { cameraFocusFitsVisibleViewport } from './camera-geometry.mjs';
-import { fullBleedLayout, OUTPUT_CANVAS } from './canvas-geometry.mjs';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom } from './camera-geometry.mjs';
+import { OUTPUT_CANVAS, productLayout } from './canvas-geometry.mjs';
 
 import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
 export { authoredEntranceOffsetFrames, buildTimeline, chapterLifecycleFrames, DEFAULT_TRANSITION, FPS, frames, settledReviewFrame, titleEntranceFrames, transitionFrames } from './timeline-layout.mjs';
@@ -108,23 +108,27 @@ export function prepareProject(value: unknown, fps = FPS): Project {
       const layout = String(scene.presentation.layout ?? 'framed') as keyof typeof compositionRegistry;
       const definition = compositionRegistry[layout];
       requireValue(definition !== undefined && (!definition.requiresFocus || (record(scene.focus) && finite(scene.focus.x))), `${name}.presentation.layout ${layout} requires an evidence-linked focus rectangle`);
+      const minimumZoom = layout === 'detail-crop' ? 1.2 : layout === 'full-bleed-proof' ? 1.1 : 1;
       if (scene.type === 'focus' && scene.zoom !== undefined) {
-        const minimumZoom = layout === 'detail-crop' ? 1.2 : layout === 'full-bleed-proof' ? 1.1 : 1;
         requireValue(finite(scene.zoom) && scene.zoom >= minimumZoom, `${name}.zoom must be at least ${minimumZoom} for the ${layout} layout`);
       }
       requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
-      if (definition.immersive) {
-        const recordedViewport = { width: Number(viewport.width), height: Number(viewport.height) };
-        const immersiveWidth = fullBleedLayout(recordedViewport, OUTPUT_CANVAS).width;
-        const focuses: Array<{ focus: Focus; pathIndex?: number }> = [];
-        const usableFocus = (value: unknown): value is Focus => record(value) && finite(value.x) && finite(value.y) && finite(value.width) && finite(value.height);
-        if (scene.type === 'camera' && Array.isArray(scene.path)) scene.path.forEach((stop, pathIndex) => {
-          if (record(stop) && usableFocus(stop.focus)) focuses.push({ focus: stop.focus, pathIndex });
-        });
-        else if (usableFocus(scene.focus) && (scene.type !== 'annotation' || definition.requiresFocus)) focuses.push({ focus: scene.focus });
-        for (const candidate of focuses) {
-          requireValue(cameraFocusFitsVisibleViewport(candidate.focus, recordedViewport, immersiveWidth, OUTPUT_CANVAS), `${name}${candidate.pathIndex === undefined ? '' : `.path[${candidate.pathIndex}]`}.focus cannot fit the visible canvas`);
-        }
+      const recordedViewport = { width: Number(viewport.width), height: Number(viewport.height) };
+      const primaryWidth = productLayout(layout, recordedViewport, OUTPUT_CANVAS).primary.width;
+      const visibleViewport = definition.immersive ? OUTPUT_CANVAS : undefined;
+      const focuses: Array<{ focus: Focus; pathIndex?: number; zoom: number }> = [];
+      const usableFocus = (value: unknown): value is Focus => record(value) && finite(value.x) && finite(value.y) && finite(value.width) && finite(value.height);
+      if (scene.type === 'camera' && Array.isArray(scene.path)) scene.path.forEach((stop, pathIndex) => {
+        if (record(stop) && usableFocus(stop.focus)) focuses.push({ focus: stop.focus, pathIndex, zoom: finite(stop.zoom) ? stop.zoom : 1.8 });
+      });
+      else if (usableFocus(scene.focus) && (scene.type !== 'annotation' || definition.requiresFocus)) {
+        const defaultZoom = layout === 'detail-crop' ? 1.85 : layout === 'full-bleed-proof' ? 1.24 : 1.14;
+        focuses.push({ focus: scene.focus, zoom: scene.type === 'focus' && finite(scene.zoom) ? scene.zoom : defaultZoom });
+      }
+      for (const candidate of focuses) {
+        const focusName = `${name}${candidate.pathIndex === undefined ? '' : `.path[${candidate.pathIndex}]`}.focus`;
+        if (visibleViewport) requireValue(cameraFocusFitsVisibleViewport(candidate.focus, recordedViewport, primaryWidth, visibleViewport), `${focusName} cannot fit the visible canvas`);
+        requireValue(cameraFocusSupportsMinimumZoom(candidate.focus, recordedViewport, primaryWidth, candidate.zoom, minimumZoom, visibleViewport), `${focusName} cannot preserve the required ${minimumZoom}x zoom for the ${layout} layout`);
       }
     }
     requireValue(scene.typographicRole !== 'silent-product' || productScene, `${name}.typographicRole silent-product is only available on product scenes`);

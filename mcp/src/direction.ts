@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
 import { motionRecipeFor, motionRecipeVocabulary, transitionForPreset, transitionPresetIds } from '../../studio/src/motion-recipes.js';
 import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, sceneComposition } from '../../studio/src/composition-registry.mjs';
-import { cameraFocusFitsVisibleViewport } from '../../studio/src/camera-geometry.mjs';
-import { fullBleedLayout, OUTPUT_CANVAS } from '../../studio/src/canvas-geometry.mjs';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom } from '../../studio/src/camera-geometry.mjs';
+import { OUTPUT_CANVAS, productLayout } from '../../studio/src/canvas-geometry.mjs';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -173,21 +173,26 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
     if (presentationScene && compositionRegistry[effectiveLayout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'layout'], message: `${effectiveLayout} requires an evidence-linked focus rectangle.` });
     }
+    const minimumZoom = effectiveLayout === 'detail-crop' ? 1.2 : effectiveLayout === 'full-bleed-proof' ? 1.1 : 1;
     if (presentationScene && entry.scene.type === 'focus' && entry.scene.zoom !== undefined) {
-      const minimumZoom = effectiveLayout === 'detail-crop' ? 1.2 : effectiveLayout === 'full-bleed-proof' ? 1.1 : 1;
       if (entry.scene.zoom < minimumZoom) {
         ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'zoom'], message: `zoom must be at least ${minimumZoom} for the effective ${effectiveLayout} layout.` });
       }
     }
-    if (presentationScene && direction.capture && compositionRegistry[effectiveLayout].immersive) {
-      const immersiveWidth = fullBleedLayout(direction.capture.viewport, OUTPUT_CANVAS).width;
-      const focuses: Array<{ focus: z.infer<typeof rectSchema>; pathIndex?: number }> = entry.scene.type === 'camera'
-        ? entry.scene.path.flatMap((stop, pathIndex) => stop.focus ? [{ focus: stop.focus, pathIndex }] : [])
+    if (presentationScene && direction.capture) {
+      const primaryWidth = productLayout(effectiveLayout, direction.capture.viewport, OUTPUT_CANVAS).primary.width;
+      const visibleViewport = compositionRegistry[effectiveLayout].immersive ? OUTPUT_CANVAS : undefined;
+      const defaultZoom = effectiveLayout === 'detail-crop' ? 1.85 : effectiveLayout === 'full-bleed-proof' ? 1.24 : 1.14;
+      const focuses: Array<{ focus: z.infer<typeof rectSchema>; pathIndex?: number; zoom: number }> = entry.scene.type === 'camera'
+        ? entry.scene.path.flatMap((stop, pathIndex) => stop.focus ? [{ focus: stop.focus, pathIndex, zoom: stop.zoom ?? 1.8 }] : [])
         : 'focus' in entry.scene && entry.scene.focus && (entry.scene.type !== 'annotation' || compositionRegistry[effectiveLayout].requiresFocus)
-          ? [{ focus: entry.scene.focus }] : [];
+          ? [{ focus: entry.scene.focus, zoom: entry.scene.type === 'focus' ? entry.scene.zoom ?? defaultZoom : defaultZoom }] : [];
       focuses.forEach((candidate) => {
-        if (!cameraFocusFitsVisibleViewport(candidate.focus, direction.capture!.viewport, immersiveWidth, OUTPUT_CANVAS)) {
+        if (visibleViewport && !cameraFocusFitsVisibleViewport(candidate.focus, direction.capture!.viewport, primaryWidth, visibleViewport)) {
           ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', ...(candidate.pathIndex === undefined ? [] : ['path', candidate.pathIndex]), 'focus'], message: `focus cannot fit the visible canvas for the effective ${effectiveLayout} layout.` });
+        }
+        if (!cameraFocusSupportsMinimumZoom(candidate.focus, direction.capture!.viewport, primaryWidth, candidate.zoom, minimumZoom, visibleViewport)) {
+          ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', ...(candidate.pathIndex === undefined ? [] : ['path', candidate.pathIndex]), 'focus'], message: `focus cannot preserve the required ${minimumZoom}x zoom for the effective ${effectiveLayout} layout.` });
         }
       });
     }

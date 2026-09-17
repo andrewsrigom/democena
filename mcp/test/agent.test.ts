@@ -88,6 +88,11 @@ test('immersive camera focus must fit the visible output canvas', () => {
     viewport: { width: 1280, height: 800 }, scenes: [{ id: 'proof', type: 'focus', duration: 4, eyebrow: 'Proof', title: 'Visible evidence', body: '',
       source: { from: 0, freeze: true }, focus: { x: 100, y: 20, width: 300, height: 721 }, presentation: { layout: 'full-bleed-proof', caption: 'bottom-left' } }],
   }), /focus cannot fit the visible canvas/);
+  assert.throws(() => validate({
+    version: 2, title: 'Detail', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0,
+    viewport: { width: 1280, height: 800 }, scenes: [{ id: 'detail', type: 'focus', duration: 4, eyebrow: 'Detail', title: 'Visible detail', body: '',
+      source: { from: 0, freeze: true }, focus: { x: 0, y: 0, width: 1280, height: 800 }, zoom: 1.2, presentation: { layout: 'detail-crop', caption: 'side' } }],
+  }), /focus cannot preserve the required 1.2x zoom/);
 });
 test('source paths cannot escape the workspace or follow symlinks', async t => {
   const s = await fixture(t);
@@ -394,6 +399,10 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   oversizedProof.scene.zoom = 1.2;
   oversizedProof.scene.focus = { x: 100, y: 20, width: 300, height: 721 };
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? oversizedProof : entry) }), /focus cannot fit the visible canvas for the effective full-bleed-proof layout/);
+  const oversizedDetail = focusScene(migrated.scenes[1]!, 'detail-crop', false);
+  oversizedDetail.scene.zoom = 1.2;
+  oversizedDetail.scene.focus = { x: 0, y: 0, width: 1280, height: 800 };
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? oversizedDetail : entry) }), /focus cannot preserve the required 1.2x zoom for the effective detail-crop layout/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 2 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'framed' } }, scene: { ...entry.scene, comparison: { before: 1, after: 4, crop: { x: 100, y: 100, width: 300, height: 120 }, beforeLabel: 'Before', afterLabel: 'After' } } } : entry) }), /Comparison result beats cannot select product layouts or captions/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
 });

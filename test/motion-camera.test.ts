@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cameraFocusFitsVisibleViewport, cameraFor, cameraPoint } from '../studio/src/camera.js';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, cameraFor, cameraPoint } from '../studio/src/camera.js';
 
 const viewport = { width: 1280, height: 800 };
 const width = 1170;
@@ -27,6 +27,8 @@ describe('motion camera', () => {
   it('preserves the whole viewport for overview scenes and full-page focus', () => {
     expect(cameraFor(undefined, viewport, width)).toEqual({ scale: 1, x: 0, y: 0 });
     expect(cameraFor({ x: 0, y: 0, ...viewport }, viewport, width).scale).toBe(1);
+    expect(cameraFocusSupportsMinimumZoom({ x: 0, y: 0, ...viewport }, viewport, width, 1.2, 1.2)).toBe(false);
+    expect(() => cameraFor({ x: 0, y: 0, ...viewport }, viewport, width, 1.2, undefined, 1.2)).toThrow(/cannot preserve the required 1.2x zoom/);
   });
 
   it('maps a focused source point into the visible camera viewport', () => {

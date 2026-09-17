@@ -147,6 +147,11 @@ describe('scene timeline and source clock', () => {
       focus: { x: 100, y: 20, width: 300, height: 721 }, presentation: { layout: 'full-bleed-proof', caption: 'bottom-left' } }] })).toThrow(/focus cannot fit the visible canvas/);
   });
 
+  it('rejects focus geometry that erases a layout required zoom', () => {
+    expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'detail', type: 'focus', source: { from: 0, freeze: true }, zoom: 1.2,
+      focus: { x: 0, y: 0, width: 1280, height: 800 }, presentation: { layout: 'detail-crop', caption: 'side' } }] })).toThrow(/cannot preserve the required 1.2x zoom/);
+  });
+
   it('rejects focus zoom values that neutralize evidence-led crop layouts', () => {
     const scene = { id: 'focus', type: 'focus' as const, duration: 4, eyebrow: '', title: 'Detail', body: '', source: { from: 0, freeze: true }, focus, zoom: 1 };
     expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'detail-crop' as const } }] })).toThrow(/zoom must be at least 1.2/);
