@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
-import { motionRecipeFor, motionRecipeVocabulary } from '../../studio/src/motion-recipes.js';
+import { motionRecipeFor, motionRecipeVocabulary, transitionForPreset, transitionPresetIds } from '../../studio/src/motion-recipes.js';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -27,13 +27,16 @@ const captureEventSchema = z.strictObject({
   path: ['settledUntil'],
   message: 'A capture event cannot settle before it starts.',
 });
-const directionSceneV1Schema = z.strictObject({
+const directionSceneFields = {
   narrativeRole: z.enum(['hook', 'chapter', 'product-reveal', 'product-moment', 'explanation', 'verified-result', 'closing']),
   reason: z.string().min(1).max(500),
-  transitionPreset: z.enum(['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover', 'restrained-zoom']).optional(),
   expectedSettledAt: z.number().nonnegative(),
   evidence: z.array(z.discriminatedUnion('kind', [captureEvidenceSchema, authoredEvidenceSchema])).min(1),
   scene: sceneSchema,
+};
+const directionSceneV1Schema = z.strictObject({
+  ...directionSceneFields,
+  transitionPreset: z.enum([...transitionPresetIds, 'restrained-zoom']).optional(),
 });
 
 export const storyModeSchema = z.enum(['tour', 'launch', 'spotlight', 'change-story', 'agent-run', 'explainer', 'loop']);
@@ -54,7 +57,11 @@ export const beatConceptSchema = z.strictObject({
     fallback: recipeIdSchema,
   }),
 });
-const directionSceneSchema = directionSceneV1Schema.extend({ beat: beatConceptSchema });
+const directionSceneSchema = z.strictObject({
+  ...directionSceneFields,
+  transitionPreset: z.enum(transitionPresetIds).optional(),
+  beat: beatConceptSchema,
+});
 
 const commonDirectionFields = {
   status: z.enum(['draft', 'reviewed', 'compiled', 'stale', 'diverged', 'delivered']),
@@ -204,7 +211,11 @@ function migrateDirection(value: unknown) {
   const result = directionV1Schema.safeParse(value);
   if (!result.success) return value;
   const { profile, scenes, ...direction } = result.data;
-  return { ...direction, version: 2, storyMode: profile, motionLanguage: migratedMotionLanguage(direction.tone), scenes: scenes.map((entry) => ({ ...entry, beat: migratedBeat(entry) })) };
+  return { ...direction, version: 2, storyMode: profile, motionLanguage: migratedMotionLanguage(direction.tone), scenes: scenes.map((entry) => ({
+    ...entry,
+    ...(entry.transitionPreset === 'restrained-zoom' ? { transitionPreset: 'soft-crossfade' as const } : {}),
+    beat: migratedBeat(entry),
+  })) };
 }
 
 export const directionSchema = z.preprocess(migrateDirection, directionV2Schema);
@@ -295,15 +306,7 @@ function requiredRectangles(scene: SceneInput, trimBefore: number) {
 function applyTransition(entry: DirectionScene, index: number, storyMode: Direction['storyMode']): SceneInput {
   if (entry.scene.transition) return entry.scene;
   const preset = entry.transitionPreset ?? (index === 0 ? 'hard-cut' : 'soft-crossfade');
-  const transition = preset === 'hard-cut'
-    ? { type: 'none' as const, duration: 0 }
-    : preset === 'clean-slide'
-      ? { type: 'slide' as const, duration: storyMode === 'launch' ? 0.35 : 0.45 }
-      : preset === 'rise-cover'
-        ? { type: 'slide-up' as const, duration: storyMode === 'launch' ? 0.4 : 0.55 }
-        : preset === 'drop-cover'
-          ? { type: 'slide-down' as const, duration: storyMode === 'launch' ? 0.4 : 0.55 }
-      : { type: 'fade' as const, duration: storyMode === 'launch' ? 0.3 : 0.4 };
+  const transition = transitionForPreset(preset, storyMode);
   return { ...entry.scene, transition } as SceneInput;
 }
 

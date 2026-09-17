@@ -1,7 +1,7 @@
 import { capturePlanSchema } from './capture-contracts.js';
 import { z } from 'zod';
 import { prepareProject, buildTimeline, FPS } from '../../studio/src/timeline.js';
-import { motionRecipeFor, motionRecipeVocabulary } from '../../studio/src/motion-recipes.js';
+import { motionRecipeFor, motionRecipeVocabulary, transitionPresetRegistry, transitionRegistry } from '../../studio/src/motion-recipes.js';
 import { appearanceSchema, brandingSchema, projectSchema, sceneSchema } from './schema.js';
 import { directionSchema } from './direction.js';
 
@@ -120,6 +120,10 @@ export function capabilities() {
     projectSchema: z.toJSONSchema(projectSchema),
     directionSchema: z.toJSONSchema(directionSchema),
     motionRecipes: motionRecipeVocabulary,
+    transitions: {
+      implementations: Object.values(transitionRegistry),
+      presets: Object.values(transitionPresetRegistry),
+    },
     examples,
     tools: Object.fromEntries(Object.entries(inputs).map(([name, schema]) => [name, { description: descriptions[name as Operation], inputSchema: z.toJSONSchema(schema) }]))
   };

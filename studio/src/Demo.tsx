@@ -5,6 +5,7 @@ import type { ChapterScene, Project, Scene } from './model';
 import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
 import { presentationChromeOpacity } from './presentation-chrome';
+import { transitionRegistry, transitionStyleFor } from './motion-registry';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function BrandHeader({ project, theme }: { project: Project; theme: PresentationTheme }) {
@@ -22,15 +23,12 @@ function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: P
   const { fps } = useVideoConfig();
   const transition = scene.transition ?? DEFAULT_TRANSITION;
   const duration = transitionFrames(scene, fps);
-  const directional = transition.type.startsWith('slide-');
+  const implementation = transitionRegistry[transition.type].implementation;
+  const directional = implementation.kind === 'translate' && !implementation.fade;
   const enter = duration === 0 || first ? 1 : interpolate(frame, [0, duration], [0, 1], { ...CLAMP,
     easing: directional ? Easing.inOut(Easing.cubic) : Easing.out(Easing.cubic) });
-  const transform = transition.type === 'slide' ? `translateY(${(1 - enter) * 36}px)`
-    : transition.type === 'slide-up' ? `translateY(${(1 - enter) * 100}%)`
-      : transition.type === 'slide-down' ? `translateY(${(enter - 1) * 100}%)`
-        : transition.type === 'slide-left' ? `translateX(${(1 - enter) * 100}%)`
-          : transition.type === 'slide-right' ? `translateX(${(enter - 1) * 100}%)` : undefined;
-  return <AbsoluteFill style={{ background: theme.background, opacity: directional ? 1 : enter, transform }}>
+  const transitionStyle = transitionStyleFor(transition.type, enter);
+  return <AbsoluteFill style={{ background: theme.background, ...transitionStyle }}>
     <div style={{ position: 'absolute', width: 1220, height: 1080, right: 0, top: 0, background: `linear-gradient(125deg, ${theme.background}00, ${theme.tint})`, opacity: .9 }} />
     <SceneContent scene={scene} project={project} theme={theme} />
   </AbsoluteFill>;

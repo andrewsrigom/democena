@@ -29,6 +29,8 @@ test('all eight discoverable examples pass the shared Studio validator', () => {
   assert.deepEqual(discovered.motionRecipes.map(recipe => recipe.id), ['standard-scene-motion', 'text-blur-slide', 'chapter-demote-to-label', 'focus-scan-lock', 'outro-strip-away']);
   assert(discovered.motionRecipes.every(recipe => recipe.useWhen.length > 0 && recipe.avoidWhen.length > 0));
   assert(discovered.motionRecipes.every(recipe => recipe.recommendedSeconds[0] < recipe.recommendedSeconds[1]));
+  assert.deepEqual(discovered.transitions.presets.map(preset => preset.id), ['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover']);
+  assert(discovered.transitions.implementations.every(transition => transition.implementation && transition.fixture && transition.fallback));
   assert.deepEqual(discovered.motionLanguages, ['editorial', 'precise', 'kinetic', 'cinematic', 'quiet']);
   assert.equal(discovered.storyModes.launch.renderable, true);
   assert.equal(discovered.storyModes.spotlight.renderable, false);
@@ -326,6 +328,11 @@ test('Direction v1 migrates in memory to creative Direction v2 without changing 
   assert.equal(migrated.scenes[1]?.beat.primarySubject, 'product');
   assert.equal(migrated.scenes[2]?.beat.transitionIntent, 'prove');
   assert.deepEqual(compileDirection(legacy, project).project, compileDirection(migrated, project).project);
+  const legacyRestrainedZoom = { ...legacy, scenes: legacy.scenes.map((entry, index) => index === 1 ? { ...entry, transitionPreset: 'restrained-zoom' as const } : entry) };
+  const migratedRestrainedZoom = directionSchema.parse(legacyRestrainedZoom);
+  assert.equal(migratedRestrainedZoom.scenes[1]?.transitionPreset, 'soft-crossfade');
+  assert.equal(compileDirection(legacyRestrainedZoom, project).project.scenes[1]?.transition?.type, 'fade');
+  assert.throws(() => directionSchema.parse({ ...migratedRestrainedZoom, scenes: migratedRestrainedZoom.scenes.map((entry, index) => index === 1 ? { ...entry, transitionPreset: 'restrained-zoom' } : entry) }), /Invalid option/);
   const legacyWithUnmatchedRecipeEvidence = { ...legacy, scenes: legacy.scenes.map((entry, index) => index === 0 ? { ...entry, evidence: [{ kind: 'capture' as const, timestamp: 0, markId: 'reveal', verified: false }] } : entry) };
   assert.equal(directionSchema.parse(legacyWithUnmatchedRecipeEvidence).scenes[0]?.beat.recipe.selected, 'text-blur-slide');
   assert.throws(() => compileDirection(legacyWithUnmatchedRecipeEvidence, project), /requires authored-copy evidence/);

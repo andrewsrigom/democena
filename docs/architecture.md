@@ -14,6 +14,8 @@ Recorded video remains the visual source. Focus coordinates come from the real p
 
 The capture remains a single continuous video. The version 2 scene manifest separates presentation duration from source timestamps, so text cards do not advance playback and annotations/comparisons can hold actual recorded frames. Incoming transitions overlap neighboring scenes; camera paths use scene-local timestamps. Studio and export share validation and normalize older manifests in memory. See [scene authoring](scenes.md).
 
+`studio/src/motion-registry.ts` is the shared source of truth for semantic recipes, rendered transition implementations and Director transition presets. Registry entries bind an implementation to compatibility metadata, a committed source fixture and a deterministic fallback. Studio rendering, Direction compilation, tests and MCP capability discovery consume this same catalog. The unimplemented `restrained-zoom` preset is no longer valid Direction v2 vocabulary; legacy Direction v1 values migrate to the crossfade they historically rendered.
+
 The capture clock starts at the timestamp of the first browser-presented screencast frame. Events and marker images include measured viewport rectangles. Frame sampling and action scheduling still make alignment approximate; frame-perfect timing is not claimed. Do not silently treat these approximate timestamps as ground truth for precise click effects.
 
 ## Local agent interface
