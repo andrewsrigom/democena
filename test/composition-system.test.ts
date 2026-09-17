@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, sceneComposition, typographicRoles } from '../studio/src/composition-registry.mjs';
+import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, sceneComposition, sceneRendersFramedBrowser, typographicRoles } from '../studio/src/composition-registry.mjs';
 import { productLayout } from '../studio/src/layout.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { prepareProject } from '../studio/src/timeline.js';
@@ -36,6 +36,16 @@ describe('composition system', () => {
     const silent = sceneComposition({ ...base, id: 'silent', type: 'overview', source: { from: 0, freeze: true },
       typographicRole: 'silent-product', chrome: 'hide', presentation: { layout: 'product-stage' } });
     expect(silent).toMatchObject({ id: 'product-stage', caption: 'none', chromeVisible: false, typographicRole: 'silent-product' });
+  });
+
+  it('reports browser-bar title usage independently from captions and global chrome', () => {
+    const hiddenChromeStage: Scene = { ...base, id: 'stage', type: 'overview', source: { from: 0, freeze: true }, chrome: 'hide',
+      presentation: { layout: 'product-stage', caption: 'top-left' } };
+    expect(sceneComposition(hiddenChromeStage)).toMatchObject({ caption: 'top-left', chromeVisible: false });
+    expect(sceneRendersFramedBrowser(hiddenChromeStage)).toBe(true);
+    expect(sceneRendersFramedBrowser({ ...hiddenChromeStage, presentation: { layout: 'full-bleed', caption: 'top-left' } })).toBe(false);
+    expect(sceneRendersFramedBrowser({ ...base, id: 'comparison', type: 'result', source: { from: 0, freeze: true },
+      comparison: { before: 0, after: 1, crop: focus, beforeLabel: 'Before', afterLabel: 'After' } })).toBe(false);
   });
 
   it('keeps every product layout on canvas and gives layered product a second evidence surface', () => {

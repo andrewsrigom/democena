@@ -21,3 +21,4 @@ export function sceneComposition(scene: Scene): CompositionDefinition & {
   chromeBackdropVisible: boolean;
   typographicRole: TypographicRole;
 };
+export function sceneRendersFramedBrowser(scene: Scene): boolean;

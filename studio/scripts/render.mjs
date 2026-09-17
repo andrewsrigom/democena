@@ -9,7 +9,7 @@ import { openBrowser, renderMedia, renderStill, selectComposition } from '@remot
 import { chromium } from 'playwright';
 import { buildTimeline, settledReviewFrame } from '../src/timeline-layout.mjs';
 import { resolveTheme } from '../src/theme-data.mjs';
-import { sceneComposition } from '../src/composition-registry.mjs';
+import { sceneComposition, sceneRendersFramedBrowser } from '../src/composition-registry.mjs';
 
 const { values } = parseArgs({ options: {
   project: { type: 'string', default: 'project.json' },
@@ -159,6 +159,7 @@ try {
     || (scene.type === 'result' && scene.comparison && sceneComposition(scene).caption !== 'none')
     || sceneComposition(scene).caption === 'side'
     || sceneComposition(scene).chromeVisible);
+  const framedBrowserTitle = props.scenes.some(sceneRendersFramedBrowser);
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
     || (!['text', 'chapter', 'outro'].includes(scene.type) && !immersiveLayouts.has(scene.presentation?.layout)));
   const chapterBadge = props.scenes.some((scene) => scene.type === 'chapter') ? composite(props.accent, theme.background, 0x18 / 0xff) : undefined;
@@ -177,11 +178,11 @@ try {
     ] : []),
   ];
   for (const check of contrastChecks) if (check.ratio < check.required) findings.push({ level: direction ? 'error' : 'warning', code: check.name.startsWith('accent-') ? 'ACCENT_CONTRAST' : 'AUTHORED_CONTRAST', message: `${check.name} has ${check.ratio.toFixed(2)}:1 contrast; ${check.required.toFixed(1)}:1 is required.` });
-  if (backgroundCopy) checkBounds('project', [
+  if (backgroundCopy || framedBrowserTitle) checkBounds('project', [
     { field: 'title', actual: [...props.title].length, maximum: 80 },
-    ...(props.branding?.name ? [{ field: 'branding.name', actual: [...props.branding.name].length, maximum: 40 }] : []),
-    ...(props.branding?.tagline ? [{ field: 'branding.tagline', actual: [...props.branding.tagline].length, maximum: 80 }] : []),
-    ...(props.branding?.footer ? [{ field: 'branding.footer', actual: [...props.branding.footer].length, maximum: 100 }] : []),
+    ...(backgroundCopy && props.branding?.name ? [{ field: 'branding.name', actual: [...props.branding.name].length, maximum: 40 }] : []),
+    ...(backgroundCopy && props.branding?.tagline ? [{ field: 'branding.tagline', actual: [...props.branding.tagline].length, maximum: 80 }] : []),
+    ...(backgroundCopy && props.branding?.footer ? [{ field: 'branding.footer', actual: [...props.branding.footer].length, maximum: 100 }] : []),
   ]);
   for (const [index, scene] of props.scenes.entries()) {
     const entry = timeline[index];

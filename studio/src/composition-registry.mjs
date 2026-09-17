@@ -42,3 +42,9 @@ export function sceneComposition(scene) {
   const chromeBackdropVisible = chromeVisible && definition.immersive;
   return { ...definition, caption, chromeVisible, chromeBackdropVisible, typographicRole };
 }
+
+export function sceneRendersFramedBrowser(scene) {
+  const productScene = !['text', 'chapter', 'outro'].includes(scene.type);
+  const comparison = scene.type === 'result' && Boolean(scene.comparison);
+  return productScene && !comparison && !sceneComposition(scene).immersive;
+}
