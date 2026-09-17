@@ -135,7 +135,31 @@ if (workingTree) throw new Error('Visual benchmark generation requires a clean G
 
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
 const outputRoot = path.resolve(values.output ?? path.join(repoRoot, 'output', 'benchmarks', commit));
+const isWithin = (parent, child) => {
+  const relative = path.relative(parent, child);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+};
+if (isWithin(repoRoot, outputRoot) && !isWithin(path.join(repoRoot, 'output'), outputRoot)) {
+  throw new Error('Benchmark output inside the repository must stay below the ignored output/ directory. Choose output/... or a directory outside the repository.');
+}
 await mkdir(outputRoot, { recursive: true });
+const reviewFile = path.join(outputRoot, 'review.json');
+const nextReview = reviewTemplate(commit, directories);
+if (await optionalAccess(reviewFile)) {
+  const previousReview = JSON.parse(await readFile(reviewFile, 'utf8'));
+  const previousIds = Object.keys(previousReview.fixtures ?? {}).sort();
+  const previousCommit = typeof previousReview.reviewedCommit === 'string' ? previousReview.reviewedCommit.slice(0, 12) : 'unknown';
+  const fixtureSuffix = previousIds.length > 0 ? previousIds.join('-') : 'no-fixtures';
+  const archiveBase = `review.${previousCommit}.${fixtureSuffix}`;
+  let archiveFile = path.join(outputRoot, `${archiveBase}.json`);
+  let archiveIndex = 2;
+  while (await optionalAccess(archiveFile)) {
+    archiveFile = path.join(outputRoot, `${archiveBase}.${archiveIndex}.json`);
+    archiveIndex += 1;
+  }
+  await writeFile(archiveFile, JSON.stringify(previousReview, null, 2) + '\n');
+}
+await writeFile(reviewFile, JSON.stringify(nextReview, null, 2) + '\n');
 const browser = await chromium.launch({ headless: true });
 const index = { version: 1, commit, fixtures: [] };
 
@@ -170,28 +194,6 @@ try {
 }
 
 await writeFile(path.join(outputRoot, 'benchmark-index.json'), JSON.stringify(index, null, 2) + '\n');
-const reviewFile = path.join(outputRoot, 'review.json');
-const nextReview = reviewTemplate(commit, directories);
-if (await optionalAccess(reviewFile)) {
-  const previousReview = JSON.parse(await readFile(reviewFile, 'utf8'));
-  const previousIds = Object.keys(previousReview.fixtures ?? {}).sort();
-  const matchesArtifacts = previousReview.reviewedCommit === commit && JSON.stringify(previousIds) === JSON.stringify(directories);
-  if (!matchesArtifacts) {
-    const previousCommit = typeof previousReview.reviewedCommit === 'string' ? previousReview.reviewedCommit.slice(0, 12) : 'unknown';
-    const fixtureSuffix = previousIds.length > 0 ? previousIds.join('-') : 'no-fixtures';
-    const archiveBase = `review.${previousCommit}.${fixtureSuffix}`;
-    let archiveFile = path.join(outputRoot, `${archiveBase}.json`);
-    let archiveIndex = 2;
-    while (await optionalAccess(archiveFile)) {
-      archiveFile = path.join(outputRoot, `${archiveBase}.${archiveIndex}.json`);
-      archiveIndex += 1;
-    }
-    await writeFile(archiveFile, JSON.stringify(previousReview, null, 2) + '\n');
-    await writeFile(reviewFile, JSON.stringify(nextReview, null, 2) + '\n');
-  }
-} else {
-  await writeFile(reviewFile, JSON.stringify(nextReview, null, 2) + '\n');
-}
 const cards = index.fixtures.map((entry) => `<article><img src="${entry.contactSheet}"><h2>${escapeHtml(entry.id)}</h2><p>${entry.transitions} transition frames · ${escapeHtml(entry.qualityStatus)}</p></article>`).join('');
 await writeFile(path.join(outputRoot, 'index.html'), `<!doctype html><meta charset="utf-8"><title>Democena benchmark ${commit.slice(0, 8)}</title><style>*{box-sizing:border-box}body{margin:0;padding:36px;background:#0b1020;color:#edf3ff;font-family:Arial,sans-serif}h1{margin:0 0 28px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}article{background:#141c31;border:1px solid #34415e;border-radius:16px;overflow:hidden}img{display:block;width:100%}h2{margin:18px 20px 8px;text-transform:capitalize}p{margin:0 20px 20px;color:#a9b6cd}</style><h1>Democena visual baseline · ${commit.slice(0, 8)}</h1><div class="grid">${cards}</div>`);
 console.log(`Visual benchmark bundle: ${outputRoot}`);
