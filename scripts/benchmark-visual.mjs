@@ -175,7 +175,15 @@ if (await optionalAccess(reviewFile)) {
   const matchesArtifacts = previousReview.reviewedCommit === commit && JSON.stringify(previousIds) === JSON.stringify(directories);
   if (!matchesArtifacts) {
     const previousCommit = typeof previousReview.reviewedCommit === 'string' ? previousReview.reviewedCommit.slice(0, 12) : 'unknown';
-    await writeFile(path.join(outputRoot, `review.${previousCommit}.json`), JSON.stringify(previousReview, null, 2) + '\n');
+    const fixtureSuffix = previousIds.length > 0 ? previousIds.join('-') : 'no-fixtures';
+    const archiveBase = `review.${previousCommit}.${fixtureSuffix}`;
+    let archiveFile = path.join(outputRoot, `${archiveBase}.json`);
+    let archiveIndex = 2;
+    while (await optionalAccess(archiveFile)) {
+      archiveFile = path.join(outputRoot, `${archiveBase}.${archiveIndex}.json`);
+      archiveIndex += 1;
+    }
+    await writeFile(archiveFile, JSON.stringify(previousReview, null, 2) + '\n');
     await writeFile(reviewFile, JSON.stringify(nextReview, null, 2) + '\n');
   }
 } else {
