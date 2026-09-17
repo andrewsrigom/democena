@@ -67,13 +67,15 @@ describe('scene timeline and source clock', () => {
     expect(fullBleedLayout({ width: 1280, height: 800 }, { width: 1920, height: 1080 })).toEqual({ width: 1920, height: 1200, left: 0, top: -60, chromeHeight: 0 });
   });
 
-  it('keeps presentation chrome hidden between consecutive full-bleed scenes', () => {
-    expect(presentationChromeOpacity(true, true, 0)).toBe(0);
-    expect(presentationChromeOpacity(true, true, 1)).toBe(0);
-    expect(presentationChromeOpacity(true, false, 0)).toBe(1);
-    expect(presentationChromeOpacity(true, false, 1)).toBe(0);
-    expect(presentationChromeOpacity(false, true, 0)).toBe(0);
-    expect(presentationChromeOpacity(false, true, 1)).toBe(1);
+  it('keeps stable chrome states and fades only when visibility changes', () => {
+    expect(presentationChromeOpacity(true, true, 0)).toBe(1);
+    expect(presentationChromeOpacity(true, true, 1)).toBe(1);
+    expect(presentationChromeOpacity(false, false, 0)).toBe(0);
+    expect(presentationChromeOpacity(false, false, 1)).toBe(0);
+    expect(presentationChromeOpacity(false, true, 0)).toBe(1);
+    expect(presentationChromeOpacity(false, true, 1)).toBe(0);
+    expect(presentationChromeOpacity(true, false, 0)).toBe(0);
+    expect(presentationChromeOpacity(true, false, 1)).toBe(1);
   });
 
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {
@@ -111,7 +113,7 @@ describe('scene timeline and source clock', () => {
     const scene = { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true } };
     expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'edge-to-edge' } }] })).toThrow(/presentation.layout/);
     expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { caption: 'center' } }] })).toThrow(/presentation.caption/);
-    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed', caption: 'side' } }] })).toThrow(/side requires the framed layout/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed', caption: 'side' } }] })).toThrow(/side requires the framed or detail-crop layout/);
     expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'text', type: 'text', presentation: { layout: 'full-bleed' } }] })).toThrow(/only available on product scenes/);
     const comparison = project().scenes[6];
     expect(() => prepareProject({ ...project(), scenes: [{ ...comparison, presentation: { layout: 'full-bleed' } }] })).toThrow(/not available on comparison results/);

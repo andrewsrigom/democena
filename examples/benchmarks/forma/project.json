@@ -30,6 +30,7 @@
       "eyebrow": "A COLLECTION STARTS WITH AN IDEA",
       "title": "Good products.\nA story to share.",
       "body": "Bring your collection into focus.",
+      "typographicRole": "hero",
       "reveal": "lines",
       "highlight": "story",
       "transition": { "type": "none", "duration": 0 }
@@ -41,8 +42,10 @@
       "eyebrow": "ORGANIZE",
       "title": "Everything in one composed view.",
       "body": "Products, readiness, and publishing context stay visible.",
+      "typographicRole": "metadata",
+      "chrome": "show",
       "source": { "from": 0, "freeze": true },
-      "presentation": { "layout": "framed", "caption": "side" },
+      "presentation": { "layout": "product-stage", "caption": "top-left" },
       "transition": { "type": "slide-left", "duration": 0.5 }
     },
     {
@@ -52,11 +55,13 @@
       "eyebrow": "READY TO SHARE",
       "title": "The collection tells you when it is ready.",
       "body": "A measured product region remains the visual proof.",
+      "typographicRole": "proof",
+      "chrome": "hide",
       "source": { "from": 0, "freeze": true },
       "focus": { "x": 890, "y": 274, "width": 314, "height": 212 },
       "dim": 0.34,
       "zoom": 1.28,
-      "presentation": { "layout": "full-bleed", "caption": "bottom-left" },
+      "presentation": { "layout": "full-bleed-proof", "caption": "bottom-left" },
       "transition": { "type": "fade", "duration": 0.4 }
     },
     {
@@ -66,6 +71,7 @@
       "eyebrow": "FORMA",
       "title": "Your collection, ready to share.",
       "body": "A composed close after a verified product moment.",
+      "typographicRole": "statement",
       "cta": "Open the spring edit",
       "reveal": "words",
       "highlight": "ready",

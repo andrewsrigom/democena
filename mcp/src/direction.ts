@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
 import { motionRecipeFor, motionRecipeVocabulary, transitionForPreset, transitionPresetIds } from '../../studio/src/motion-recipes.js';
+import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry } from '../../studio/src/composition-registry.mjs';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -44,6 +45,15 @@ export const motionLanguageSchema = z.enum(['editorial', 'precise', 'kinetic', '
 export const typographicRoleSchema = z.enum(['hero', 'statement', 'metadata', 'proof', 'label', 'silent-product']);
 export const transitionIntentSchema = z.enum(['continue', 'advance', 'reveal', 'focus', 'prove', 'contrast', 'close']);
 const recipeIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
+export const beatCompositionSchema = z.strictObject({
+  layout: z.enum(compositionLayouts).optional(),
+  caption: z.enum(captionPlacements).optional(),
+  chrome: z.enum(chromeModes).optional(),
+}).superRefine((composition, ctx) => {
+  if (composition.caption === 'side' && composition.layout && !['framed', 'detail-crop'].includes(composition.layout)) {
+    ctx.addIssue({ code: 'custom', path: ['caption'], message: 'Side captions require the framed or detail-crop layout.' });
+  }
+});
 export const beatConceptSchema = z.strictObject({
   concept: z.string().min(1).max(500),
   focalAction: z.enum(['introduce', 'orient', 'reveal', 'focus', 'explain', 'compare', 'prove', 'close']),
@@ -51,6 +61,7 @@ export const beatConceptSchema = z.strictObject({
   typographicRole: typographicRoleSchema,
   density: z.enum(['sparse', 'balanced', 'dense']),
   transitionIntent: transitionIntentSchema,
+  composition: beatCompositionSchema.optional(),
   recipe: z.strictObject({
     selected: recipeIdSchema.optional(),
     compatible: z.array(recipeIdSchema).min(1).max(20),
@@ -144,6 +155,27 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
     if (entry.beat.recipe.selected && !entry.beat.recipe.compatible.includes(entry.beat.recipe.selected)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'selected'], message: 'The selected recipe must appear in the compatible recipe shortlist.' });
     if (!entry.beat.recipe.compatible.includes(entry.beat.recipe.fallback)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'fallback'], message: 'The fallback recipe must appear in the compatible recipe shortlist.' });
     if (entry.beat.typographicRole === 'silent-product' && ['text', 'chapter', 'outro'].includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'typographicRole'], message: 'silent-product is available only to product scenes.' });
+    const composition = entry.beat.composition;
+    const productScene = !['text', 'chapter', 'outro'].includes(entry.scene.type);
+    if (composition && !productScene && (composition.layout !== undefined || composition.caption !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition'], message: 'Authored scenes can choose chrome and typography, but product layouts and captions require a product scene.' });
+    }
+    if (composition?.layout && compositionRegistry[composition.layout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'layout'], message: `${composition.layout} requires an evidence-linked focus rectangle.` });
+    }
+    if (entry.beat.typographicRole === 'silent-product' && composition?.caption && composition.caption !== 'none') {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'caption'], message: 'silent-product beats cannot render a caption.' });
+    }
+    if (entry.scene.typographicRole && entry.scene.typographicRole !== entry.beat.typographicRole) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'typographicRole'], message: 'Scene typography must match the canonical beat typographic role.' });
+    }
+    if (composition?.chrome && entry.scene.chrome && entry.scene.chrome !== composition.chrome) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'chrome'], message: 'Scene chrome must match the canonical beat composition choice.' });
+    }
+    if (composition && 'presentation' in entry.scene && entry.scene.presentation) {
+      if (composition.layout && entry.scene.presentation.layout && composition.layout !== entry.scene.presentation.layout) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'presentation', 'layout'], message: 'Scene layout must match the canonical beat composition choice.' });
+      if (composition.caption && entry.scene.presentation.caption && composition.caption !== entry.scene.presentation.caption) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'presentation', 'caption'], message: 'Scene caption must match the canonical beat composition choice.' });
+    }
   }
   if (direction.poster) {
     const selected = direction.scenes.find((entry) => entry.scene.id === direction.poster!.sceneId)?.scene;
@@ -310,6 +342,24 @@ function applyTransition(entry: DirectionScene, index: number, storyMode: Direct
   return { ...entry.scene, transition } as SceneInput;
 }
 
+function applyBeatComposition(entry: DirectionScene, scene: SceneInput): SceneInput {
+  const composition = entry.beat.composition;
+  const result = {
+    ...scene,
+    typographicRole: entry.beat.typographicRole,
+    ...(composition?.chrome ? { chrome: composition.chrome } : {}),
+  } as SceneInput;
+  if (!composition || !('source' in result) || (composition.layout === undefined && composition.caption === undefined)) return result;
+  return {
+    ...result,
+    presentation: {
+      ...result.presentation,
+      ...(composition.layout ? { layout: composition.layout } : {}),
+      ...(composition.caption ? { caption: composition.caption } : {}),
+    },
+  } as SceneInput;
+}
+
 export function compileDirection(directionValue: unknown, currentProject: ProjectInput) {
   const direction = directionSchema.parse(directionValue);
   if (direction.status !== 'reviewed') throw new Error('Direction must be reviewed before compilation.');
@@ -334,7 +384,7 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
       }
     }
   }
-  const scenes = direction.scenes.map((entry, index) => applyTransition(entry, index, direction.storyMode));
+  const scenes = direction.scenes.map((entry, index) => applyBeatComposition(entry, applyTransition(entry, index, direction.storyMode)));
   const project = prepareProject({ ...currentProject, scenes }) as unknown as ProjectInput;
   const duration = buildTimeline(project.scenes, FPS).at(-1)!.end / FPS;
   if (direction.storyMode === 'tour') {
@@ -362,7 +412,8 @@ export function renderStoryboard(directionValue: unknown) {
   const d = directionSchema.parse(directionValue);
   const rows = d.scenes.map((entry, index) => {
     const evidence = entry.evidence.map((item) => item.kind === 'capture' ? `capture @ ${item.timestamp.toFixed(2)}s${item.markId ? ` (${item.markId})` : ''}${item.verified ? ' verified' : ''}` : `authored: ${item.claim}`).join('; ');
-    return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Beat concept:** ${entry.beat.concept}\n- **Focal action:** ${entry.beat.focalAction}\n- **Typography:** ${entry.beat.typographicRole} · ${entry.beat.density}\n- **Transition intent:** ${entry.beat.transitionIntent}\n- **Type:** ${entry.scene.type}\n- **Motion recipe:** ${entry.beat.recipe.selected ?? motionRecipeFor(entry.scene) ?? entry.beat.recipe.fallback}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
+    const composition = entry.beat.composition ? Object.entries(entry.beat.composition).map(([key, value]) => `${key}=${value}`).join(' · ') : 'project defaults';
+    return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Beat concept:** ${entry.beat.concept}\n- **Focal action:** ${entry.beat.focalAction}\n- **Typography:** ${entry.beat.typographicRole} · ${entry.beat.density}\n- **Composition:** ${composition}\n- **Transition intent:** ${entry.beat.transitionIntent}\n- **Type:** ${entry.scene.type}\n- **Motion recipe:** ${entry.beat.recipe.selected ?? motionRecipeFor(entry.scene) ?? entry.beat.recipe.fallback}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
   });
   return `# Storyboard\n\nStory mode: **${d.storyMode}** · Motion language: **${d.motionLanguage}** · Tone: **${d.tone}** · Status: **${d.status}**\n\n${rows.join('\n')}\n`;
 }

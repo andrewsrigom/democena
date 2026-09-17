@@ -58,7 +58,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 
 | Tool | Purpose |
 | --- | --- |
-| `democena_capabilities` | Discover schemas, all eight scene examples, framed/full-bleed presentation, the shared recipe and transition registries, and the authoring workflow. |
+| `democena_capabilities` | Discover schemas, all eight scene examples, the six-layout composition grammar, typography/caption/chrome choices, shared motion registries, and the authoring workflow. |
 | `democena_list_projects` | List project IDs, titles and current revisions. |
 | `democena_list_jobs` | Recover recent capture and render job IDs after reconnecting. |
 | `democena_create_project` | Create a new text project without overwriting an existing ID. |
@@ -81,14 +81,14 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 
 Read-only resources: `democena://guide`, `democena://scenes` and `democena://motion`. The motion resource is the same recipe, rendered-transition and Director-preset catalog used by Studio and the local Playbook. Tool successes include `structuredContent` and equivalent JSON text. Failures set `isError` and return an error code and message; malformed protocol arguments are rejected by the SDK.
 
-Run `npm run benchmark:transitions` after changing transition rendering, scene entrances, presentation chrome or settled-frame selection. Inspect both `studio/output/transition-matrix/contact-sheet.jpg` and the machine-readable report. The matrix includes every registered transition plus framed/full-bleed chrome handoffs, and the adjacent `index.html` compares any two cases without source edits.
+Run `npm run benchmark:transitions` after changing transition rendering, scene entrances, presentation chrome or settled-frame selection. Inspect both `studio/output/transition-matrix/contact-sheet.jpg` and the machine-readable report. The matrix includes every registered transition plus automatic and explicit chrome handoffs, and the adjacent `index.html` compares any two cases without source edits.
 
 ## Suggested agent workflow
 
 1. Read capabilities and the [Director skill](../skills/democena-director/SKILL.md). Explore the application and identify the outcome the demo must prove.
 2. Create a project with an ID such as `catalog-sharing`, a title, optional `branding` text and optional product-derived `appearance`. New projects contain no Democena watermark. Select a light or dark surface from the actual product instead of forcing the default palette.
 3. Call `start_capture` with an authorized URL and a plan using real locators and an outcome assertion after the final state-changing action. Poll `get_job`, inspect marker images through `read_preview`, then call `use_capture` with the current project revision. If the client reconnects, use `list_jobs` to recover the job ID. It returns measured event times and focus rectangles, plus viewport and duration from the actual file. Existing recordings can instead be copied to `assets/` and passed to `import_media`. To build another intentional variant from the same successful take, create its project and call `use_capture` with `allowCrossProjectReuse: true`; Democena verifies and imports a separate immutable copy with the same capture fingerprint.
-4. Save canonical Direction v2 using its independent revision. Choose a `storyMode` and `motionLanguage`; give every scene a beat concept, focal action, primary subject, typographic role, transition intent and compatible recipe shortlist. Generated `BRIEF.md` and `STORYBOARD.md` are review views. Direction v1 inputs migrate in memory and are saved as v2. In collaborative mode, obtain storyboard acceptance before recording `reviewed`; in autonomous mode, record Director review after the rubric passes.
+4. Save canonical Direction v2 using its independent revision. Choose a `storyMode` and `motionLanguage`; give every scene a beat concept, focal action, primary subject, typographic role, transition intent and compatible recipe shortlist. Product beats may also select one of the discovered layouts, a caption position and `auto`, `show` or `hide` chrome. `detail-crop` and `full-bleed-proof` require captured focus geometry; `silent-product` requires caption `none`. Generated `BRIEF.md` and `STORYBOARD.md` are review views. Direction v1 inputs migrate in memory and are saved as v2. In collaborative mode, obtain storyboard acceptance before recording `reviewed`; in autonomous mode, record Director review after the rubric passes.
 5. Compile with the exact direction and project revisions. A launch compilation enforces 4–6 scenes, 15–25 seconds, a hook, a real product moment, a verified result and a closing scene. Resolve `diverged` state instead of overwriting manual edits.
 6. Validate, then start a preview render. Matching nonterminal capture/render requests return the existing job ID instead of consuming duplicate work.
 7. Inspect scene images, transition images, `review-contact-sheet`, `review-poster` and `review/quality.json`. Captured application text still requires human or agent visual inspection.

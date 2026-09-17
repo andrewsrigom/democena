@@ -1,13 +1,15 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { CSSProperties } from 'react';
-import type { AnnotationScene, ChapterScene, OutroScene, ProductPresentation, Project, Scene, TextScene } from './model';
+import type { AnnotationScene, CaptionPlacement, ChapterScene, CompositionLayout, OutroScene, Project, Scene, TextScene, TypographicRole } from './model';
 import type { PresentationTheme } from './theme';
 import { cameraAt, cameraFor } from './camera';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
-import { browserLayout, fullBleedLayout } from './layout';
+import { productLayout } from './layout';
 import { motionImplementationFor } from './motion-registry';
 import { chapterLifecycleFrames } from './timeline';
+import { sceneComposition } from './composition-registry.mjs';
+import { CompositionBackground, CompositionForeground, CompositionMidground } from './composition-layers';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function StripAwayBackdrop({ accent }: { accent: string }) {
@@ -46,17 +48,29 @@ function KeywordEcho({ scene, accent, entranceOffsetFrames }: { scene: TextScene
   </div>;
 }
 
+const roleTypography: Record<TypographicRole, { title: number; weight: number; width: number; body: number; tracking: number }> = {
+  hero: { title: 112, weight: 670, width: 1340, body: 29, tracking: -5.4 },
+  statement: { title: 82, weight: 620, width: 1120, body: 27, tracking: -3.6 },
+  metadata: { title: 54, weight: 610, width: 780, body: 21, tracking: -1.8 },
+  proof: { title: 68, weight: 680, width: 900, body: 23, tracking: -2.7 },
+  label: { title: 44, weight: 650, width: 680, body: 19, tracking: -1.2 },
+  'silent-product': { title: 0, weight: 600, width: 0, body: 0, tracking: 0 },
+};
+
 function TextPanel({ scene, accent, theme, entranceOffsetFrames }: { scene: TextScene | OutroScene; accent: string; theme: PresentationTheme; entranceOffsetFrames: number }) {
   const frame = useCurrentFrame() + entranceOffsetFrames;
   const { fps } = useVideoConfig();
   const closing = scene.type === 'outro';
+  const role = scene.typographicRole ?? (closing ? 'statement' : 'hero');
+  const type = roleTypography[role];
   const enter = spring({ frame: frame - (closing ? 28 : 20), fps, config: { damping: 26 } });
   return <>
     {closing ? <StripAwayBackdrop accent={accent} /> : <KeywordEcho scene={scene} accent={accent} entranceOffsetFrames={entranceOffsetFrames} />}
     <div style={{ position: 'absolute', left: 148, right: 148, top: closing ? 250 : 270 }}>
       <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
-      <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} entranceOffsetFrames={entranceOffsetFrames} />
-      <p style={{ maxWidth: 1030, color: theme.muted, fontSize: 29, lineHeight: 1.6, margin: '0 0 32px', opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.body}</p>
+      <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} entranceOffsetFrames={entranceOffsetFrames}
+        style={{ fontSize: type.title, fontWeight: type.weight, maxWidth: type.width, letterSpacing: type.tracking }} />
+      <p style={{ maxWidth: Math.min(1030, type.width), color: theme.muted, fontSize: type.body, lineHeight: 1.6, margin: '0 0 32px', opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.body}</p>
       {closing && scene.cta ? <div style={{ display: 'inline-flex', alignItems: 'center', gap: 42, padding: '20px 28px', borderRadius: 12, background: accent, color: '#fff', fontSize: 23, opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.cta}<span>↗</span></div> : null}
     </div>
   </>;
@@ -96,27 +110,34 @@ function Caption({ scene, accent, theme }: { scene: Scene; accent: string; theme
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame - 4, fps, config: { damping: 24, stiffness: 100 } });
-  return <div style={{ position: 'absolute', left: 96, top: 315, width: 498, opacity: enter, transform: `translateY(${(1 - enter) * 22}px)` }}>
+  const role = sceneComposition(scene).typographicRole;
+  const type = roleTypography[role];
+  const compact = role === 'metadata' || role === 'label';
+  return <div style={{ position: 'absolute', left: 96, top: compact ? 366 : 315, width: 468, opacity: enter, transform: `translateY(${(1 - enter) * 22}px)` }}>
     <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
-    <h1 style={{ fontSize: 68, fontWeight: 600, letterSpacing: -3, lineHeight: 1.08, margin: '28px 0', whiteSpace: 'pre-line' }}>{scene.title}</h1>
-    <p style={{ fontSize: 25, lineHeight: 1.6, color: theme.muted, maxWidth: 450, margin: 0 }}>{scene.body}</p>
+    <h1 style={{ fontSize: Math.min(type.title, 68), fontWeight: type.weight, letterSpacing: type.tracking, lineHeight: 1.08, margin: '28px 0', whiteSpace: 'pre-line' }}>{scene.title}</h1>
+    {scene.body ? <p style={{ fontSize: Math.min(type.body, 25), lineHeight: 1.6, color: theme.muted, maxWidth: 450, margin: 0 }}>{scene.body}</p> : null}
     <div style={{ width: 42, height: 4, borderRadius: 4, background: accent, marginTop: 34 }} />
   </div>;
 }
-function OverlayCaption({ scene, accent, theme, position }: { scene: Scene; accent: string; theme: PresentationTheme; position: Exclude<NonNullable<ProductPresentation['caption']>, 'side' | 'none'> }) {
+function OverlayCaption({ scene, accent, theme, position, layout }: { scene: Scene; accent: string; theme: PresentationTheme; position: Exclude<CaptionPlacement, 'side' | 'none'>; layout: CompositionLayout }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame - 8, fps, config: { damping: 26, stiffness: 95 } });
-  const top = position.startsWith('top') ? 96 : undefined;
+  const top = position.startsWith('top') ? layout === 'product-stage' ? 150 : 96 : undefined;
   const bottom = position.startsWith('bottom') ? 96 : undefined;
   const left = position.endsWith('left') ? 96 : undefined;
   const right = position.endsWith('right') ? 96 : undefined;
-  return <div style={{ position: 'absolute', top, bottom, left, right, width: 570, boxSizing: 'border-box', padding: '28px 32px 30px',
+  const role = sceneComposition(scene).typographicRole;
+  const type = roleTypography[role];
+  const compact = role === 'metadata' || role === 'label' || layout === 'product-stage';
+  const proof = role === 'proof' || layout === 'full-bleed-proof';
+  return <div style={{ position: 'absolute', top, bottom, left, right, width: compact ? 440 : 570, boxSizing: 'border-box', padding: compact ? '22px 26px 24px' : '28px 32px 30px',
     borderRadius: Math.max(16, theme.radius), border: `1px solid ${theme.border}`, background: `${theme.surface}F2`,
-    boxShadow: `0 24px 70px -28px ${theme.shadow}A0`, opacity: enter, transform: `translateY(${(1 - enter) * 24}px)` }}>
+    borderLeft: proof ? `5px solid ${accent}` : `1px solid ${theme.border}`, boxShadow: `0 24px 70px -28px ${theme.shadow}A0`, opacity: enter, transform: `translateY(${(1 - enter) * 24}px)` }}>
     <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
-    <h1 style={{ color: theme.foreground, fontSize: 44, fontWeight: 650, letterSpacing: -2, lineHeight: 1.06, margin: '20px 0 16px', whiteSpace: 'pre-line' }}>{scene.title}</h1>
-    {scene.body ? <p style={{ color: theme.muted, fontSize: 21, lineHeight: 1.45, margin: 0 }}>{scene.body}</p> : null}
+    <h1 style={{ color: theme.foreground, fontSize: compact ? 34 : Math.min(type.title, 48), fontWeight: type.weight, letterSpacing: compact ? -1.2 : type.tracking, lineHeight: 1.06, margin: '20px 0 16px', whiteSpace: 'pre-line' }}>{scene.title}</h1>
+    {scene.body ? <p style={{ color: theme.muted, fontSize: compact ? 18 : Math.min(type.body, 22), lineHeight: 1.45, margin: 0 }}>{scene.body}</p> : null}
   </div>;
 }
 function Annotation({ scene, project, theme, width }: { scene: AnnotationScene; project: Project; theme: PresentationTheme; width: number }) {
@@ -157,22 +178,33 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
       </div>
     </>;
   }
-  const fullBleed = scene.presentation?.layout === 'full-bleed';
-  const caption = scene.presentation?.caption ?? (fullBleed ? 'bottom-left' : 'side');
-  const layout = fullBleed ? fullBleedLayout(project.viewport, { width: compositionWidth, height: compositionHeight }) : browserLayout(project.viewport);
+  const composition = sceneComposition(scene);
+  const caption = composition.caption;
+  const layout = productLayout(composition.id, project.viewport, { width: compositionWidth, height: compositionHeight });
+  const primary = layout.primary;
   const focus = 'focus' in scene ? scene.focus : undefined;
   const strength = spring({ frame, fps, config: { damping: 30, stiffness: 60 } });
-  const target = cameraFor(focus, project.viewport, layout.width, scene.type === 'focus' ? scene.zoom ?? 1.35 : 1.14);
-  const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, layout.width)
-    : scene.type === 'annotation' ? cameraFor(undefined, project.viewport, layout.width)
+  const defaultZoom = composition.id === 'detail-crop' ? 1.85 : composition.id === 'full-bleed-proof' ? 1.24 : 1.14;
+  const target = cameraFor(focus, project.viewport, primary.width, scene.type === 'focus' ? scene.zoom ?? defaultZoom : defaultZoom);
+  const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, primary.width)
+    : scene.type === 'annotation' ? cameraFor(undefined, project.viewport, primary.width)
     : { scale: 1 + (target.scale - 1) * strength, x: target.x * strength, y: target.y * strength };
-  return <>{caption === 'side' ? <Caption scene={scene} accent={project.accent} theme={theme} /> : null}
-    <div style={{ position: 'absolute', left: layout.left, top: layout.top }}>
-      <BrowserFrame project={project} source={scene.source} theme={theme} width={layout.width} camera={camera} focus={focus} scan={implementation === 'focus-scan'}
-        framed={!fullBleed} dim={scene.type === 'focus' ? scene.dim ?? .38 : scene.type === 'annotation' ? .14 : 0}>
-        {scene.type === 'annotation' ? <Annotation scene={scene} project={project} theme={theme} width={layout.width} /> : null}
+  const framed = !composition.immersive;
+  const dim = scene.type === 'focus' ? scene.dim ?? (composition.id === 'full-bleed-proof' ? .48 : .38) : scene.type === 'annotation' ? .14 : 0;
+  return <>
+    <CompositionBackground layout={composition.id} accent={project.accent} theme={theme} />
+    <CompositionMidground layout={composition.id} accent={project.accent} theme={theme} />
+    {layout.secondary ? <div style={{ position: 'absolute', left: layout.secondary.left, top: layout.secondary.top, opacity: .34, transform: 'rotate(2.2deg) translateY(-12px)', filter: 'saturate(.72)' }}>
+      <BrowserFrame project={project} source={scene.source} theme={theme} width={layout.secondary.width} camera={cameraFor(focus, project.viewport, layout.secondary.width, focus ? 1.2 : 1.08)} focus={focus} framed />
+    </div> : null}
+    {caption === 'side' ? <Caption scene={scene} accent={project.accent} theme={theme} /> : null}
+    <div style={{ position: 'absolute', left: primary.left, top: primary.top }}>
+      <BrowserFrame project={project} source={scene.source} theme={theme} width={primary.width} camera={camera} focus={focus} scan={implementation === 'focus-scan'}
+        framed={framed} dim={dim}>
+        {scene.type === 'annotation' ? <Annotation scene={scene} project={project} theme={theme} width={primary.width} /> : null}
       </BrowserFrame>
     </div>
-    {caption !== 'side' && caption !== 'none' ? <OverlayCaption scene={scene} accent={project.accent} theme={theme} position={caption} /> : null}
+    <CompositionForeground layout={composition.id} accent={project.accent} />
+    {caption !== 'side' && caption !== 'none' ? <OverlayCaption scene={scene} accent={project.accent} theme={theme} position={caption} layout={composition.id} /> : null}
   </>;
 }

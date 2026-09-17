@@ -32,6 +32,9 @@ test('all eight discoverable examples pass the shared Studio validator', () => {
   assert.deepEqual(discovered.transitions.presets.map(preset => preset.id), ['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover']);
   assert(discovered.transitions.implementations.every(transition => transition.implementation && transition.fixture && transition.fallback));
   assert.deepEqual(discovered.motionLanguages, ['editorial', 'precise', 'kinetic', 'cinematic', 'quiet']);
+  assert.deepEqual(discovered.compositions.layouts.map(layout => layout.id), ['framed', 'full-bleed', 'product-stage', 'detail-crop', 'layered-product', 'full-bleed-proof']);
+  assert.deepEqual(discovered.compositions.typographicRoles, ['hero', 'statement', 'metadata', 'proof', 'label', 'silent-product']);
+  assert(discovered.compositions.layouts.every(layout => layout.layers.background && layout.layers.midground && layout.layers.foreground));
   assert.equal(discovered.storyModes.launch.renderable, true);
   assert.equal(discovered.storyModes.spotlight.renderable, false);
   assert.deepEqual((discovered.directionSchema as { properties?: { version?: { const?: number } } }).properties?.version?.const, 2);
@@ -358,6 +361,28 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { compatible: ['standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /current Project v2 renderer applies text-blur-slide/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'standard-scene-motion', compatible: ['text-blur-slide', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /cannot render through Project v2/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
+});
+
+test('Direction v2 persists per-beat typography, composition and chrome into Project v2', () => {
+  const migrated = directionSchema.parse(launchDirection());
+  const enhanced = {
+    ...migrated,
+    scenes: migrated.scenes.map((entry, index) => index === 1 ? {
+      ...entry,
+      beat: { ...entry.beat, typographicRole: 'metadata' as const, composition: { layout: 'product-stage' as const, caption: 'top-left' as const, chrome: 'hide' as const } },
+      scene: { ...entry.scene, typographicRole: 'metadata' as const, chrome: 'hide' as const, presentation: { layout: 'product-stage' as const, caption: 'top-left' as const } },
+    } : index === 2 ? {
+      ...entry,
+      evidence: entry.evidence.map(item => item.kind === 'capture' ? { ...item, rect: { x: 100, y: 100, width: 300, height: 120 } } : item),
+      beat: { ...entry.beat, typographicRole: 'proof' as const, composition: { layout: 'full-bleed-proof' as const, caption: 'bottom-left' as const, chrome: 'show' as const } },
+      scene: { ...entry.scene, focus: { x: 100, y: 100, width: 300, height: 120 }, typographicRole: 'proof' as const, chrome: 'show' as const, presentation: { layout: 'full-bleed-proof' as const, caption: 'bottom-left' as const } },
+    } : entry),
+  };
+  const parsed = directionSchema.parse(enhanced);
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [parsed.scenes[0]!.scene] });
+  const compiled = compileDirection(parsed, project).project;
+  assert.deepEqual(compiled.scenes[1], { ...parsed.scenes[1]!.scene, transition: { type: 'slide-up', duration: 0.4 } });
+  assert.deepEqual(compiled.scenes[2], { ...parsed.scenes[2]!.scene, transition: { type: 'fade', duration: 0.3 } });
 });
 
 test('saving legacy Direction v1 writes v2 while preserving the exact archived revision', async t => {

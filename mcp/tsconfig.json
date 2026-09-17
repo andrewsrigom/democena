@@ -19,6 +19,8 @@
     "../studio/src/timeline.ts",
     "../studio/src/timeline-layout.mjs",
     "../studio/src/timeline-layout.d.mts",
+    "../studio/src/composition-registry.mjs",
+    "../studio/src/composition-registry.d.mts",
     "../capture/browser.mjs",
     "../capture/browser.d.mts"
   ]

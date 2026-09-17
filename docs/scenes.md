@@ -35,7 +35,7 @@ There are two independent clocks:
 
 Inserting a text card never skips forward in the recording. For example, a 5-second opening followed by an overview with `source.from: 0` still starts the recording from its beginning. To resume after a paused annotation, set the next clip's `source.from` to the desired resume time.
 
-Seconds are rounded to frames at 30 fps. Every scene has a unique `id`, a `type`, positive `duration`, and string `eyebrow`, `title` and `body`. Use `\n` inside titles for intentional line breaks. Text can be in any language supported by the system font.
+Seconds are rounded to frames at 30 fps. Every scene has a unique `id`, a `type`, positive `duration`, and string `eyebrow`, `title` and `body`. Use `\n` inside titles for intentional line breaks. Text can be in any language supported by the system font. Optional `typographicRole` values are `hero`, `statement`, `metadata`, `proof`, `label` and `silent-product`; the last is restricted to product scenes and suppresses their caption. Optional `chrome` is `auto`, `show` or `hide` and controls the project header, chapter context, footer and progress for that beat.
 
 ### Transitions
 
@@ -83,7 +83,16 @@ The chapter title settles into a compact label that remains above subsequent pro
 }
 ```
 
-Product scenes accept an optional `presentation`. The default keeps the browser in the side-by-side editorial frame. `full-bleed` covers the output canvas with the recording, removes browser chrome and hides global Democena presentation chrome while the scene is active. The recording keeps its aspect ratio and crops only the overflow.
+Product scenes accept an optional `presentation`. The layouts are:
+
+- `framed`: complete browser beside explanatory copy; the default
+- `full-bleed`: recording covers the canvas and crops only overflow
+- `product-stage`: complete browser on a large raised stage
+- `detail-crop`: measured product detail with a side caption
+- `layered-product`: two views derived from the same capture
+- `full-bleed-proof`: focused evidence fills the canvas with a compact proof card
+
+`detail-crop` and `full-bleed-proof` require a real `focus` rectangle. Immersive layouts remove browser framing and hide global presentation chrome in `auto` mode. Other layouts show it. An explicit scene `chrome` choice overrides the automatic behavior.
 
 ```json
 "presentation": {
@@ -92,7 +101,7 @@ Product scenes accept an optional `presentation`. The default keeps the browser 
 }
 ```
 
-Caption options are `side`, `top-left`, `top-right`, `bottom-left`, `bottom-right` and `none`. Full-bleed scenes default to `bottom-left` and accept a positioned overlay or `none`; `side` requires the framed layout, where it is the default. Overlay captions use project appearance tokens, so they remain readable on light and dark products. Use `none` when the surrounding beats already provide enough context.
+Caption options are `side`, `top-left`, `top-right`, `bottom-left`, `bottom-right` and `none`. Framed and detail-crop scenes may use `side`; `product-stage` defaults to `top-left`; layered and immersive layouts default to `bottom-left`. Overlay captions use project appearance tokens, so they remain readable on light and dark products. Use `none` when surrounding beats already provide enough context, or select `silent-product` to make that intent explicit. Decorative background, midground and foreground layers frame the adopted recording and never replace evidence pixels.
 
 ```json
 {

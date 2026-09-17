@@ -151,16 +151,20 @@ try {
       if (!passed) findings.push({ level: direction ? 'error' : 'warning', code: 'AUTHORED_BOUNDS', sceneId, message: `${check.field} has ${check.actual} characters; the safe authored-content limit is ${check.maximum}. Inspect and shorten the copy.` });
     }
   };
-  const fullBleedCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
+  const immersiveLayouts = new Set(['full-bleed', 'full-bleed-proof']);
+  const captionFor = (scene) => scene.typographicRole === 'silent-product' ? 'none' : scene.presentation?.caption
+    ?? (immersiveLayouts.has(scene.presentation?.layout) || scene.presentation?.layout === 'layered-product' ? 'bottom-left'
+      : scene.presentation?.layout === 'product-stage' ? 'top-left' : 'side');
+  const immersiveCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
     && !(scene.type === 'result' && scene.comparison)
-    && scene.presentation?.layout === 'full-bleed'
-    && (scene.presentation?.caption ?? 'bottom-left') !== 'none');
+    && immersiveLayouts.has(scene.presentation?.layout)
+    && captionFor(scene) !== 'none');
   const backgroundCopy = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
     || (scene.type === 'result' && scene.comparison)
-    || scene.presentation?.layout !== 'full-bleed'
-    || scene.presentation?.caption === 'side');
+    || !immersiveLayouts.has(scene.presentation?.layout)
+    || captionFor(scene) === 'side');
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
-    || (!['text', 'chapter', 'outro'].includes(scene.type) && scene.presentation?.layout !== 'full-bleed'));
+    || (!['text', 'chapter', 'outro'].includes(scene.type) && !immersiveLayouts.has(scene.presentation?.layout)));
   const chapterBadge = props.scenes.some((scene) => scene.type === 'chapter') ? composite(props.accent, theme.background, 0x18 / 0xff) : undefined;
   const contrastChecks = [
     ...(backgroundCopy ? [
@@ -170,7 +174,7 @@ try {
     ] : []),
     ...(mutedOnTint ? [{ name: 'muted-on-tint', foreground: theme.muted, background: theme.tint, ratio: contrast(theme.muted, theme.tint), required: 4.5 }] : []),
     ...(chapterBadge ? [{ name: 'accent-on-chapter-badge', foreground: props.accent, background: chapterBadge, ratio: contrast(props.accent, chapterBadge), required: 4.5 }] : []),
-    ...(fullBleedCaption ? [
+    ...(immersiveCaption ? [
       { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
       { name: 'muted-on-surface', foreground: theme.muted, background: theme.surface, ratio: contrast(theme.muted, theme.surface), required: 4.5 },
       { name: 'accent-on-surface', foreground: props.accent, background: theme.surface, ratio: contrast(props.accent, theme.surface), required: 4.5 },

@@ -6,6 +6,7 @@ import { authoredEntranceOffsetFrames, buildTimeline, DEFAULT_TRANSITION, transi
 import { ChapterLabel, SceneContent } from './scenes';
 import { presentationChromeOpacity } from './presentation-chrome';
 import { transitionRegistry, transitionStyleFor } from './motion-registry';
+import { sceneComposition } from './composition-registry.mjs';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function BrandHeader({ project, theme }: { project: Project; theme: PresentationTheme }) {
@@ -43,11 +44,11 @@ export function Demo(project: Project) {
   const index = Math.max(0, timeline.findLastIndex((entry) => entry.from <= frame));
   const active = timeline[index]!;
   const previous = timeline[index - 1];
-  const activeFullBleed = 'presentation' in active.scene && active.scene.presentation?.layout === 'full-bleed';
-  const previousFullBleed = previous && 'presentation' in previous.scene && previous.scene.presentation?.layout === 'full-bleed';
+  const activeChromeVisible = sceneComposition(active.scene).chromeVisible;
+  const previousChromeVisible = previous ? sceneComposition(previous.scene).chromeVisible : activeChromeVisible;
   const activeTransitionFrames = transitionFrames(active.scene, fps);
   const activeEnter = activeTransitionFrames === 0 || index === 0 ? 1 : interpolate(frame - active.from, [0, activeTransitionFrames], [0, 1], CLAMP);
-  const chromeOpacity = presentationChromeOpacity(activeFullBleed, Boolean(previousFullBleed), activeEnter);
+  const chromeOpacity = presentationChromeOpacity(activeChromeVisible, previousChromeVisible, activeEnter);
   const chapter = project.scenes.slice(0, index).findLast((scene): scene is ChapterScene => scene.type === 'chapter');
   const showsChapterContext = chapter && ['overview', 'focus', 'camera', 'annotation', 'result'].includes(active.scene.type);
   const chapterEnter = interpolate(frame - active.from, [0, Math.max(1, Math.round(fps * .28))], [0, 1], CLAMP);

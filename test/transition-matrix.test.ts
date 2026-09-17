@@ -43,16 +43,22 @@ describe('transition matrix', () => {
       'chrome-framed-to-full-bleed',
       'chrome-full-bleed-to-framed',
       'chrome-full-bleed-to-full-bleed',
+      'chrome-explicit-hide-to-show',
+      'chrome-explicit-show-to-hide',
     ]);
     expect(matrix.map((entry) => entry.project.scenes.map((scene) => 'presentation' in scene ? scene.presentation?.layout : undefined))).toEqual([
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
       ['full-bleed', 'full-bleed'],
+      ['framed', 'full-bleed'],
+      ['full-bleed', 'framed'],
     ]);
     expect(matrix.map((entry) => entry.expectedChrome)).toEqual([
       { before: true, midpoint: false, after: false },
       { before: false, midpoint: false, after: true },
       { before: false, midpoint: false, after: false },
+      { before: false, midpoint: false, after: true },
+      { before: true, midpoint: false, after: false },
     ]);
     for (const entry of matrix) {
       expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from '../../studio/src/composition-registry.mjs';
 
 export const rectSchema = z.strictObject({
   x: z.number().nonnegative(),
@@ -18,11 +19,11 @@ export const transitionSchema = z.strictObject({
 });
 
 const presentationSchema = z.strictObject({
-  layout: z.enum(['framed', 'full-bleed']).optional(),
-  caption: z.enum(['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none']).optional(),
-}).refine((presentation) => presentation.layout !== 'full-bleed' || presentation.caption !== 'side', {
+  layout: z.enum(compositionLayouts).optional(),
+  caption: z.enum(captionPlacements).optional(),
+}).refine((presentation) => presentation.caption !== 'side' || ['framed', 'detail-crop'].includes(presentation.layout ?? 'framed'), {
   path: ['caption'],
-  message: 'Full-bleed scenes use a positioned overlay caption or none; side captions require the framed layout.',
+  message: 'Side captions require the framed or detail-crop layout.',
 });
 
 export const brandingSchema = z.strictObject({
@@ -52,6 +53,8 @@ const base = {
   title: z.string(),
   body: z.string(),
   transition: transitionSchema.optional(),
+  chrome: z.enum(chromeModes).optional(),
+  typographicRole: z.enum(typographicRoles).optional(),
 };
 const text = {
   reveal: z.enum(['words', 'lines']).optional(),
@@ -81,6 +84,22 @@ export const projectSchema = z.strictObject({
   trimBefore: z.number().nonnegative(),
   viewport: z.strictObject({ width: z.number().int().positive(), height: z.number().int().positive() }),
   scenes: z.array(sceneSchema).min(1).max(100),
+}).superRefine((project, ctx) => {
+  project.scenes.forEach((scene, index) => {
+    const productScene = !['text', 'chapter', 'outro'].includes(scene.type);
+    if (scene.typographicRole === 'silent-product' && !productScene) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'typographicRole'], message: 'silent-product is available only on product scenes.' });
+    }
+    if (scene.typographicRole === 'silent-product' && 'presentation' in scene && scene.presentation?.caption && scene.presentation.caption !== 'none') {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'presentation', 'caption'], message: 'silent-product scenes cannot render a caption.' });
+    }
+    if ('presentation' in scene && scene.presentation?.layout) {
+      const definition = compositionRegistry[scene.presentation.layout];
+      if (definition.requiresFocus && !('focus' in scene && scene.focus)) {
+        ctx.addIssue({ code: 'custom', path: ['scenes', index, 'presentation', 'layout'], message: `${definition.id} requires an evidence-linked focus rectangle.` });
+      }
+    }
+  });
 });
 
 export type ProjectInput = z.infer<typeof projectSchema>;
