@@ -4,7 +4,7 @@ import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
 import { fullBleedLayout } from '../studio/src/layout.js';
-import { nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity } from '../studio/src/presentation-chrome.js';
+import { nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -87,6 +87,8 @@ describe('scene timeline and source clock', () => {
     expect(nestedChromeBackdropOpacity(.5, .5)).toBe(1);
     expect(nestedChromeBackdropOpacity(1, .5)).toBe(.5);
     expect(nestedChromeBackdropOpacity(0, 0)).toBe(0);
+    expect(presentationChromeUsesBackdrop(false, true, .99)).toBe(true);
+    expect(presentationChromeUsesBackdrop(false, true, 1)).toBe(false);
   });
 
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {

@@ -14,9 +14,10 @@ export type TransitionMatrixEntry = {
   frames: TransitionMatrixFrames;
   destinationProject: Project;
   destinationReferenceFrame: number;
+  destinationSettledReferenceFrame: number;
 };
 export type ChromeMatrixEntry = Omit<TransitionMatrixEntry, 'id' | 'kind'> & {
-  id: 'chrome-framed-to-full-bleed' | 'chrome-full-bleed-to-framed' | 'chrome-full-bleed-to-full-bleed' | 'chrome-visible-framed-to-immersive' | 'chrome-explicit-hide-to-show' | 'chrome-explicit-show-to-hide';
+  id: 'chrome-framed-to-full-bleed' | 'chrome-full-bleed-to-framed' | 'chrome-full-bleed-to-full-bleed' | 'chrome-visible-framed-to-immersive' | 'chrome-visible-immersive-to-framed' | 'chrome-explicit-hide-to-show' | 'chrome-explicit-show-to-hide';
   kind: 'chrome';
   expectedChrome: Record<TransitionPhase, boolean>;
   expectedBackdrop?: Partial<Record<TransitionPhase, boolean>>;

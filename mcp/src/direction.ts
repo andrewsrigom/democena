@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
 import { motionRecipeFor, motionRecipeVocabulary, transitionForPreset, transitionPresetIds } from '../../studio/src/motion-recipes.js';
-import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry } from '../../studio/src/composition-registry.mjs';
+import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, sceneComposition } from '../../studio/src/composition-registry.mjs';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -420,7 +420,9 @@ export function renderStoryboard(directionValue: unknown) {
   const d = directionSchema.parse(directionValue);
   const rows = d.scenes.map((entry, index) => {
     const evidence = entry.evidence.map((item) => item.kind === 'capture' ? `capture @ ${item.timestamp.toFixed(2)}s${item.markId ? ` (${item.markId})` : ''}${item.verified ? ' verified' : ''}` : `authored: ${item.claim}`).join('; ');
-    const composition = entry.beat.composition ? Object.entries(entry.beat.composition).map(([key, value]) => `${key}=${value}`).join(' · ') : 'project defaults';
+    const compiledScene = applyBeatComposition(entry, entry.scene);
+    const resolvedComposition = sceneComposition(compiledScene);
+    const composition = `layout=${resolvedComposition.id} · caption=${resolvedComposition.caption} · chrome=${compiledScene.chrome ?? 'auto'} (${resolvedComposition.chromeVisible ? 'visible' : 'hidden'})`;
     return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Beat concept:** ${entry.beat.concept}\n- **Focal action:** ${entry.beat.focalAction}\n- **Typography:** ${entry.beat.typographicRole} · ${entry.beat.density}\n- **Composition:** ${composition}\n- **Transition intent:** ${entry.beat.transitionIntent}\n- **Type:** ${entry.scene.type}\n- **Motion recipe:** ${entry.beat.recipe.selected ?? motionRecipeFor(entry.scene) ?? entry.beat.recipe.fallback}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
   });
   return `# Storyboard\n\nStory mode: **${d.storyMode}** · Motion language: **${d.motionLanguage}** · Tone: **${d.tone}** · Status: **${d.status}**\n\n${rows.join('\n')}\n`;

@@ -29,6 +29,8 @@ describe('transition matrix', () => {
       expect(entry.frames.settledCheck).toBeLessThan(entry.durationInFrames);
       expect(entry.destinationReferenceFrame).toBeGreaterThanOrEqual(0);
       expect(entry.destinationReferenceFrame).toBeLessThan(buildTimeline(entry.destinationProject.scenes, FPS).at(-1)!.end);
+      expect(entry.destinationSettledReferenceFrame).toBeGreaterThan(entry.destinationReferenceFrame);
+      expect(entry.destinationSettledReferenceFrame).toBeLessThan(buildTimeline(entry.destinationProject.scenes, FPS).at(-1)!.end);
     }
   });
 
@@ -45,6 +47,7 @@ describe('transition matrix', () => {
       'chrome-full-bleed-to-framed',
       'chrome-full-bleed-to-full-bleed',
       'chrome-visible-framed-to-immersive',
+      'chrome-visible-immersive-to-framed',
       'chrome-explicit-hide-to-show',
       'chrome-explicit-show-to-hide',
     ];
@@ -54,6 +57,7 @@ describe('transition matrix', () => {
       ['full-bleed', 'framed'],
       ['full-bleed', 'full-bleed'],
       ['framed', 'full-bleed'],
+      ['full-bleed', 'framed'],
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
     ]);
@@ -62,11 +66,14 @@ describe('transition matrix', () => {
       { before: false, midpoint: false, after: true },
       { before: false, midpoint: false, after: false },
       { before: true, midpoint: true, after: true },
+      { before: true, midpoint: true, after: true },
       { before: false, midpoint: false, after: true },
       { before: true, midpoint: false, after: false },
     ]);
     expect(matrix.find((entry) => entry.id === 'chrome-visible-framed-to-immersive')?.expectedBackdrop)
       .toEqual({ midpoint: true, after: true });
+    expect(matrix.find((entry) => entry.id === 'chrome-visible-immersive-to-framed')?.expectedBackdrop)
+      .toEqual({ before: true, midpoint: true });
     for (const entry of matrix) {
       expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);
       expect(entry.frames.midpoint).toBeLessThan(entry.frames.after);

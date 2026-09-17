@@ -8,7 +8,7 @@ import { bundle } from '@remotion/bundler';
 import { openBrowser, renderStill, selectComposition } from '@remotion/renderer';
 import { chromium } from 'playwright';
 import { chromeMatrix, transitionMatrix, transitionPhases } from '../src/transition-matrix.mjs';
-import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanColorDifference, regionMeanLuma, regionPsnr } from '../src/transition-quality.mjs';
+import { frameStats, regionMeanAbsoluteDifference, regionMeanColorDifference, regionMeanLuma, regionPsnr } from '../src/transition-quality.mjs';
 import { resolveTheme } from '../src/theme-data.mjs';
 
 const { values } = parseArgs({ options: {
@@ -60,8 +60,8 @@ try {
     const stats = Object.fromEntries(transitionPhases.map((phase) => [phase, frameStats(decoded[phase])]));
     const chromeLuma = transitionPhases.map((phase) => regionMeanLuma(decoded[phase], { x: 72, y: 34, width: 1776, height: 116 }));
     const chromeLumaRange = Math.max(...chromeLuma) - Math.min(...chromeLuma);
-    const settledPsnrDb = psnr(decoded.after, decoded.settledCheck);
     const destinationFile = path.join(entryDir, 'destination.png');
+    const settledDestinationFile = path.join(entryDir, 'settled-destination.png');
     const destinationComposition = await selectComposition({ serveUrl, id: 'Democena', inputProps: entry.destinationProject, puppeteerInstance });
     await renderStill({
       composition: destinationComposition,
@@ -71,9 +71,18 @@ try {
       frame: entry.destinationReferenceFrame,
       output: destinationFile,
     });
+    await renderStill({
+      composition: destinationComposition,
+      serveUrl,
+      inputProps: entry.destinationProject,
+      puppeteerInstance,
+      frame: entry.destinationSettledReferenceFrame,
+      output: settledDestinationFile,
+    });
     // The bottom progress line depends on total composition duration, which changes when
     // overlap is removed from the destination reference. Compare the actual scene canvas.
     const destinationPsnrDb = regionPsnr(decoded.after, decodeRgba(destinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
+    const settledPsnrDb = regionPsnr(decoded.settledCheck, decodeRgba(settledDestinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
     let chromePresenceDelta;
     if (entry.expectedChrome) {
       // Remotion merges input props over the selected composition props, so an empty
@@ -121,7 +130,7 @@ try {
       ...(entry.expectedBackdrop ? { expectedBackdrop: entry.expectedBackdrop } : {}),
       frames: entry.frames,
       images: Object.fromEntries(transitionPhases.map((phase) => [phase, `${entry.id}/${phase}.png`])),
-      references: { destination: `${entry.id}/destination.png` },
+      references: { destination: `${entry.id}/destination.png`, settledDestination: `${entry.id}/settled-destination.png` },
       metrics: {
         stats,
         chromeLuma: chromeLuma.map((value) => Number(value.toFixed(3))),

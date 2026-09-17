@@ -29,3 +29,7 @@ export function nestedChromeBackdropOpacity(chromeOpacity: number, backdropOpaci
   if (chromeOpacity <= 0 || backdropOpacity <= 0) return 0;
   return clamp(backdropOpacity / chromeOpacity);
 }
+
+export function presentationChromeUsesBackdrop(activeBacked: boolean, previousBacked: boolean, activeEnter: number) {
+  return activeBacked || (previousBacked && activeEnter < 1);
+}

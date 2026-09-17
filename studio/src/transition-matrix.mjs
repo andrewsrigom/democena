@@ -17,7 +17,7 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
   const before = Math.max(timeline[0].from, incoming.from - 1);
   const midpoint = incoming.overlap === 0 ? incoming.from : incoming.from + Math.floor((incoming.overlap - 1) / 2);
   const after = settledReviewFrame(incoming, undefined, undefined, fps);
-  const settledCheck = Math.min(incoming.end - 1, after + Math.max(1, Math.round(fps * .2)));
+  const settledCheck = Math.min(incoming.end - 1, after + Math.max(1, Math.round(fps * .3)));
   const destinationProject = {
     ...project,
     scenes: [project.scenes[0], { ...project.scenes[1], transition: { type: 'none', duration: 0 } }],
@@ -27,6 +27,10 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
   const destinationReferenceFrame = Math.min(
     destinationIncoming.end - 1,
     destinationIncoming.from + (after - incoming.from),
+  );
+  const destinationSettledReferenceFrame = Math.min(
+    destinationIncoming.end - 1,
+    destinationIncoming.from + (settledCheck - incoming.from),
   );
   return {
     id,
@@ -39,6 +43,7 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
     frames: { before, midpoint, after, settledCheck },
     destinationProject,
     destinationReferenceFrame,
+    destinationSettledReferenceFrame,
     ...extra,
   };
 }
@@ -87,6 +92,8 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-full-bleed-to-full-bleed', from: withLayout(overview, 'full-bleed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: false, midpoint: false, after: false } },
     { id: 'chrome-visible-framed-to-immersive', from: withLayout(overview, 'framed'), to: withChrome(withLayout(focus, 'full-bleed'), 'show'),
       expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { midpoint: true, after: true } },
+    { id: 'chrome-visible-immersive-to-framed', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withLayout(camera, 'framed'),
+      expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true } },
     { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withChrome(withLayout(focus, 'full-bleed'), 'show'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withChrome(withLayout(camera, 'framed'), 'hide'), expectedChrome: { before: true, midpoint: false, after: false } },
   ];

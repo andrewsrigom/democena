@@ -4,7 +4,7 @@ import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurren
 import type { ChapterScene, Project, Scene } from './model';
 import { authoredEntranceOffsetFrames, buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
-import { nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity } from './presentation-chrome';
+import { nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from './presentation-chrome';
 import { transitionRegistry, transitionStyleFor } from './motion-registry';
 import { sceneComposition } from './composition-registry.mjs';
 
@@ -61,7 +61,7 @@ export function Demo(project: Project) {
   const chromeBackdropOpacity = presentationChromeBackdropOpacity(activeComposition.chromeBackdropVisible, previousComposition.chromeBackdropVisible,
     activeChromeVisible, previousChromeVisible, activeEnter);
   const nestedBackdropOpacity = nestedChromeBackdropOpacity(chromeOpacity, chromeBackdropOpacity);
-  const usesBackedChrome = activeComposition.chromeBackdropVisible || previousComposition.chromeBackdropVisible;
+  const usesBackedChrome = presentationChromeUsesBackdrop(activeComposition.chromeBackdropVisible, previousComposition.chromeBackdropVisible, activeEnter);
   const chapter = project.scenes.slice(0, index).findLast((scene): scene is ChapterScene => scene.type === 'chapter');
   const showsChapterContext = chapter && ['overview', 'focus', 'camera', 'annotation', 'result'].includes(active.scene.type);
   const chapterEnter = interpolate(frame - active.from, [0, Math.max(1, Math.round(fps * .28))], [0, 1], CLAMP);

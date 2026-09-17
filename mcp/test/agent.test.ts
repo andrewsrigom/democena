@@ -13,7 +13,7 @@ import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
 import { capturePlanSchema } from '../src/capture-contracts.js';
 import { capabilities, describeProject, validate } from '../src/contracts.js';
-import { captureFingerprint, compileDirection, digest, directionSchema } from '../src/direction.js';
+import { captureFingerprint, compileDirection, digest, directionSchema, renderStoryboard } from '../src/direction.js';
 import { example } from '../../studio/src/model.js';
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
@@ -392,6 +392,18 @@ test('Direction v2 persists per-beat typography, composition and chrome into Pro
   const compiled = compileDirection(parsed, project).project;
   assert.deepEqual(compiled.scenes[1], { ...parsed.scenes[1]!.scene, transition: { type: 'slide-up', duration: 0.4 } });
   assert.deepEqual(compiled.scenes[2], { ...parsed.scenes[2]!.scene, transition: { type: 'fade', duration: 0.3 } });
+});
+
+test('storyboard reports the effective composition after partial beat overrides', () => {
+  const migrated = directionSchema.parse(launchDirection());
+  const partial = {
+    ...migrated,
+    scenes: migrated.scenes.map((entry, index) => index === 1
+      ? { ...entry, beat: { ...entry.beat, composition: { chrome: 'show' as const } } }
+      : entry),
+  };
+  const storyboard = renderStoryboard(partial);
+  assert.match(storyboard, /Composition:\*\* layout=full-bleed · caption=bottom-right · chrome=show \(visible\)/);
 });
 
 test('saving legacy Direction v1 writes v2 while preserving the exact archived revision', async t => {
