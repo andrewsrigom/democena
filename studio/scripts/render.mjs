@@ -189,8 +189,9 @@ try {
     const settledFrames = Math.max(0, readableEnd - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));
     const settledSeconds = settledFrames / composition.fps;
     const copyVisible = sceneCopyVisible(scene);
+    const supportingCopyVisible = scene.type === 'annotation' || (scene.type === 'result' && scene.comparison);
     const count = words(readableSceneCopy(scene), locale);
-    const requiredSeconds = Math.max(copyVisible && scene.body.trim() ? 2 : copyVisible && scene.title.trim() ? 1.5 : 1, count / 3);
+    const requiredSeconds = count === 0 ? 0 : Math.max((copyVisible && scene.body.trim()) || supportingCopyVisible ? 2 : copyVisible && scene.title.trim() ? 1.5 : 1, count / 3);
     if (settledSeconds < requiredSeconds) findings.push({ level: direction ? 'error' : 'warning', code: 'READING_TIME', sceneId: scene.id, message: `Needs ${requiredSeconds.toFixed(2)} settled seconds; has ${settledSeconds.toFixed(2)}.` });
     checkBounds(scene.id, [
       ...(copyVisible ? [
