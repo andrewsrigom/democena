@@ -14,6 +14,10 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
     "tagline": "COLLECTIONS, IN MOTION",
     "footer": "YOUR COLLECTION, READY TO SHARE"
   },
+  "appearance": {
+    "surfaceMode": "light",
+    "radius": 18
+  },
   "video": "captures/forma-take.webm",
   "sourceDuration": 20,
   "trimBefore": 0.5,
@@ -22,7 +26,7 @@ Run `npm run studio:capture` for an editable `studio/project.json` with all eigh
 }
 ```
 
-This skeleton needs at least one scene. Example coordinates and times below illustrate the schema; use the generated Forma project or measured events from your own take for an actual recording. `branding` is optional. Omit it for no header brand or footer slogan; `name`, `tagline` and `footer` are independently optional. `branding.logo` can reference a PNG, JPEG or WebP inside `studio/public`. MCP projects use `import_brand_logo` so the asset is validated, revision-protected and copied into isolated render jobs. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
+This skeleton needs at least one scene. Example coordinates and times below illustrate the schema; use the generated Forma project or measured events from your own take for an actual recording. `branding` is optional. Omit it for no header brand or footer slogan; `name`, `tagline` and `footer` are independently optional. `branding.logo` can reference a PNG, JPEG or WebP inside `studio/public`. MCP projects use `import_brand_logo` so the asset is validated, revision-protected and copied into isolated render jobs. `appearance` is also optional. `surfaceMode` accepts `light`, `dark` or `auto`; automatic mode infers the base palette from an explicit background and otherwise uses light mode. Override any of `background`, `foreground`, `muted`, `surface`, `border`, `tint`, `fontFamily` and `radius` to retain the product's visual identity. Colors use six-digit hex values, radius is 0–40, and the selected system font must exist on the render machine. The quality report checks the authored foreground, muted and accent pairs actually used on the resolved background, surface and tint, plus deterministic bounds for every rendered project and scene text field. `video` is a relative path inside `studio/public`. `sourceDuration` is the full file duration in seconds, before trimming; export checks it against ffprobe. Studio uses the value in the manifest. The viewport must match the captured page. The browser frame fits the available presentation area while preserving its aspect ratio, including taller captures.
 
 There are two independent clocks:
 
@@ -36,10 +40,10 @@ Seconds are rounded to frames at 30 fps. Every scene has a unique `id`, a `type`
 ### Transitions
 
 ```json
-"transition": { "type": "slide", "duration": 0.5 }
+"transition": { "type": "slide-up", "duration": 0.5 }
 ```
 
-Transitions are incoming and overlap the previous scene. They do not add runtime. Two 5-second scenes with a 0.5-second incoming transition have a total duration of 9.5 seconds. Supported types are `fade`, `slide` and `none`; default is a 0.4-second fade. Use `{ "type": "none", "duration": 0 }` for a cut. The first scene has no incoming overlap. Scene thumbnails are chosen between transitions so the next scene cannot leak into the preview. Transition duration must be shorter than half of both neighboring scenes, preventing triple overlaps.
+Transitions are incoming and overlap the previous scene. They do not add runtime. Two 5-second scenes with a 0.5-second incoming transition have a total duration of 9.5 seconds. Supported types are `fade`, the subtle legacy `slide`, directional `slide-up`, `slide-down`, `slide-left`, `slide-right`, and `none`; default is a 0.4-second fade. Direction names describe the new scene's travel: `slide-up` enters from below, while `slide-down` enters from above. Horizontal variants follow the same rule. Use `{ "type": "none", "duration": 0 }` for a cut. The first scene has no incoming overlap. Scene thumbnails are chosen between transitions so the next scene cannot leak into the preview. Transition duration must be shorter than half of both neighboring scenes, preventing triple overlaps.
 
 Durations include transition time. Allow enough settled time to read the title, body and any note; the example uses longer holds for explanations. Keep titles and notes concise and inspect the generated stills for your copy.
 
@@ -67,6 +71,8 @@ Durations include transition time. Allow enough settled time to read the title, 
 }
 ```
 
+The chapter title settles into a compact label that remains above subsequent product scenes. This keeps the current section visible without adding copy to the recording.
+
 ## Overview and focus
 
 ```json
@@ -76,6 +82,17 @@ Durations include transition time. Allow enough settled time to read the title, 
   "eyebrow": "The workspace", "title": "A clear view.", "body": "Everything in one place."
 }
 ```
+
+Product scenes accept an optional `presentation`. The default keeps the browser in the side-by-side editorial frame. `full-bleed` covers the output canvas with the recording, removes browser chrome and hides global Democena presentation chrome while the scene is active. The recording keeps its aspect ratio and crops only the overflow.
+
+```json
+"presentation": {
+  "layout": "full-bleed",
+  "caption": "bottom-left"
+}
+```
+
+Caption options are `side`, `top-left`, `top-right`, `bottom-left`, `bottom-right` and `none`. Full-bleed scenes default to `bottom-left` and accept a positioned overlay or `none`; `side` requires the framed layout, where it is the default. Overlay captions use project appearance tokens, so they remain readable on light and dark products. Use `none` when the surrounding beats already provide enough context.
 
 ```json
 {
@@ -88,6 +105,8 @@ Durations include transition time. Allow enough settled time to read the title, 
 ```
 
 Rectangles use the original viewport's pixels, not output-video pixels. The capture adapter uses Playwright's `boundingBox()` so the effect targets a real element. `dim` is between 0 and 0.85 (default 0.38); `zoom` is between 1 and 3 (default 1.35). Camera positioning clamps to the recorded image and reduces zoom when necessary to keep the target visible. The mask and recording move together.
+
+A focus scene uses the `focus-scan-lock` recipe: a scan line reaches the measured rectangle before the spotlight settles. The effect never invents a target; it uses the same capture evidence required by validation.
 
 ## Camera path
 
@@ -155,6 +174,12 @@ Comparison times follow the same trimmed recording clock as `source.from`. The c
 ```
 
 The CTA is optional. It is a visual closing message in the video, not an interactive button.
+
+## Motion vocabulary
+
+Democena maps semantic scene types to a small deterministic recipe catalog. The current recipes are `text-blur-slide`, `chapter-demote-to-label`, `focus-scan-lock` and `outro-strip-away`. MCP `capabilities` returns their purpose, vibe, recommended duration, use and avoid guidance, evidence requirement, lifecycle and fallback, while `get_project` identifies the resolved recipe in each timeline entry. This lets an agent reason about pacing and suitability before it writes a scene. Recipes remain renderer presets in project version 2, so older manifests gain the refined motion without a migration or extra scene fields.
+
+Each recipe follows anticipation → action → settle → hold. The safe fallback preserves the scene's meaning if a later renderer cannot apply the specialized treatment.
 
 ## Validation and older projects
 

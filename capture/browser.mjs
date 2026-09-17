@@ -177,14 +177,15 @@ export async function captureBrowser(plan, output, options = {}) {
     const at = () => Math.max(0, (performance.now() - firstFrameMonotonic) / 1000);
     for (const [index, step] of plan.steps.entries()) {
       if (timedOut) throw new Error('Capture timed out.');
-      let box;
+      let box, boxAt;
       const target = step.target ? locate(page, step.target) : undefined;
       try {
-        if (target && step.action !== 'expect') {
+        if (target && !['expect', 'mark'].includes(step.action)) {
           await target.waitFor({ state: 'visible' });
           await target.scrollIntoViewIfNeeded();
           await page.waitForTimeout(120);
           box = await target.boundingBox();
+          if (box) boxAt = at();
         }
         const event = {
           id: step.id,
@@ -192,6 +193,7 @@ export async function captureBrowser(plan, output, options = {}) {
           at: at(),
           url: new URL(page.url()).origin + new URL(page.url()).pathname,
           ...(box ? { box } : {}),
+          ...(boxAt !== undefined ? { boxAt } : {}),
         };
         switch (step.action) {
           case 'click':
@@ -230,11 +232,25 @@ export async function captureBrowser(plan, output, options = {}) {
             else await expect(target).toBeVisible();
             event.verified = true;
             box = await target.boundingBox();
-            if (box) event.box = box;
+            if (box) {
+              event.box = box;
+              event.boxAt = at();
+            }
             break;
           case 'mark': {
+            if (target) {
+              await target.waitFor({ state: 'visible' });
+              await target.scrollIntoViewIfNeeded();
+            }
             await page.waitForTimeout(120);
             event.at = at();
+            if (target) {
+              box = await target.boundingBox();
+              if (box) {
+                event.box = box;
+                event.boxAt = at();
+              }
+            }
             event.screenshot = path.join(output, 'marks', `${step.id}.png`);
             await page.screenshot({ path: event.screenshot });
             break;

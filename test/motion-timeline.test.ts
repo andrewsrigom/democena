@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimeline, FPS, prepareProject, sourceFrame } from '../studio/src/timeline.js';
+import { buildTimeline, FPS, prepareProject, settledReviewFrame, sourceFrame } from '../studio/src/timeline.js';
 import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
+import { fullBleedLayout } from '../studio/src/layout.js';
+import { presentationChromeOpacity } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -54,6 +56,26 @@ describe('scene timeline and source clock', () => {
     expect(buildTimeline(scenes, FPS).map(({ from, end }) => [from, end])).toEqual([[0, 3], [3, 8]]);
   });
 
+  it('accepts full-bleed product presentation and directional cover transitions', () => {
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text' },
+      { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true }, presentation: { layout: 'full-bleed', caption: 'bottom-right' }, transition: { type: 'slide-up', duration: .5 } },
+      { ...base, id: 'closing', type: 'outro', transition: { type: 'slide-down', duration: .5 } },
+    ];
+    const prepared = prepareProject({ ...project(), scenes });
+    expect(prepared.scenes[1]).toMatchObject({ presentation: { layout: 'full-bleed', caption: 'bottom-right' }, transition: { type: 'slide-up' } });
+    expect(fullBleedLayout({ width: 1280, height: 800 }, { width: 1920, height: 1080 })).toEqual({ width: 1920, height: 1200, left: 0, top: -60, chromeHeight: 0 });
+  });
+
+  it('keeps presentation chrome hidden between consecutive full-bleed scenes', () => {
+    expect(presentationChromeOpacity(true, true, 0)).toBe(0);
+    expect(presentationChromeOpacity(true, true, 1)).toBe(0);
+    expect(presentationChromeOpacity(true, false, 0)).toBe(1);
+    expect(presentationChromeOpacity(true, false, 1)).toBe(0);
+    expect(presentationChromeOpacity(false, true, 0)).toBe(0);
+    expect(presentationChromeOpacity(false, true, 1)).toBe(1);
+  });
+
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {
     const legacy = { title: 'Legacy', video: 'captures/test.webm', accent: '#28584c', viewport: { width: 1280, height: 800 }, duration: 10, trimBefore: .2,
       scenes: [{ at: 0, eyebrow: 'Start', title: 'Overview', body: '' }, { at: 6, eyebrow: 'Next', title: 'Field', body: '', focus }] };
@@ -73,6 +95,28 @@ describe('scene timeline and source clock', () => {
     expect(prepareProject(p).scenes[0]?.type).toBe('result');
   });
 
+  it('accepts product-derived appearance tokens without changing version 2 projects', () => {
+    const p = prepareProject({ ...project(), appearance: { surfaceMode: 'dark', background: '#101828', foreground: '#f8fafc', muted: '#cbd5e1', surface: '#162033', border: '#344054', tint: '#1d2939', fontFamily: 'Inter, sans-serif', radius: 22 } });
+    expect(p.appearance).toMatchObject({ surfaceMode: 'dark', background: '#101828', radius: 22 });
+    expect(p.version).toBe(2);
+  });
+
+  it('rejects invalid appearance tokens', () => {
+    for (const appearance of [{ surfaceMode: 'night' }, { background: 'black' }, { radius: 41 }, { fontFamily: '' }]) {
+      expect(() => prepareProject({ ...project(), appearance })).toThrow(/appearance/);
+    }
+  });
+
+  it('rejects invalid product presentation', () => {
+    const scene = { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true } };
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'edge-to-edge' } }] })).toThrow(/presentation.layout/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { caption: 'center' } }] })).toThrow(/presentation.caption/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed', caption: 'side' } }] })).toThrow(/side requires the framed layout/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'text', type: 'text', presentation: { layout: 'full-bleed' } }] })).toThrow(/only available on product scenes/);
+    const comparison = project().scenes[6];
+    expect(() => prepareProject({ ...project(), scenes: [{ ...comparison, presentation: { layout: 'full-bleed' } }] })).toThrow(/not available on comparison results/);
+  });
+
 
   it('selects previews outside both incoming and outgoing transitions', () => {
     const scenes: Scene[] = ['a', 'b', 'c'].map((id) => ({ ...base, id, type: 'text', duration: 5, transition: { type: 'fade', duration: 2.4 } }));
@@ -81,6 +125,26 @@ describe('scene timeline and source clock', () => {
     expect(middle.previewFrame).toBeGreaterThanOrEqual(middle.from + middle.overlap);
     expect(middle.previewFrame).toBeLessThan(timeline[2]!.from);
     expect(middle.from + Math.round(middle.duration * .65)).toBeGreaterThanOrEqual(timeline[2]!.from);
+  });
+
+  it('clamps requested review frames after delayed scene entrances', () => {
+    const scenes: Scene[] = ['a', 'b', 'c'].map((id) => ({ ...base, id, type: 'text', duration: 5, transition: { type: 'fade', duration: .4 } }));
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const middle = timeline[1]!;
+    expect(settledReviewFrame(middle, timeline[2]!.from, 0, FPS)).toBe(middle.from + 45);
+    expect(settledReviewFrame(middle, timeline[2]!.from, 2, FPS)).toBe(middle.from + 60);
+  });
+
+  it('waits for every title token before selecting a review frame', () => {
+    const longTitle = Array.from({ length: 20 }, (_, index) => `word${index + 1}`).join(' ');
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text', duration: 5 },
+      { ...base, id: 'long-title', type: 'text', duration: 5, title: longTitle, reveal: 'words' },
+      { ...base, id: 'closing', type: 'text', duration: 5 },
+    ];
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const middle = timeline[1]!;
+    expect(settledReviewFrame(middle, timeline[2]!.from, 0, FPS)).toBe(middle.from + 79);
   });
 
   it('does not apply an incoming transition to a single short opening', () => {

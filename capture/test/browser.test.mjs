@@ -105,7 +105,9 @@ test('capture measures real events, loads saved auth and redacts dynamic content
   assert(
     result.events.every((e) => e.at >= 0 && e.end >= e.at && e.end < duration),
   );
-  assert(result.events.find((e) => e.id === 'first').box.width > 0);
+  const first = result.events.find((e) => e.id === 'first');
+  assert(first.box.width > 0);
+  assert(Number.isFinite(first.boxAt) && first.boxAt >= first.at && first.boxAt <= first.end);
   assert.equal(result.events[0].verified, true);
   assert(result.clock.lastFrameTimestamp >= result.clock.firstFrameTimestamp);
   for (const file of [

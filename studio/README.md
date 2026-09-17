@@ -27,7 +27,9 @@ Capture creates `studio/public/captures/forma-<take-id>.webm` and `studio/projec
 | `result` | Final result, or two cropped frames before/after | Result focus, comparison times, crop and labels |
 | `outro` | Closing benefit or summary with an optional call to action | Text reveal, highlight and CTA |
 
-Each scene has its own duration and incoming `fade`, `slide` or `none` transition. Reorder the scene array to reorder the story. The same composition powers Studio preview and export, with frame-derived animations and system fonts.
+Each scene has its own duration and incoming `fade`, `slide` or `none` transition. Reorder the scene array to reorder the story. The same composition powers Studio preview and export, with frame-derived animations and system fonts. Optional `appearance` tokens preserve light or dark product identity, typography, surfaces, borders and radius.
+
+The renderer currently resolves four semantic motion recipes: restrained blur/slide text, a chapter title that becomes persistent context, an evidence-linked scan and focus lock, and an outro that strips presentation layers away before the closing message. They are internal version 2 presets rather than new scene types. MCP capabilities exposes the catalog and each project timeline reports the selected recipe.
 
 See **[the scene authoring guide](../docs/scenes.md)** for the manifest contract, examples, clock behavior and validation. The bundled capture creates nine editable scenes covering all eight types, including both the workspace and its published catalog. Shared blue tokens in `src/theme.ts` match CatalogForge’s palette; Forma uses the same colors and font stack. Existing manifests using `at` timestamps are upgraded in memory when opened; their files are not overwritten.
 

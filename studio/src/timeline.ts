@@ -1,7 +1,7 @@
 import type { Project, Source } from './model.js';
 
 import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
-export { DEFAULT_TRANSITION, FPS, frames, transitionFrames, buildTimeline } from './timeline-layout.mjs';
+export { DEFAULT_TRANSITION, FPS, frames, transitionFrames, buildTimeline, settledReviewFrame } from './timeline-layout.mjs';
 
 export function sourceFrame(source: Source, localFrame: number, trimBefore: number, fps: number) {
   return frames(trimBefore + source.from, fps) + (source.freeze ? 0 : localFrame);
@@ -54,6 +54,16 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     const logo = p.branding.logo;
     requireValue(logo === undefined || (text(logo) && /^(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.(?:png|jpe?g|webp)$/i.test(logo)), 'branding.logo must be a relative PNG, JPEG or WebP path inside public');
   }
+  if (p.appearance !== undefined) {
+    requireValue(record(p.appearance), 'appearance must be an object');
+    requireValue(p.appearance.surfaceMode === undefined || ['light', 'dark', 'auto'].includes(String(p.appearance.surfaceMode)), 'appearance.surfaceMode must be light, dark or auto');
+    for (const key of ['background', 'foreground', 'muted', 'surface', 'border', 'tint']) {
+      const value = p.appearance[key];
+      requireValue(value === undefined || (text(value) && /^#[0-9a-f]{6}$/i.test(value)), `appearance.${key} must be a six-digit hex color`);
+    }
+    requireValue(p.appearance.fontFamily === undefined || (text(p.appearance.fontFamily) && p.appearance.fontFamily.length > 0 && p.appearance.fontFamily.length <= 200), 'appearance.fontFamily must contain 1-200 characters');
+    requireValue(p.appearance.radius === undefined || (finite(p.appearance.radius) && p.appearance.radius >= 0 && p.appearance.radius <= 40), 'appearance.radius must be between 0 and 40');
+  }
   requireValue(finite(p.sourceDuration) && p.sourceDuration >= 0 && finite(p.trimBefore) && p.trimBefore >= 0 && p.trimBefore <= p.sourceDuration, 'invalid sourceDuration or trimBefore');
   requireValue(record(p.viewport) && finite(p.viewport.width) && p.viewport.width > 0 && finite(p.viewport.height) && p.viewport.height > 0, 'viewport must be positive');
   requireValue(Array.isArray(p.scenes) && p.scenes.length > 0, 'scenes must not be empty');
@@ -79,10 +89,19 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     requireValue(finite(scene.duration) && frames(scene.duration, fps) >= 1, `${name}.duration must cover at least one frame`);
     for (const key of ['eyebrow', 'title', 'body']) requireValue(text(scene[key]), `${name}.${key} is required`);
     const transition = scene.transition ?? DEFAULT_TRANSITION;
-    requireValue(record(transition) && ['fade', 'slide', 'none'].includes(String(transition.type)) && finite(transition.duration) && transition.duration >= 0, `${name}.transition is invalid`);
+    requireValue(record(transition) && ['fade', 'slide', 'slide-up', 'slide-down', 'slide-left', 'slide-right', 'none'].includes(String(transition.type)) && finite(transition.duration) && transition.duration >= 0, `${name}.transition is invalid`);
     const incoming = i === 0 || transition.type === 'none' ? 0 : frames(transition.duration, fps);
     const previous = p.scenes[i - 1];
     requireValue(incoming * 2 < frames(scene.duration, fps) && (!previous || incoming * 2 < frames(Number(previous.duration), fps)), `${name}.transition must be shorter than half of both adjacent scenes`);
+    const productScene = !['text', 'chapter', 'outro'].includes(String(scene.type));
+    requireValue(productScene || scene.presentation === undefined, `${name}.presentation is only available on product scenes`);
+    if (productScene && scene.presentation !== undefined) {
+      requireValue(record(scene.presentation), `${name}.presentation must be an object`);
+      requireValue(scene.presentation.layout === undefined || ['framed', 'full-bleed'].includes(String(scene.presentation.layout)), `${name}.presentation.layout is invalid`);
+      requireValue(scene.presentation.caption === undefined || ['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none'].includes(String(scene.presentation.caption)), `${name}.presentation.caption is invalid`);
+      requireValue(scene.presentation.layout !== 'full-bleed' || scene.presentation.caption !== 'side', `${name}.presentation.caption side requires the framed layout`);
+      requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
+    }
     switch (scene.type) {
       case 'text': case 'outro':
         requireValue(scene.reveal === undefined || scene.reveal === 'words' || scene.reveal === 'lines', `${name}.reveal must be words or lines`);

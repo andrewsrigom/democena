@@ -25,3 +25,39 @@ export function buildTimeline(scenes, fps) {
     return { ...entry, previewFrame };
   });
 }
+
+/** Mirror AnimatedTitle tokenization so review frames include every delayed title entrance. */
+export function animatedTitleLines(text, highlight, reveal = 'words') {
+  let wordIndex = 0;
+  return text.split('\n').map((line, lineIndex) => {
+    const parts = highlight && line.includes(highlight)
+      ? line.split(highlight).flatMap((part, index) => index === 0
+        ? [{ text: part, marked: false }]
+        : [{ text: highlight, marked: true }, { text: part, marked: false }])
+      : [{ text: line, marked: false }];
+    const tokens = parts.flatMap((part) => part.marked
+      ? [part]
+      : part.text.split(/(\s+)/).filter(Boolean).map((token) => ({ text: token, marked: false })));
+    return tokens.map((token) => {
+      if (/^\s+$/.test(token.text)) return token;
+      const delay = reveal === 'lines' ? lineIndex * 9 : wordIndex++ * 3;
+      return { ...token, delay };
+    });
+  });
+}
+
+export function titleEntranceFrames(scene, fps) {
+  if (!['text', 'chapter', 'outro'].includes(scene.type)) return frames(1.5, fps);
+  const reveal = scene.type === 'chapter' ? 'lines' : (scene.reveal ?? 'words');
+  const tokens = animatedTitleLines(scene.title, scene.highlight, reveal).flat().filter((token) => token.delay !== undefined);
+  const latestStart = tokens.reduce((latest, token) => Math.max(latest, token.delay + (token.marked ? 17 : 4)), 0);
+  return Math.max(frames(1.5, fps), latestStart + frames(0.6, fps));
+}
+
+/** Keep review artifacts beyond transitions and the latest delayed content entrance. */
+export function settledReviewFrame(entry, nextFrom, requestedLocalSeconds, fps) {
+  const settledEnd = nextFrom ?? entry.end;
+  const requested = requestedLocalSeconds === undefined ? entry.previewFrame : entry.from + frames(requestedLocalSeconds, fps);
+  const entranceEnd = entry.from + Math.max(entry.overlap, titleEntranceFrames(entry.scene, fps));
+  return Math.min(settledEnd - 1, Math.max(entranceEnd, requested));
+}

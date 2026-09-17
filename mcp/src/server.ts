@@ -6,13 +6,13 @@ import { AgentService } from './service.js';
 export function createServer(service: AgentService) {
   const server = new McpServer({ name: 'democena', version: '0.1.0-alpha.1' }, { instructions: guide });
   for (const name of Object.keys(inputs) as Operation[]) {
-    const readOnly = ['capabilities', 'list_projects', 'list_jobs', 'get_project', 'validate_project', 'get_job', 'read_preview'].includes(name);
-    server.registerTool(`democena_${name}`, { description: descriptions[name], inputSchema: inputs[name].shape, annotations: { readOnlyHint: readOnly, destructiveHint: ['save_project', 'import_media', 'import_brand_logo', 'use_capture', 'start_capture'].includes(name), idempotentHint: readOnly, openWorldHint: name === 'start_capture' } }, async (args: Record<string, unknown>): Promise<CallToolResult> => {
+    const readOnly = ['capabilities', 'list_projects', 'list_jobs', 'get_project', 'get_direction', 'validate_project', 'get_job', 'read_preview'].includes(name);
+    server.registerTool(`democena_${name}`, { description: descriptions[name], inputSchema: inputs[name].shape, annotations: { readOnlyHint: readOnly, destructiveHint: ['save_project', 'save_direction', 'compile_direction', 'deliver_direction', 'merge_scene_drafts', 'import_media', 'import_brand_logo', 'use_capture', 'start_capture'].includes(name), idempotentHint: readOnly || name === 'prepare_scene_packets', openWorldHint: name === 'start_capture' } }, async (args: Record<string, unknown>): Promise<CallToolResult> => {
       try {
         const result = await service.call(name, args);
         if (name === 'read_preview') {
           const { data, ...metadata } = result;
-          return { structuredContent: { ok: true, ...metadata }, content: [{ type: 'text', text: JSON.stringify({ ok: true, ...metadata }) }, { type: 'image', mimeType: 'image/png', data: String(data) }] };
+          return { structuredContent: { ok: true, ...metadata }, content: [{ type: 'text', text: JSON.stringify({ ok: true, ...metadata }) }, { type: 'image', mimeType: String(metadata.mimeType), data: String(data) }] };
         }
         const output = { ok: true, ...result };
         return { structuredContent: output, content: [{ type: 'text', text: JSON.stringify(output) }] };

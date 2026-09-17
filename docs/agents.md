@@ -21,10 +21,16 @@ The package is not published to npm. All commands below use this checkout and ab
 
 ## Connect Codex
 
-Run this from the same environment as the checkout (for example, inside its WSL distribution):
+Run this from the same environment as the checkout:
 
 ```bash
 codex mcp add democena -- node /absolute/path/to/democena/mcp/dist/mcp/src/index.js --workspace /absolute/path/to/demos
+```
+
+For a native Windows checkout, use Windows paths and the installed Node executable directly; WSL is not required:
+
+```powershell
+codex mcp add democena -- node C:\path\to\democena\mcp\dist\mcp\src\index.js --workspace C:\path\to\demos
 ```
 
 For a Windows Codex client launching a WSL checkout, use a verified distribution and absolute Linux paths. Resolve Node with `command -v node` in that distribution and use its absolute path:
@@ -52,11 +58,17 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 
 | Tool | Purpose |
 | --- | --- |
-| `democena_capabilities` | Discover schemas, all eight scene examples and the authoring workflow. |
+| `democena_capabilities` | Discover schemas, all eight scene examples, framed/full-bleed presentation, directional transitions, motion recipes and the authoring workflow. |
 | `democena_list_projects` | List project IDs, titles and current revisions. |
 | `democena_list_jobs` | Recover recent capture and render job IDs after reconnecting. |
 | `democena_create_project` | Create a new text project without overwriting an existing ID. |
 | `democena_get_project` | Read the complete editable manifest, revision, timeline and warnings. |
+| `democena_get_direction` | Read canonical Director data, its independent revision and lifecycle state. |
+| `democena_save_direction` | Save direction data and regenerate the brief and storyboard views. |
+| `democena_compile_direction` | Compile a reviewed direction after checking project, direction and evidence revisions. |
+| `democena_deliver_direction` | Mark a compiled direction delivered after verifying a matching successful final-video job and strict quality report. |
+| `democena_prepare_scene_packets` | Create immutable revision-bound packets for isolated scene work. |
+| `democena_merge_scene_drafts` | Validate isolated drafts and merge them into a new direction that requires review. |
 | `democena_save_project` | Validate and save the edited manifest with `expectedRevision`. |
 | `democena_import_media` | Copy a workspace-local MP4/WebM into the project and inspect its real metadata. |
 | `democena_import_brand_logo` | Validate and copy a workspace-local PNG/JPEG/WebP logo into project branding. |
@@ -65,19 +77,20 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 | `democena_validate_project` | Validate scene semantics and actual recording metadata. |
 | `democena_start_render` | Start an isolated background job in `preview` or `video` mode. |
 | `democena_get_job` | Poll persisted job status and retrieve artifact paths or a failure reason. |
-| `democena_read_preview` | Return the representative PNG, a scene's PNG or a capture marker as MCP image content. |
+| `democena_read_preview` | Return a capture marker, scene, transition, contact sheet or poster image as MCP image content. |
 
 Read-only resources: `democena://guide` and `democena://scenes`. Tool successes include `structuredContent` and equivalent JSON text. Failures set `isError` and return an error code and message; malformed protocol arguments are rejected by the SDK.
 
 ## Suggested agent workflow
 
-1. Read capabilities. Explore the application and agree on the outcome the demo must show.
-2. Create a project with an ID such as `catalog-sharing`, a title and optional `branding` text. New projects contain no Democena watermark.
-3. Call `start_capture` with an authorized URL and a plan using real locators and an outcome assertion after the final state-changing action. Poll `get_job`, inspect marker images through `read_preview`, then call `use_capture` with the current project revision. If the client reconnects, use `list_jobs` to recover the job ID. It returns measured event times and focus rectangles, plus viewport and duration from the actual file. Existing recordings can instead be copied to `assets/` and passed to `import_media`.
-4. Get the project, replace or extend `project.scenes`, then save the full manifest using its `expectedRevision`. Set or change `branding.name`, `branding.tagline` and `branding.footer` through the manifest. To add or replace `branding.logo`, first place a PNG, JPEG or WebP under the workspace's `assets/` directory and call `import_brand_logo`; omit the logo field on a later save to hide it. The eight examples from capabilities are authoring templates, not evidence of a real application's coordinates or timestamps.
-5. Validate, then start a preview render with the current revision. Poll its job ID at a reasonable interval, for example every 2–5 seconds.
-6. Read and inspect relevant scene previews. Adjust copy, focus and timing based on what is visible. Validation does not prove visual quality or application correctness.
-7. Start a video render. Return the resulting MP4 path and any remaining limitations.
+1. Read capabilities and the [Director skill](../skills/democena-director/SKILL.md). Explore the application and identify the outcome the demo must prove.
+2. Create a project with an ID such as `catalog-sharing`, a title, optional `branding` text and optional product-derived `appearance`. New projects contain no Democena watermark. Select a light or dark surface from the actual product instead of forcing the default palette.
+3. Call `start_capture` with an authorized URL and a plan using real locators and an outcome assertion after the final state-changing action. Poll `get_job`, inspect marker images through `read_preview`, then call `use_capture` with the current project revision. If the client reconnects, use `list_jobs` to recover the job ID. It returns measured event times and focus rectangles, plus viewport and duration from the actual file. Existing recordings can instead be copied to `assets/` and passed to `import_media`. To build another intentional variant from the same successful take, create its project and call `use_capture` with `allowCrossProjectReuse: true`; Democena verifies and imports a separate immutable copy with the same capture fingerprint.
+4. Save canonical `direction.json` using its independent revision. Generated `BRIEF.md` and `STORYBOARD.md` are review views. In collaborative mode, obtain storyboard acceptance before recording `reviewed`; in autonomous mode, record Director review after the rubric passes.
+5. Compile with the exact direction and project revisions. A launch compilation enforces 4–6 scenes, 15–25 seconds, a hook, a real product moment, a verified result and a closing scene. Resolve `diverged` state instead of overwriting manual edits.
+6. Validate, then start a preview render. Matching nonterminal capture/render requests return the existing job ID instead of consuming duplicate work.
+7. Inspect scene images, transition images, `review-contact-sheet`, `review-poster` and `review/quality.json`. Captured application text still requires human or agent visual inspection.
+8. Start a video render only after blocking findings are fixed. Inspect the final artifacts, then call `deliver_direction` with the video job ID and the exact compiled direction and project revisions. Return the local MP4 and review artifact paths. Publishing is separate.
 
 A useful prompt for Codex:
 
@@ -109,9 +122,9 @@ Actions: `click`, `fill`, `select` (option label), `press`, `scroll`, `goto`, `w
 
 The result includes action `at`/`end` seconds, measured `box` rectangles, verified assertion events, screenshot paths and the recording's clock origin. The clock starts with the first browser-presented screencast frame, but browser sampling and action scheduling still make alignment approximate. Inspect fast interactions in the MP4. A marker verifies what was visible at that point, not the correctness of an entire workflow.
 
-`start_capture` may change real application data. Its MCP tool advertises this and an open-world interaction. Use workflows the user has authorized. `redact` selectors are installed before the initial capture and on navigation. For authenticated applications, `storageState` accepts an existing JSON file inside the workspace; the tool does not handle interactive login or password entry. Keep credentials and recordings out of Git. `allowedOrigins` adds explicit navigation destinations; the starting origin is allowed by default.
+`start_capture` may change real application data. Its MCP tool advertises this and an open-world interaction. Use workflows the user has authorized. `redact` selectors are installed before the initial capture and on navigation. For authenticated applications, `storageState` accepts an existing JSON file inside the workspace; the tool does not handle interactive login or password entry. Keep credentials and recordings out of Git. `allowedOrigins` adds explicit navigation destinations; the starting origin is allowed by default. Set `buildIdentity` to an immutable application identifier, such as the current Git commit, when it is available; otherwise the quality report requires explicit preview inspection before delivery.
 
-Capture alone never edits a project. On success, `use_capture` imports the take using `expectedRevision` and preserves scenes. If existing scene times or rectangles are incompatible with the new take, adoption fails: adapt the project or create a new project before retrying. Failed jobs can be inspected but never adopted.
+Capture alone never edits a project. On success, `use_capture` imports the take using `expectedRevision` and preserves scenes. It rejects a different target project unless `allowCrossProjectReuse` is explicitly true. If existing scene times or rectangles are incompatible with the new take, adoption fails: adapt the project or create a new project before retrying. Failed jobs can be inspected but never adopted.
 
 ## JSON CLI alternative
 
@@ -125,14 +138,14 @@ node mcp/dist/mcp/src/cli.js create_project --workspace /absolute/path/to/demos 
 `create.json`:
 
 ```json
-{"projectId":"catalog-sharing","title":"Share your catalog","branding":{"name":"CatalogForge","tagline":"CATALOGS, READY TO SHARE"}}
+{"projectId":"catalog-sharing","title":"Share your catalog","branding":{"name":"CatalogForge","tagline":"CATALOGS, READY TO SHARE"},"appearance":{"surfaceMode":"dark","background":"#101828","foreground":"#f8fafc","muted":"#cbd5e1","surface":"#162033","border":"#344054","tint":"#1d2939","radius":18}}
 ```
 
 Use tool names without the `democena_` prefix. Pass arguments in a JSON file to avoid shell escaping. Every call writes one JSON result; failures return a nonzero exit code. `read_preview` includes base64 data in CLI JSON, plus the local image path. Capture and render workers run independently after their start command exits.
 
 ## Persistence and recovery
 
-The selected workspace contains `assets/`, `projects/<id>/` and `jobs/<id>/`. Each project retains `project.json`, old manifests under `revisions/`, imported recordings under `public/captures/` and imported logos under `public/branding/`. Render jobs have a manifest and media snapshot, `job.json`, `render.log` and an isolated `output/` directory. Capture jobs store `capture-plan.json`, `job.json`, and recordings, event metadata and marker images in `output/`. Input plans may include form values, so use synthetic data when preparing public examples.
+The selected workspace contains `assets/`, `projects/<id>/` and `jobs/<id>/`. Each project retains `project.json`, old manifests under `revisions/`, and independent Director data under `direction/`. The direction directory contains revision history, generated brief/storyboard views and revision-scoped scene packets/drafts. Imported recordings have immutable metadata sidecars with content and capture fingerprints. Render jobs snapshot the manifest, compatible direction, media and branding before creating an isolated output bundle.
 
 On `REVISION_CONFLICT`, read the project again and reconcile the changes. Do not blindly retry with a fresh revision. `PROJECT_BUSY` indicates another save; retry after reading the latest state. If a process crashed during a save, a `.write-lock` directory can remain: confirm no writer is running before removing that project's lock. Old revisions can be read locally and saved as a new edit; changing media still requires import.
 
@@ -141,10 +154,10 @@ Renders have a 20-minute timeout. Captures default to two minutes and accept a m
 ## Current boundaries
 
 - Capture supports one browser page and declarative actions; it does not automatically convert arbitrary core CLI TypeScript scenarios. Popups are closed. Cross-origin top-level HTTP(S) navigation, including redirects, must be explicitly allowed. This does not restrict ordinary subresource or API requests.
-- One recording per project; output is currently 1920 × 1080 at 30fps.
+- One immutable recording copy per project; output is currently H.264 yuv420p at 1920 × 1080, 30fps, with no audio stream.
 - Long titles and annotation layouts still need visual inspection. Authoring warnings highlight these known limitations; the server does not claim to fix them automatically.
 - Media imports accept local MP4/WebM paths and brand imports accept PNG/JPEG/WebP paths inside the workspace. Browser plans accept HTTP(S) URLs; none of these interfaces accept arbitrary shell commands or JavaScript. Symlinks inside the workspace are rejected. Run it as a local trusted-user tool; this is not an isolation boundary against another process that can mutate the workspace.
-- Multiple capture/render jobs can consume substantial CPU and storage. Agents should render previews first and avoid repeatedly launching jobs while one is already running.
+- Multiple capture/render jobs can consume substantial CPU and storage. The service deduplicates matching nonterminal requests; agents should still preview before rendering video.
 
 The transport uses the [official MCP TypeScript SDK](https://ts.sdk.modelcontextprotocol.io/server). Protocol tests exercise an actual stdio client connection, not just direct function calls.
 

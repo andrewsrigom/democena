@@ -33,6 +33,7 @@ export type CaptureEvent = {
   end: number;
   url: string;
   box?: { x: number; y: number; width: number; height: number };
+  boxAt?: number;
   screenshot?: string;
   verified?: boolean;
 };
