@@ -63,7 +63,7 @@ describe('transition matrix', () => {
       ['full-bleed', 'framed'],
       [undefined, 'product-stage'],
       [undefined, 'detail-crop'],
-      ['framed', 'layered-product'],
+      [undefined, 'layered-product'],
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
     ]);

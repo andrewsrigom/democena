@@ -104,6 +104,7 @@ describe('scene timeline and source clock', () => {
     expect(overlayCaptionBottom('top-left', true)).toBeUndefined();
     expect(compactChapterChrome('product-stage')).toBe(true);
     expect(compactChapterChrome('detail-crop')).toBe(true);
+    expect(compactChapterChrome('layered-product')).toBe(true);
     expect(compactChapterChrome('framed')).toBe(false);
   });
 
