@@ -4,7 +4,7 @@ import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
 import { fullBleedLayout } from '../studio/src/layout.js';
-import { nestedChromeBackdropOpacity, overlayCaptionTop, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
+import { compactChapterChrome, nestedChromeBackdropOpacity, overlayCaptionTop, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -97,6 +97,8 @@ describe('scene timeline and source clock', () => {
     expect(overlayCaptionTop('top-right', 'full-bleed', true)).toBe(96);
     expect(overlayCaptionTop('top-left', 'product-stage', false)).toBe(150);
     expect(overlayCaptionTop('bottom-left', 'full-bleed', true)).toBeUndefined();
+    expect(compactChapterChrome('product-stage')).toBe(true);
+    expect(compactChapterChrome('framed')).toBe(false);
   });
 
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {

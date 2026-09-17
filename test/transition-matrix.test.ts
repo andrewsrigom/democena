@@ -5,7 +5,7 @@ import type { Project } from '../studio/src/model.js';
 import { transitionRegistry } from '../studio/src/motion-registry.js';
 import { chromeMatrix, transitionMatrix, transitionPhases } from '../studio/src/transition-matrix.mjs';
 import type { ChromeMatrixEntry } from '../studio/src/transition-matrix.mjs';
-import { buildTimeline, FPS } from '../studio/src/timeline.js';
+import { buildTimeline, FPS, prepareProject } from '../studio/src/timeline.js';
 
 const fixture = JSON.parse(readFileSync(fileURLToPath(new URL('../examples/motion-registry/project.json', import.meta.url)), 'utf8')) as Project;
 
@@ -48,6 +48,7 @@ describe('transition matrix', () => {
       'chrome-full-bleed-to-full-bleed',
       'chrome-visible-framed-to-immersive',
       'chrome-visible-immersive-to-framed',
+      'chrome-chapter-to-product-stage',
       'chrome-explicit-hide-to-show',
       'chrome-explicit-show-to-hide',
     ];
@@ -58,6 +59,7 @@ describe('transition matrix', () => {
       ['full-bleed', 'full-bleed'],
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
+      [undefined, 'product-stage'],
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
     ]);
@@ -65,6 +67,7 @@ describe('transition matrix', () => {
       { before: true, midpoint: false, after: false },
       { before: false, midpoint: false, after: true },
       { before: false, midpoint: false, after: false },
+      { before: true, midpoint: true, after: true },
       { before: true, midpoint: true, after: true },
       { before: true, midpoint: true, after: true },
       { before: false, midpoint: false, after: true },
@@ -75,6 +78,7 @@ describe('transition matrix', () => {
     expect(matrix.find((entry) => entry.id === 'chrome-visible-immersive-to-framed')?.expectedBackdrop)
       .toEqual({ before: true, midpoint: true });
     for (const entry of matrix) {
+      expect(() => prepareProject(entry.project)).not.toThrow();
       expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);
       expect(entry.frames.midpoint).toBeLessThan(entry.frames.after);
       expect(entry.frames.settledCheck).toBeLessThan(entry.durationInFrames);

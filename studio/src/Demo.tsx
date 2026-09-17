@@ -4,7 +4,7 @@ import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurren
 import type { ChapterScene, Project, Scene } from './model';
 import { authoredEntranceOffsetFrames, buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
-import { nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from './presentation-chrome';
+import { compactChapterChrome, nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from './presentation-chrome';
 import { transitionRegistry, transitionStyleFor } from './motion-registry';
 import { sceneComposition } from './composition-registry.mjs';
 
@@ -72,7 +72,8 @@ export function Demo(project: Project) {
     {usesBackedChrome ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 8, opacity: chromeBackdropOpacity, background: theme.background }} /> : null}
     <div style={{ opacity: chromeOpacity }}>
       <BrandHeader project={project} theme={theme} backdropOpacity={usesBackedChrome ? nestedBackdropOpacity : 0} />
-      {showsChapterContext ? <ChapterLabel scene={chapter} accent={project.accent} theme={theme} backdropOpacity={usesBackedChrome ? nestedBackdropOpacity : 0} style={{ opacity: chapterEnter, transform: `translateY(${(1 - chapterEnter) * 8}px)` }} /> : null}
+      {showsChapterContext ? <ChapterLabel scene={chapter} accent={project.accent} theme={theme} compact={compactChapterChrome(activeComposition.id)}
+        backdropOpacity={usesBackedChrome ? nestedBackdropOpacity : 0} style={{ opacity: chapterEnter, transform: `translateY(${(1 - chapterEnter) * 8}px)` }} /> : null}
       <div style={{ position: 'absolute', left: usesBackedChrome ? 72 : 96, right: usesBackedChrome ? 72 : 96, bottom: usesBackedChrome ? 46 : 64,
         padding: usesBackedChrome ? '18px 24px' : 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>
         {usesBackedChrome ? <ChromePanel theme={theme} opacity={nestedBackdropOpacity} /> : null}

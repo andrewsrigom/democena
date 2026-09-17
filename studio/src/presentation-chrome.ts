@@ -41,3 +41,7 @@ export function overlayCaptionTop(position: CaptionPlacement, layout: Compositio
   if (position === 'top-left' && chromeVisible) return 190;
   return layout === 'product-stage' ? 150 : 96;
 }
+
+export function compactChapterChrome(layout: CompositionLayout) {
+  return layout === 'product-stage';
+}
