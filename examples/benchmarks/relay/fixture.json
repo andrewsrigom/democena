@@ -18,6 +18,7 @@
   ],
   "panelTitle": "Run complete",
   "panelNote": "All requested changes verified",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
   "rows": [
     { "name": "Inspect workspace", "detail": "Requirements matched", "state": "Done" },
     { "name": "Apply changes", "detail": "4 files updated", "state": "Done" },

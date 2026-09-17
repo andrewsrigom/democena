@@ -18,6 +18,7 @@
   ],
   "panelTitle": "Service map",
   "panelNote": "Checkout latency recovered",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
   "rows": [
     { "name": "edge-gateway", "detail": "42ms · healthy", "state": "Live" },
     { "name": "checkout-api", "detail": "184ms · recovered", "state": "Stable" },

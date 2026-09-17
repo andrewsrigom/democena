@@ -10,8 +10,11 @@ These four synthetic applications provide portable, deterministic inputs for Dem
 Run the complete benchmark suite from the repository root:
 
 ```sh
+npm run studio:install
 npm run benchmark:visual
 ```
+
+The Studio install is intentionally separate from the core package and is required for Remotion rendering.
 
 Use `-- --output <directory>` to keep generated captures, rendered frames, contact sheets, quality reports, and review notes in a private review directory. Generated media is never a committed benchmark source.
 

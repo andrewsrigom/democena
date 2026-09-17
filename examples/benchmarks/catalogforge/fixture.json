@@ -18,6 +18,7 @@
   ],
   "panelTitle": "Feed health",
   "panelNote": "All critical checks passed",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
   "rows": [
     { "name": "Storefront API", "detail": "4,820 records", "state": "Synced" },
     { "name": "Partner CSV", "detail": "5,140 records", "state": "Synced" },

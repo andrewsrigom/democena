@@ -18,6 +18,7 @@
   ],
   "panelTitle": "Spring edit",
   "panelNote": "Ready for final review",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
   "rows": [
     { "name": "Arc chair", "detail": "Oak · Natural", "state": "Ready" },
     { "name": "Fold lamp", "detail": "Steel · Chalk", "state": "Ready" },

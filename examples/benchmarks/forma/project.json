@@ -53,7 +53,7 @@
       "title": "The collection tells you when it is ready.",
       "body": "A measured product region remains the visual proof.",
       "source": { "from": 0, "freeze": true },
-      "focus": { "x": 894, "y": 190, "width": 310, "height": 212 },
+      "focus": { "x": 890, "y": 274, "width": 314, "height": 212 },
       "dim": 0.34,
       "zoom": 1.28,
       "presentation": { "layout": "full-bleed", "caption": "bottom-left" },
