@@ -69,6 +69,10 @@ function contrast(a, b) {
   const [bright, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (bright + 0.05) / (dark + 0.05);
 }
+function composite(foreground, background, alpha) {
+  const channel = (hex, start) => Number.parseInt(hex.slice(start, start + 2), 16);
+  return `#${[1, 3, 5].map((start) => Math.round(channel(foreground, start) * alpha + channel(background, start) * (1 - alpha)).toString(16).padStart(2, '0')).join('')}`;
+}
 function escapeHtml(value) {
   return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
@@ -157,6 +161,7 @@ try {
     || scene.presentation?.caption === 'side');
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
     || (!['text', 'chapter', 'outro'].includes(scene.type) && scene.presentation?.layout !== 'full-bleed'));
+  const chapterBadge = props.scenes.some((scene) => scene.type === 'chapter') ? composite(props.accent, theme.background, 0x18 / 0xff) : undefined;
   const contrastChecks = [
     ...(backgroundCopy ? [
       { name: 'foreground-on-background', foreground: theme.foreground, background: theme.background, ratio: contrast(theme.foreground, theme.background), required: 4.5 },
@@ -164,6 +169,7 @@ try {
       { name: 'accent-on-background', foreground: props.accent, background: theme.background, ratio: contrast(props.accent, theme.background), required: 4.5 },
     ] : []),
     ...(mutedOnTint ? [{ name: 'muted-on-tint', foreground: theme.muted, background: theme.tint, ratio: contrast(theme.muted, theme.tint), required: 4.5 }] : []),
+    ...(chapterBadge ? [{ name: 'accent-on-chapter-badge', foreground: props.accent, background: chapterBadge, ratio: contrast(props.accent, chapterBadge), required: 4.5 }] : []),
     ...(fullBleedCaption ? [
       { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
       { name: 'muted-on-surface', foreground: theme.muted, background: theme.surface, ratio: contrast(theme.muted, theme.surface), required: 4.5 },

@@ -212,6 +212,7 @@ function launchDirection() {
     buildIdentity: 'fixture-1',
     events: [
       { markId: 'reveal', timestamp: 0, settledUntil: 0.25, verified: false },
+      { markId: 'comparison-before', timestamp: 1, settledUntil: 1.25, rect: { x: 100, y: 100, width: 300, height: 120 }, rectTimestamp: 1, verified: false },
       { markId: 'camera-start', timestamp: 1, settledUntil: 1.25, rect: { x: 50, y: 50, width: 100, height: 50 }, rectTimestamp: 1, verified: false },
       { markId: 'camera-stop', timestamp: 2, settledUntil: 2.25, rect: { x: 300, y: 200, width: 120, height: 60 }, rectTimestamp: 2, verified: false },
       { markId: 'result', timestamp: 4, settledUntil: 4.25, rect: { x: 100, y: 100, width: 300, height: 120 }, rectTimestamp: 4, verified: true },
@@ -257,6 +258,7 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.equal(compiled.project.scenes[3]?.transition?.type, 'slide-down');
   assert.deepEqual('presentation' in compiled.project.scenes[1]! ? compiled.project.scenes[1].presentation : undefined, { layout: 'full-bleed', caption: 'bottom-right' });
   assert(compiled.duration >= 15 && compiled.duration <= 25);
+  assert.throws(() => compileDirection({ ...direction, executionMode: 'plan-only' }, project), /Plan-only directions cannot compile/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'result', verified: false }] } : entry) }, project), /verified result/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'product-reveal' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 0, verified: false }] } : entry) }, project), /requires a captured marker ID/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'invented', verified: true }] } : entry) }, project), /outside the adopted take/);
@@ -270,6 +272,18 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, scene: { id: 'result', type: 'text', duration: 4.1, eyebrow: 'Published', title: 'The result is visible.', body: 'Authored copy alone is not verified product evidence.' } } : entry) }, project), /verified result displayed from its verified capture evidence/);
   const unverifiedCapture = { ...direction.capture, events: direction.capture.events.map((event) => event.markId === 'result' ? { ...event, verified: false } : event) };
   assert.throws(() => compileDirection({ ...direction, capture: unverifiedCapture, captureFingerprint: captureFingerprint(unverifiedCapture) }, project), /did not verify it/);
+  const comparison = {
+    ...direction,
+    scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? {
+      ...entry,
+      evidence: [
+        { kind: 'capture' as const, timestamp: 1, markId: 'comparison-before', rect: { x: 100, y: 100, width: 300, height: 120 }, verified: false },
+        { kind: 'capture' as const, timestamp: 4, markId: 'result', rect: { x: 100, y: 100, width: 300, height: 120 }, verified: true },
+      ],
+      scene: { ...entry.scene, source: { from: 9, freeze: true }, comparison: { before: 1, after: 4, crop: { x: 100, y: 100, width: 300, height: 120 }, beforeLabel: 'Before', afterLabel: 'After' } },
+    } : entry),
+  };
+  assert.equal(compileDirection(comparison, project).project.scenes[2]?.type, 'result');
 });
 
 test('capture evidence follows the raw recording clock after project trimming', () => {

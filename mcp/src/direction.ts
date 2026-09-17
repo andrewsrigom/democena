@@ -160,21 +160,21 @@ function assertBoundCaptureEvidence(direction: Direction, sceneId: string, evide
 
 function requiredTimestamps(scene: SceneInput, trimBefore: number) {
   if (!('source' in scene)) return [];
-  const values = [trimBefore + scene.source.from];
-  if (scene.type === 'result' && scene.comparison) values.push(trimBefore + scene.comparison.before, trimBefore + scene.comparison.after);
-  return [...new Set(values)];
+  if (scene.type === 'result' && scene.comparison) return [...new Set([trimBefore + scene.comparison.before, trimBefore + scene.comparison.after])];
+  return [trimBefore + scene.source.from];
 }
 
 function requiredRectangles(scene: SceneInput, trimBefore: number) {
   const values: Array<{ rect: { x: number; y: number; width: number; height: number }; timestamp: number }> = [];
   if (!('source' in scene)) return values;
-  const sourceStart = trimBefore + scene.source.from;
-  if ('focus' in scene && scene.focus) values.push({ rect: scene.focus, timestamp: sourceStart });
-  if (scene.type === 'camera') for (const stop of scene.path) if (stop.focus) values.push({ rect: stop.focus, timestamp: sourceStart + (scene.source.freeze ? 0 : stop.at) });
   if (scene.type === 'result' && scene.comparison) {
     values.push({ rect: scene.comparison.crop, timestamp: trimBefore + scene.comparison.before });
     values.push({ rect: scene.comparison.crop, timestamp: trimBefore + scene.comparison.after });
+    return values;
   }
+  const sourceStart = trimBefore + scene.source.from;
+  if ('focus' in scene && scene.focus) values.push({ rect: scene.focus, timestamp: sourceStart });
+  if (scene.type === 'camera') for (const stop of scene.path) if (stop.focus) values.push({ rect: stop.focus, timestamp: sourceStart + (scene.source.freeze ? 0 : stop.at) });
   return values;
 }
 
@@ -196,6 +196,7 @@ function applyTransition(entry: DirectionScene, index: number, profile: Directio
 export function compileDirection(directionValue: unknown, currentProject: ProjectInput) {
   const direction = directionSchema.parse(directionValue);
   if (direction.status !== 'reviewed') throw new Error('Direction must be reviewed before compilation.');
+  if (direction.executionMode === 'plan-only') throw new Error('Plan-only directions cannot compile or render. Change executionMode after authorizing execution.');
   const appEntries = direction.scenes.filter((entry) => !['text', 'chapter', 'outro'].includes(entry.scene.type));
   if (appEntries.length > 0) {
     if (!direction.capture || !direction.captureFingerprint) throw new Error('Application scenes require compatible capture metadata.');

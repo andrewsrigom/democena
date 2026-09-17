@@ -9,7 +9,7 @@ Create the shortest truthful product story that proves a useful outcome. Use rec
 
 ## Choose the execution mode
 
-- `plan-only`: inspect and save direction; do not capture or render.
+- `plan-only`: inspect and save direction; do not capture, compile or render. Change the execution mode only after execution is authorized.
 - `collaborative`: show the generated storyboard before compilation and the review bundle before the final render.
 - `autonomous`: complete the local workflow without routine pauses, record `reviewedBy: "director"`, and still create the same review artifacts.
 
