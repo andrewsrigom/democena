@@ -4,7 +4,7 @@ import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
 import { fullBleedLayout } from '../studio/src/layout.js';
-import { presentationChromeOpacity } from '../studio/src/presentation-chrome.js';
+import { presentationChromeBackdropOpacity, presentationChromeOpacity } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -76,6 +76,14 @@ describe('scene timeline and source clock', () => {
     expect(presentationChromeOpacity(false, true, 1)).toBe(0);
     expect(presentationChromeOpacity(true, false, 0)).toBe(0);
     expect(presentationChromeOpacity(true, false, 1)).toBe(1);
+  });
+
+  it('backs visible chrome throughout a framed-to-immersive handoff', () => {
+    expect(presentationChromeBackdropOpacity(true, false, true, true, 0)).toBe(1);
+    expect(presentationChromeBackdropOpacity(true, false, true, true, .5)).toBe(1);
+    expect(presentationChromeBackdropOpacity(true, false, true, true, 1)).toBe(1);
+    expect(presentationChromeBackdropOpacity(false, true, true, true, .99)).toBe(1);
+    expect(presentationChromeBackdropOpacity(false, true, true, true, 1)).toBe(0);
   });
 
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {

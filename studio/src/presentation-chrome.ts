@@ -8,3 +8,18 @@ export function presentationChromeOpacity(activeVisible: boolean, previousVisibl
   if (!activeVisible) return 1 - clamp(activeEnter / 0.35);
   return clamp((activeEnter - 0.65) / 0.35);
 }
+
+export function presentationChromeBackdropOpacity(
+  activeBacked: boolean,
+  previousBacked: boolean,
+  activeVisible: boolean,
+  previousVisible: boolean,
+  activeEnter: number,
+) {
+  if (activeVisible && previousVisible) {
+    if (activeBacked) return 1;
+    if (previousBacked) return activeEnter < 1 ? 1 : 0;
+    return 0;
+  }
+  return presentationChromeOpacity(activeBacked, previousBacked, activeEnter);
+}

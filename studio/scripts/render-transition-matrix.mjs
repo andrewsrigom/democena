@@ -106,6 +106,7 @@ try {
       fromSceneId: entry.fromSceneId,
       toSceneId: entry.toSceneId,
       ...(entry.expectedChrome ? { expectedChrome: entry.expectedChrome } : {}),
+      ...(entry.expectedBackdrop ? { expectedBackdrop: entry.expectedBackdrop } : {}),
       frames: entry.frames,
       images: Object.fromEntries(transitionPhases.map((phase) => [phase, `${entry.id}/${phase}.png`])),
       references: { destination: `${entry.id}/destination.png` },

@@ -85,10 +85,12 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-framed-to-full-bleed', from: withLayout(overview, 'framed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: true, midpoint: false, after: false } },
     { id: 'chrome-full-bleed-to-framed', from: withLayout(focus, 'full-bleed'), to: withLayout(camera, 'framed'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-full-bleed-to-full-bleed', from: withLayout(overview, 'full-bleed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: false, midpoint: false, after: false } },
+    { id: 'chrome-visible-framed-to-immersive', from: withLayout(overview, 'framed'), to: withChrome(withLayout(focus, 'full-bleed'), 'show'),
+      expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: false, midpoint: true, after: true } },
     { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withChrome(withLayout(focus, 'full-bleed'), 'show'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withChrome(withLayout(camera, 'framed'), 'hide'), expectedChrome: { before: true, midpoint: false, after: false } },
   ];
   return cases.map((entry) => matrixEntry(entry.id, source, entry.from, entry.to, { type: 'fade', duration: .4 }, fps, {
-    kind: 'chrome', expectedChrome: entry.expectedChrome,
+    kind: 'chrome', expectedChrome: entry.expectedChrome, ...(entry.expectedBackdrop ? { expectedBackdrop: entry.expectedBackdrop } : {}),
   }));
 }
