@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   motionImplementationFor,
@@ -14,7 +15,7 @@ import {
 import type { Project, Scene } from '../studio/src/model.js';
 
 function projectFixture(file: string) {
-  return JSON.parse(readFileSync(file, 'utf8')) as Project;
+  return JSON.parse(readFileSync(fileURLToPath(new URL(`../${file}`, import.meta.url)), 'utf8')) as Project;
 }
 
 describe('shared motion registry', () => {
