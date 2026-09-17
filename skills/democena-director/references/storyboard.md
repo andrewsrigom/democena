@@ -1,6 +1,6 @@
 # Storyboard
 
-Every scene needs a narrative role, reason, settled preview time, render scene and evidence list.
+Every scene needs a narrative role, reason, settled preview time, render scene and evidence list. Its Direction v2 beat also records one visual concept, focal action, primary subject, typographic role and density, transition intent, compatible recipe shortlist and deterministic fallback.
 
 Use `authored-copy` evidence for framing, interpretation and approved product language. Use `capture` evidence for product behavior, timestamps and rectangles. Application scenes require capture evidence. A verified result uses evidence returned from an outcome assertion.
 

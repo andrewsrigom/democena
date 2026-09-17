@@ -78,8 +78,9 @@ export class Workspace {
       if (error.code === 'ENOENT') throw new AgentError('DIRECTION_NOT_FOUND', `Project ${id} has no Director plan yet.`);
       throw error;
     });
-    const saved = directionSchema.parse(JSON.parse(raw));
-    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved };
+    const source = JSON.parse(raw) as unknown;
+    const saved = directionSchema.parse(source);
+    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved, source, raw };
   }
 
   async getDirection(id: string) {
@@ -88,7 +89,7 @@ export class Workspace {
     const direction = saved.compiledProjectRevision && saved.compiledProjectRevision !== current.projectRevision && ['compiled', 'delivered'].includes(saved.status)
       ? { ...saved, status: 'diverged' as const }
       : saved;
-    const { saved: _saved, ...metadata } = current;
+    const { saved: _saved, source: _source, raw: _raw, ...metadata } = current;
     return { ...metadata, direction };
   }
 
@@ -111,7 +112,7 @@ export class Workspace {
       if (current ? current.directionRevision !== expectedDirectionRevision : expectedDirectionRevision !== null) {
         throw new AgentError('DIRECTION_REVISION_CONFLICT', 'The direction has changed. Read it again and reconcile your edits. Use null only for the first save.');
       }
-      await this.commitDirection(id, current?.directionRevision, current?.saved, direction);
+      await this.commitDirection(id, current?.directionRevision, current?.source, direction);
       return this.getDirection(id);
     } finally {
       await rm(lock, { recursive: true, force: true });
@@ -122,8 +123,16 @@ export class Workspace {
     const parsed = directionSchema.parse(direction);
     const dir = await this.safe(`projects/${id}/direction`);
     await mkdir(path.join(dir, 'revisions'), { recursive: true });
-    if (previousRevision && previous) {
-      await writeFile(path.join(dir, 'revisions', `${previousRevision}.json`), JSON.stringify(previous, null, 2) + '\n', { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'EEXIST') throw error; });
+    let archived = previous ? JSON.stringify(previous, null, 2) + '\n' : undefined;
+    if (previousRevision) {
+      const current = await this.readCanonicalDirection(id).catch((error: unknown) => {
+        if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
+        throw error;
+      });
+      if (current?.directionRevision === previousRevision) archived = current.raw;
+    }
+    if (previousRevision && archived) {
+      await writeFile(path.join(dir, 'revisions', `${previousRevision}.json`), archived, { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'EEXIST') throw error; });
     }
     const briefFile = path.join(dir, 'BRIEF.md');
     const storyboardFile = path.join(dir, 'STORYBOARD.md');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { motionRecipeFor, motionRecipes } from '../studio/src/motion-recipes.js';
+import { motionRecipeFor, motionRecipes, motionRecipeVocabulary } from '../studio/src/motion-recipes.js';
 import type { Scene } from '../studio/src/model.js';
 
 describe('motion recipe vocabulary', () => {
@@ -18,5 +18,10 @@ describe('motion recipe vocabulary', () => {
       expect(recipe.fallback.length).toBeGreaterThan(20);
       expect(recipe.lifecycle).toEqual(['anticipation', 'action', 'settle', 'hold']);
     }
+  });
+
+  it('advertises the standard fallback used by unspecialized scene types', () => {
+    expect(motionRecipeVocabulary.map((recipe) => recipe.id)).toContain('standard-scene-motion');
+    expect(motionRecipeVocabulary.find((recipe) => recipe.id === 'standard-scene-motion')?.sceneTypes).toContain('overview');
   });
 });
