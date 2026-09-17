@@ -368,6 +368,21 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'standard-scene-motion', compatible: ['text-blur-slide', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /cannot render through Project v2/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { caption: 'side' } } } : entry) }), /effective full-bleed layout cannot use a side caption/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'full-bleed-proof' } } } : entry) }), /requires an evidence-linked focus rectangle/);
+  const focusScene = (entry: (typeof migrated.scenes)[number], layout: 'detail-crop' | 'full-bleed-proof', inherited: boolean) => ({
+    ...entry,
+    scene: {
+      id: entry.scene.id, type: 'focus' as const, duration: entry.scene.duration, eyebrow: entry.scene.eyebrow, title: entry.scene.title, body: entry.scene.body,
+      source: { from: 0, freeze: true }, focus: { x: 100, y: 100, width: 300, height: 120 }, zoom: 1,
+      ...(inherited ? { presentation: { layout, caption: layout === 'detail-crop' ? 'side' as const : 'bottom-left' as const } } : {}),
+    },
+    beat: {
+      ...entry.beat,
+      ...(inherited ? {} : { composition: { layout, caption: layout === 'detail-crop' ? 'side' as const : 'bottom-left' as const } }),
+      recipe: { selected: 'focus-scan-lock', compatible: ['focus-scan-lock', 'standard-scene-motion'], fallback: 'standard-scene-motion' },
+    },
+  });
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? focusScene(entry, 'detail-crop', true) : entry) }), /zoom must be at least 1.2 for the effective detail-crop layout/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? focusScene(entry, 'full-bleed-proof', false) : entry) }), /zoom must be at least 1.1 for the effective full-bleed-proof layout/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 2 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'framed' } }, scene: { ...entry.scene, comparison: { before: 1, after: 4, crop: { x: 100, y: 100, width: 300, height: 120 }, beforeLabel: 'Before', afterLabel: 'After' } } } : entry) }), /Comparison result beats cannot select product layouts or captions/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
 });

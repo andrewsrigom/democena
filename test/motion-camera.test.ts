@@ -19,8 +19,8 @@ describe('motion camera', () => {
   it('never pans beyond the recorded image', () => {
     for (const x of [0, 133, 1000]) for (const y of [0, 400, 740]) {
       const camera = cameraFor({ x, y, width: 180, height: 40 }, viewport, width);
-      expect(Math.abs(camera.x)).toBeLessThanOrEqual(width * (camera.scale - 1) / 2);
-      expect(Math.abs(camera.y)).toBeLessThanOrEqual(viewport.height * ratio * (camera.scale - 1) / 2);
+      expect(Math.abs(camera.x)).toBeLessThanOrEqual(width * (camera.scale - 1) / 2 + 1e-9);
+      expect(Math.abs(camera.y)).toBeLessThanOrEqual(viewport.height * ratio * (camera.scale - 1) / 2 + 1e-9);
     }
   });
 
@@ -35,5 +35,22 @@ describe('motion camera', () => {
     const rendered = cameraPoint({ x: focus.x + focus.width / 2, y: focus.y + focus.height / 2 }, viewport, width, camera);
     expect(rendered.x).toBeCloseTo(width / 2);
     expect(rendered.y).toBeCloseTo(width * viewport.height / viewport.width / 2);
+  });
+
+  it('uses cover-crop margins to keep edge evidence inside the visible canvas', () => {
+    const coverWidth = 1920;
+    const coverHeight = coverWidth * viewport.height / viewport.width;
+    const visible = { width: 1920, height: 1080 };
+    const wrapperTop = (visible.height - coverHeight) / 2;
+    for (const focus of [
+      { x: 500, y: 0, width: 280, height: 120 },
+      { x: 500, y: 680, width: 280, height: 120 },
+    ]) {
+      const camera = cameraFor(focus, viewport, coverWidth, 1.24, visible);
+      const top = cameraPoint({ x: focus.x, y: focus.y }, viewport, coverWidth, camera).y + wrapperTop;
+      const bottom = cameraPoint({ x: focus.x, y: focus.y + focus.height }, viewport, coverWidth, camera).y + wrapperTop;
+      expect(top).toBeGreaterThanOrEqual(0);
+      expect(bottom).toBeLessThanOrEqual(visible.height);
+    }
   });
 });

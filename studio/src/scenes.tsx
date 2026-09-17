@@ -199,9 +199,10 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
   const focus = 'focus' in scene ? scene.focus : undefined;
   const strength = spring({ frame, fps, config: { damping: 30, stiffness: 60 } });
   const defaultZoom = composition.id === 'detail-crop' ? 1.85 : composition.id === 'full-bleed-proof' ? 1.24 : 1.14;
-  const target = cameraFor(focus, project.viewport, primary.width, scene.type === 'focus' ? scene.zoom ?? defaultZoom : defaultZoom);
-  const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, primary.width)
-    : scene.type === 'annotation' && !composition.requiresFocus ? cameraFor(undefined, project.viewport, primary.width)
+  const visibleCameraViewport = composition.immersive ? { width: compositionWidth, height: compositionHeight } : undefined;
+  const target = cameraFor(focus, project.viewport, primary.width, scene.type === 'focus' ? scene.zoom ?? defaultZoom : defaultZoom, visibleCameraViewport);
+  const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, primary.width, visibleCameraViewport)
+    : scene.type === 'annotation' && !composition.requiresFocus ? cameraFor(undefined, project.viewport, primary.width, undefined, visibleCameraViewport)
     : { scale: 1 + (target.scale - 1) * strength, x: target.x * strength, y: target.y * strength };
   const framed = !composition.immersive;
   const dim = scene.type === 'focus' ? scene.dim ?? (composition.id === 'full-bleed-proof' ? .48 : .38) : scene.type === 'annotation' ? .14 : 0;

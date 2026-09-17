@@ -171,6 +171,12 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
     if (presentationScene && compositionRegistry[effectiveLayout].requiresFocus && !('focus' in entry.scene && entry.scene.focus)) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'layout'], message: `${effectiveLayout} requires an evidence-linked focus rectangle.` });
     }
+    if (presentationScene && entry.scene.type === 'focus' && entry.scene.zoom !== undefined) {
+      const minimumZoom = effectiveLayout === 'detail-crop' ? 1.2 : effectiveLayout === 'full-bleed-proof' ? 1.1 : 1;
+      if (entry.scene.zoom < minimumZoom) {
+        ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'zoom'], message: `zoom must be at least ${minimumZoom} for the effective ${effectiveLayout} layout.` });
+      }
+    }
     if (entry.beat.typographicRole === 'silent-product' && ((composition?.caption && composition.caption !== 'none') || (scenePresentation?.caption && scenePresentation.caption !== 'none'))) {
       ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'composition', 'caption'], message: 'silent-product beats cannot render a caption.' });
     }
