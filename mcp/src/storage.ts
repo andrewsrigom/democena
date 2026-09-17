@@ -123,8 +123,16 @@ export class Workspace {
     const parsed = directionSchema.parse(direction);
     const dir = await this.safe(`projects/${id}/direction`);
     await mkdir(path.join(dir, 'revisions'), { recursive: true });
-    if (previousRevision && previous) {
-      await writeFile(path.join(dir, 'revisions', `${previousRevision}.json`), JSON.stringify(previous, null, 2) + '\n', { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'EEXIST') throw error; });
+    let archived = previous;
+    if (previousRevision) {
+      const current = await this.readCanonicalDirection(id).catch((error: unknown) => {
+        if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
+        throw error;
+      });
+      if (current?.directionRevision === previousRevision) archived = current.source;
+    }
+    if (previousRevision && archived) {
+      await writeFile(path.join(dir, 'revisions', `${previousRevision}.json`), JSON.stringify(archived, null, 2) + '\n', { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'EEXIST') throw error; });
     }
     const briefFile = path.join(dir, 'BRIEF.md');
     const storyboardFile = path.join(dir, 'STORYBOARD.md');

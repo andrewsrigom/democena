@@ -130,9 +130,10 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
       const recipe = recipeById.get(recipeId);
       if (recipeId !== standardRecipe && !recipe) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Unknown motion recipe: ${recipeId}.` });
       if (recipe && !recipe.sceneTypes.includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} does not support ${entry.scene.type} scenes.` });
-      if (recipe?.evidence === 'authored-copy' && !entry.evidence.some((item) => item.kind === 'authored-copy')) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} requires authored-copy evidence.` });
-      if (recipe?.evidence === 'capture-rectangle' && !entry.evidence.some((item) => item.kind === 'capture' && item.rect)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} requires captured rectangle evidence.` });
     }
+    const renderedRecipe = motionRecipeFor(entry.scene) ?? standardRecipe;
+    if (!entry.beat.recipe.compatible.includes(renderedRecipe)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'compatible'], message: `The current Project v2 renderer applies ${renderedRecipe}; include it in the compatible recipe shortlist.` });
+    if (entry.beat.recipe.selected && entry.beat.recipe.selected !== renderedRecipe) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'selected'], message: `Selected recipe ${entry.beat.recipe.selected} cannot render through Project v2; the current renderer applies ${renderedRecipe}.` });
     if (entry.beat.recipe.selected && !entry.beat.recipe.compatible.includes(entry.beat.recipe.selected)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'selected'], message: 'The selected recipe must appear in the compatible recipe shortlist.' });
     if (!entry.beat.recipe.compatible.includes(entry.beat.recipe.fallback)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe', 'fallback'], message: 'The fallback recipe must appear in the compatible recipe shortlist.' });
     if (entry.beat.typographicRole === 'silent-product' && ['text', 'chapter', 'outro'].includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'typographicRole'], message: 'silent-product is available only to product scenes.' });
@@ -154,14 +155,7 @@ function migratedMotionLanguage(tone: DirectionV1['tone']) {
 }
 
 function migratedBeat(entry: DirectionV1['scenes'][number]) {
-  const candidate = motionRecipeFor(entry.scene);
-  const candidateRecipe = candidate ? recipeById.get(candidate) : undefined;
-  const candidateEvidenceFits = candidateRecipe?.evidence === 'authored-copy'
-    ? entry.evidence.some((item) => item.kind === 'authored-copy')
-    : candidateRecipe?.evidence === 'capture-rectangle'
-      ? entry.evidence.some((item) => item.kind === 'capture' && item.rect)
-      : true;
-  const selected = candidateEvidenceFits ? candidate : undefined;
+  const selected = motionRecipeFor(entry.scene);
   const compatible = [...new Set([...(selected ? [selected] : []), standardRecipe])];
   const role = entry.narrativeRole;
   return {
@@ -192,6 +186,17 @@ function migratedBeat(entry: DirectionV1['scenes'][number]) {
               : 'continue' as const,
     recipe: { ...(selected ? { selected } : {}), compatible, fallback: standardRecipe },
   };
+}
+
+function assertRenderedRecipeEvidence(entry: DirectionScene) {
+  const recipeId = motionRecipeFor(entry.scene) ?? standardRecipe;
+  const recipe = recipeById.get(recipeId);
+  if (recipe?.evidence === 'authored-copy' && !entry.evidence.some((item) => item.kind === 'authored-copy')) {
+    throw new Error(`Motion recipe ${recipeId} requires authored-copy evidence for scene ${entry.scene.id}.`);
+  }
+  if (recipe?.evidence === 'capture-rectangle' && !entry.evidence.some((item) => item.kind === 'capture' && item.rect)) {
+    throw new Error(`Motion recipe ${recipeId} requires captured rectangle evidence for scene ${entry.scene.id}.`);
+  }
 }
 
 function migrateDirection(value: unknown) {
@@ -307,6 +312,7 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
   if (direction.status !== 'reviewed') throw new Error('Direction must be reviewed before compilation.');
   if (direction.executionMode === 'plan-only') throw new Error('Plan-only directions cannot compile or render. Change executionMode after authorizing execution.');
   if (!['tour', 'launch'].includes(direction.storyMode)) throw new Error(`Story mode ${direction.storyMode} is defined but is not renderable yet.`);
+  for (const entry of direction.scenes) assertRenderedRecipeEvidence(entry);
   const appEntries = direction.scenes.filter((entry) => !['text', 'chapter', 'outro'].includes(entry.scene.type));
   if (appEntries.length > 0) {
     if (!direction.capture || !direction.captureFingerprint) throw new Error('Application scenes require compatible capture metadata.');

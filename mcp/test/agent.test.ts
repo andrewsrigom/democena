@@ -298,7 +298,7 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
     { kind: 'capture', timestamp: 0, markId: 'reveal', verified: false },
     { kind: 'capture', timestamp: 4, markId: 'result', verified: true },
   ], scene: { ...entry.scene, source: { from: 0, freeze: true } } } : entry) }, project), /verified result displayed from its verified capture evidence/);
-  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, scene: { id: 'result', type: 'text', duration: 4.1, eyebrow: 'Published', title: 'The result is visible.', body: 'Authored copy alone is not verified product evidence.' } } : entry) }, project), /verified result displayed from its verified capture evidence/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, scene: { id: 'result', type: 'text', duration: 4.1, eyebrow: 'Published', title: 'The result is visible.', body: 'Authored copy alone is not verified product evidence.' } } : entry) }, project), /requires authored-copy evidence/);
   const unverifiedCapture = { ...direction.capture, events: direction.capture.events.map((event) => event.markId === 'result' ? { ...event, verified: false } : event) };
   assert.throws(() => compileDirection({ ...direction, capture: unverifiedCapture, captureFingerprint: captureFingerprint(unverifiedCapture) }, project), /did not verify it/);
   const comparison = {
@@ -327,7 +327,8 @@ test('Direction v1 migrates in memory to creative Direction v2 without changing 
   assert.equal(migrated.scenes[2]?.beat.transitionIntent, 'prove');
   assert.deepEqual(compileDirection(legacy, project).project, compileDirection(migrated, project).project);
   const legacyWithUnmatchedRecipeEvidence = { ...legacy, scenes: legacy.scenes.map((entry, index) => index === 0 ? { ...entry, evidence: [{ kind: 'capture' as const, timestamp: 0, markId: 'reveal', verified: false }] } : entry) };
-  assert.equal(directionSchema.parse(legacyWithUnmatchedRecipeEvidence).scenes[0]?.beat.recipe.selected, undefined);
+  assert.equal(directionSchema.parse(legacyWithUnmatchedRecipeEvidence).scenes[0]?.beat.recipe.selected, 'text-blur-slide');
+  assert.throws(() => compileDirection(legacyWithUnmatchedRecipeEvidence, project), /requires authored-copy evidence/);
 });
 
 test('Direction v2 rejects incompatible recipes and gates story modes that are not implemented', () => {
@@ -342,6 +343,8 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   };
   assert.throws(() => directionSchema.parse(incompatible), /does not support text scenes/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'unknown-recipe', compatible: ['unknown-recipe', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /Unknown motion recipe/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { compatible: ['standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /current Project v2 renderer applies text-blur-slide/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'standard-scene-motion', compatible: ['text-blur-slide', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /cannot render through Project v2/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
 });
 
@@ -362,6 +365,23 @@ test('saving legacy Direction v1 writes v2 while preserving the exact archived r
   assert.equal(saved.profile, undefined);
   const archived = await readFile(path.join(s.store.root, 'projects/direction-migration/direction/revisions', `${legacyRevision}.json`), 'utf8');
   assert.equal(createHash('sha256').update(archived).digest('hex'), legacyRevision);
+});
+
+test('workflow compilation preserves the exact legacy Direction v1 revision', async t => {
+  const s = await fixture(t);
+  const { project, direction } = await recordedTour(s, 'legacy-compile', 'Legacy compile');
+  const legacyRaw = JSON.stringify(direction, null, 2) + '\n';
+  const legacyRevision = createHash('sha256').update(legacyRaw).digest('hex');
+  const directionDir = path.join(s.store.root, 'projects/legacy-compile/direction');
+  await mkdir(directionDir, { recursive: true });
+  await writeFile(path.join(directionDir, 'direction.json'), legacyRaw);
+
+  const compiled = await s.compileDirector('legacy-compile', legacyRevision, project.revision);
+  assert.equal(compiled.direction.direction.version, 2);
+  assert.equal(compiled.direction.direction.status, 'compiled');
+  const archived = await readFile(path.join(directionDir, 'revisions', `${legacyRevision}.json`), 'utf8');
+  assert.equal(createHash('sha256').update(archived).digest('hex'), legacyRevision);
+  assert.equal(JSON.parse(archived).version, 1);
 });
 
 test('capture evidence follows the raw recording clock after project trimming', () => {
