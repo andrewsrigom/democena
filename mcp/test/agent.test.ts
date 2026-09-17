@@ -26,7 +26,7 @@ test('all eight discoverable examples pass the shared Studio validator', () => {
   const discovered = capabilities();
   const scenes = discovered.examples.map((s, i) => ({ ...s, id: `scene-${i}` }));
   assert.equal(scenes.length, 8);
-  assert.deepEqual(discovered.motionRecipes.map(recipe => recipe.id), ['text-blur-slide', 'chapter-demote-to-label', 'focus-scan-lock', 'outro-strip-away']);
+  assert.deepEqual(discovered.motionRecipes.map(recipe => recipe.id), ['standard-scene-motion', 'text-blur-slide', 'chapter-demote-to-label', 'focus-scan-lock', 'outro-strip-away']);
   assert(discovered.motionRecipes.every(recipe => recipe.useWhen.length > 0 && recipe.avoidWhen.length > 0));
   assert(discovered.motionRecipes.every(recipe => recipe.recommendedSeconds[0] < recipe.recommendedSeconds[1]));
   assert.deepEqual(discovered.motionLanguages, ['editorial', 'precise', 'kinetic', 'cinematic', 'quiet']);

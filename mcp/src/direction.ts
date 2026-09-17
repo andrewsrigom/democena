@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
-import { motionRecipeFor, motionRecipes } from '../../studio/src/motion-recipes.js';
+import { motionRecipeFor, motionRecipeVocabulary } from '../../studio/src/motion-recipes.js';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -101,7 +101,7 @@ const directionV2CoreSchema = z.strictObject({
   scenes: z.array(directionSceneSchema).min(1).max(100),
 });
 
-const recipeById = new Map<string, (typeof motionRecipes)[number]>(motionRecipes.map((recipe) => [recipe.id, recipe]));
+const recipeById = new Map<string, (typeof motionRecipeVocabulary)[number]>(motionRecipeVocabulary.map((recipe) => [recipe.id, recipe]));
 const standardRecipe = 'standard-scene-motion';
 
 const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => {
@@ -128,7 +128,7 @@ const directionV2Schema = directionV2CoreSchema.superRefine((direction, ctx) => 
     const recipeIds = [...entry.beat.recipe.compatible, entry.beat.recipe.fallback, ...(entry.beat.recipe.selected ? [entry.beat.recipe.selected] : [])];
     for (const recipeId of new Set(recipeIds)) {
       const recipe = recipeById.get(recipeId);
-      if (recipeId !== standardRecipe && !recipe) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Unknown motion recipe: ${recipeId}.` });
+      if (!recipe) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Unknown motion recipe: ${recipeId}.` });
       if (recipe && !recipe.sceneTypes.includes(entry.scene.type)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'beat', 'recipe'], message: `Motion recipe ${recipeId} does not support ${entry.scene.type} scenes.` });
     }
     const renderedRecipe = motionRecipeFor(entry.scene) ?? standardRecipe;

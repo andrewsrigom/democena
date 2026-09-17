@@ -1,6 +1,6 @@
 import type { Scene } from './model.js';
 
-export type MotionRecipeId = 'text-blur-slide' | 'chapter-demote-to-label' | 'focus-scan-lock' | 'outro-strip-away';
+export type MotionRecipeId = 'standard-scene-motion' | 'text-blur-slide' | 'chapter-demote-to-label' | 'focus-scan-lock' | 'outro-strip-away';
 export type MotionRecipe = {
   id: MotionRecipeId;
   sceneTypes: Scene['type'][];
@@ -93,6 +93,22 @@ export const motionRecipes: readonly MotionRecipe[] = [
     fallback: 'Reveal the closing panel in place.',
   },
 ] as const;
+
+export const standardMotionRecipe: MotionRecipe = {
+  id: 'standard-scene-motion',
+  sceneTypes: ['text', 'chapter', 'overview', 'focus', 'camera', 'annotation', 'result', 'outro'],
+  purpose: 'Render any supported scene with the stable baseline motion when no specialized recipe is selected.',
+  vibe: 'clean',
+  energy: 'low',
+  evidence: 'none',
+  recommendedSeconds: [3, 8],
+  useWhen: ['A specialized recipe is unavailable or its evidence requirements are not met.'],
+  avoidWhen: ['A compatible evidence-backed specialized recipe communicates the beat more clearly.'],
+  lifecycle: ['anticipation', 'action', 'settle', 'hold'],
+  fallback: 'Render the scene with its standard deterministic entrance and hold.',
+};
+
+export const motionRecipeVocabulary: readonly MotionRecipe[] = [standardMotionRecipe, ...motionRecipes];
 
 const bySceneType = new Map<Scene['type'], MotionRecipeId>(motionRecipes.flatMap((recipe) => recipe.sceneTypes.map((type) => [type, recipe.id] as const)));
 
