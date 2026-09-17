@@ -49,6 +49,7 @@ describe('transition matrix', () => {
       'chrome-visible-framed-to-immersive',
       'chrome-visible-immersive-to-framed',
       'chrome-chapter-to-product-stage',
+      'chrome-chapter-to-detail-crop',
       'chrome-explicit-hide-to-show',
       'chrome-explicit-show-to-hide',
     ];
@@ -60,6 +61,7 @@ describe('transition matrix', () => {
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
       [undefined, 'product-stage'],
+      [undefined, 'detail-crop'],
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
     ]);
@@ -67,6 +69,7 @@ describe('transition matrix', () => {
       { before: true, midpoint: false, after: false },
       { before: false, midpoint: false, after: true },
       { before: false, midpoint: false, after: false },
+      { before: true, midpoint: true, after: true },
       { before: true, midpoint: true, after: true },
       { before: true, midpoint: true, after: true },
       { before: true, midpoint: true, after: true },

@@ -101,6 +101,7 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-visible-immersive-to-framed', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withLayout(camera, 'framed'),
       expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true, after: false } },
     { id: 'chrome-chapter-to-product-stage', from: chapter, to: withCaption(withLayout(overview, 'product-stage'), 'top-left'), expectedChrome: { before: true, midpoint: true, after: true } },
+    { id: 'chrome-chapter-to-detail-crop', from: chapter, to: withLayout(focus, 'detail-crop'), expectedChrome: { before: true, midpoint: true, after: true } },
     { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-right'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withChrome(withLayout(camera, 'framed'), 'hide'), expectedChrome: { before: true, midpoint: false, after: false } },
   ];

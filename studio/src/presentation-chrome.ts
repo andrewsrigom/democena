@@ -48,5 +48,5 @@ export function overlayCaptionBottom(position: CaptionPlacement, chromeVisible: 
 }
 
 export function compactChapterChrome(layout: CompositionLayout) {
-  return layout === 'product-stage';
+  return layout === 'product-stage' || layout === 'detail-crop';
 }
