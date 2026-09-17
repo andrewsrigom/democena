@@ -39,5 +39,6 @@ export function sceneComposition(scene) {
     : productScene ? ('presentation' in scene ? scene.presentation?.caption : undefined) ?? definition.defaultCaption
       : 'none';
   const chromeVisible = scene.chrome === 'show' ? true : scene.chrome === 'hide' ? false : !definition.immersive;
-  return { ...definition, caption, chromeVisible, typographicRole };
+  const chromeBackdropVisible = chromeVisible && definition.immersive;
+  return { ...definition, caption, chromeVisible, chromeBackdropVisible, typographicRole };
 }

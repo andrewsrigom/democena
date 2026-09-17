@@ -76,10 +76,14 @@ function TextPanel({ scene, accent, theme, entranceOffsetFrames }: { scene: Text
   </>;
 }
 
-export function ChapterLabel({ scene, accent, theme, style }: { scene: ChapterScene; accent: string; theme: PresentationTheme; style?: CSSProperties }) {
-  return <div style={{ position: 'absolute', left: 96, top: 124, display: 'flex', alignItems: 'center', gap: 15, color: theme.foreground, ...style }}>
-    <span style={{ display: 'grid', placeItems: 'center', minWidth: 42, height: 26, padding: '0 8px', borderRadius: 999, border: `1px solid ${accent}70`, background: `${accent}18`, color: accent, fontSize: 14, fontWeight: 800, letterSpacing: 1 }}>{scene.number}</span>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, minWidth: 0 }}>
+export function ChapterLabel({ scene, accent, theme, style, backdropOpacity = 0 }: { scene: ChapterScene; accent: string; theme: PresentationTheme; style?: CSSProperties; backdropOpacity?: number }) {
+  const backed = backdropOpacity > 0;
+  return <div style={{ position: 'absolute', left: backed ? 82 : 96, top: backed ? 112 : 124, padding: backed ? '12px 14px' : 0,
+    display: 'flex', alignItems: 'center', gap: 15, color: theme.foreground, ...style }}>
+    {backed ? <div style={{ position: 'absolute', inset: 0, borderRadius: 14, opacity: backdropOpacity, background: theme.background,
+      border: `1px solid ${theme.border}`, boxShadow: `0 18px 50px -30px ${theme.shadow}80` }} /> : null}
+    <span style={{ position: 'relative', display: 'grid', placeItems: 'center', minWidth: 42, height: 26, padding: '0 8px', borderRadius: 999, border: `1px solid ${accent}70`, background: `${accent}18`, color: accent, fontSize: 14, fontWeight: 800, letterSpacing: 1 }}>{scene.number}</span>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: 12, minWidth: 0 }}>
       <span style={{ color: theme.muted, fontSize: 13, fontWeight: 750, letterSpacing: 1.6, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{scene.eyebrow}</span>
       <span style={{ color: theme.foreground, fontSize: 21, fontWeight: 650, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>{scene.title.replaceAll('\n', ' ')}</span>
     </div>

@@ -18,5 +18,6 @@ export const compositionRegistry: Record<CompositionLayout, CompositionDefinitio
 export function sceneComposition(scene: Scene): CompositionDefinition & {
   caption: CaptionPlacement;
   chromeVisible: boolean;
+  chromeBackdropVisible: boolean;
   typographicRole: TypographicRole;
 };

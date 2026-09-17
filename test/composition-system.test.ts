@@ -29,10 +29,10 @@ describe('composition system', () => {
 
   it('resolves layout defaults and honors per-beat caption and chrome choices', () => {
     const framed = sceneComposition({ ...base, id: 'framed', type: 'overview', source: { from: 0, freeze: true } });
-    expect(framed).toMatchObject({ id: 'framed', caption: 'side', chromeVisible: true, typographicRole: 'statement' });
+    expect(framed).toMatchObject({ id: 'framed', caption: 'side', chromeVisible: true, chromeBackdropVisible: false, typographicRole: 'statement' });
     const immersive = sceneComposition({ ...base, id: 'proof', type: 'focus', source: { from: 0, freeze: true }, focus,
       typographicRole: 'proof', chrome: 'show', presentation: { layout: 'full-bleed-proof', caption: 'top-right' } });
-    expect(immersive).toMatchObject({ id: 'full-bleed-proof', caption: 'top-right', chromeVisible: true, typographicRole: 'proof' });
+    expect(immersive).toMatchObject({ id: 'full-bleed-proof', caption: 'top-right', chromeVisible: true, chromeBackdropVisible: true, typographicRole: 'proof' });
     const silent = sceneComposition({ ...base, id: 'silent', type: 'overview', source: { from: 0, freeze: true },
       typographicRole: 'silent-product', chrome: 'hide', presentation: { layout: 'product-stage' } });
     expect(silent).toMatchObject({ id: 'product-stage', caption: 'none', chromeVisible: false, typographicRole: 'silent-product' });
