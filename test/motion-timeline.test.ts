@@ -135,6 +135,18 @@ describe('scene timeline and source clock', () => {
     expect(settledReviewFrame(middle, timeline[2]!.from, 2, FPS)).toBe(middle.from + 60);
   });
 
+  it('waits for every title token before selecting a review frame', () => {
+    const longTitle = Array.from({ length: 20 }, (_, index) => `word${index + 1}`).join(' ');
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text', duration: 5 },
+      { ...base, id: 'long-title', type: 'text', duration: 5, title: longTitle, reveal: 'words' },
+      { ...base, id: 'closing', type: 'text', duration: 5 },
+    ];
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const middle = timeline[1]!;
+    expect(settledReviewFrame(middle, timeline[2]!.from, 0, FPS)).toBe(middle.from + 79);
+  });
+
   it('does not apply an incoming transition to a single short opening', () => {
     const p = prepareProject({ ...project(), scenes: [{ ...base, id: 'opening', type: 'text', duration: .3 }] });
     const timeline = buildTimeline(p.scenes, FPS);

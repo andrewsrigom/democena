@@ -91,6 +91,16 @@ export type Job = {
 };
 export class AgentService {
   constructor(public store: Workspace) {}
+  private async executableDirection(id: string) {
+    const planned = await this.store.getDirection(id).catch((error: unknown) => {
+      if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
+      throw error;
+    });
+    if (planned?.direction.executionMode === 'plan-only') {
+      throw new AgentError('PLAN_ONLY', 'This direction is plan-only. Change executionMode after authorizing capture or rendering.');
+    }
+    return planned;
+  }
   private async updateDirectionCapture(id: string, media: MediaMetadata) {
     const planned = await this.store.getDirection(id).catch((error: unknown) => {
       if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
@@ -407,13 +417,12 @@ export class AgentService {
     }
   }
   async startRender(id: string, expectedRevision: string, mode: 'preview' | 'video') {
+    const saved = await this.store.get(id);
+    if (saved.revision !== expectedRevision) throw new AgentError('REVISION_CONFLICT', 'The project has changed. Read it again before rendering.');
+    const planned = await this.executableDirection(id);
     const current = await this.actualProject(id);
     if (current.revision !== expectedRevision) throw new AgentError('REVISION_CONFLICT', 'The project has changed. Read it again before rendering.');
     await access(path.join(studioDir, 'node_modules/@remotion/renderer')).catch(() => { throw new AgentError('STUDIO_NOT_INSTALLED', 'Run npm run studio:install in the Democena checkout, then install Chromium with npx playwright install chromium.'); });
-    const planned = await this.store.getDirection(id).catch((error: unknown) => {
-      if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
-      throw error;
-    });
     const directionRevision = planned && planned.direction.compiledProjectRevision === current.revision && ['compiled', 'delivered'].includes(planned.direction.status)
       ? planned.directionRevision
       : undefined;
@@ -447,6 +456,7 @@ export class AgentService {
   async startCapture(id: string, expectedRevision: string, plan: z.infer<typeof capturePlanSchema>) {
     const current = await this.store.get(id);
     if (current.revision !== expectedRevision) throw new AgentError('REVISION_CONFLICT', 'Read the project again before capturing.');
+    await this.executableDirection(id);
     if (plan.storageState) await access(await this.store.safe(plan.storageState));
     const inputDigest = digest({ operation: 'capture', projectRevision: current.revision, plan });
     const reserved = await this.reserveJob(id, inputDigest, async () => {
@@ -463,6 +473,7 @@ export class AgentService {
     return { ...reserved.value, next: 'Poll get_job, inspect capture marks with read_preview, then use_capture with the current project revision.' };
   }
   async useCapture(id: string, expectedRevision: string, jobId: string, allowCrossProjectReuse = false) {
+    await this.executableDirection(id);
     const job = await this.getJob(jobId);
     if (job.mode !== 'capture' || job.status !== 'succeeded' || !job.capture || !job.artifacts?.recording) throw new AgentError('CAPTURE_NOT_READY', 'Choose a successfully completed capture job.');
     if (job.projectId !== id && !allowCrossProjectReuse) throw new AgentError('WRONG_PROJECT', 'This capture belongs to a different project. Set allowCrossProjectReuse only when intentionally creating another variant from the same take.');

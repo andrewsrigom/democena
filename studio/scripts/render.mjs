@@ -104,7 +104,7 @@ try {
   const timeline = buildTimeline(props.scenes, composition.fps);
   for (const [i, { scene, from, duration, overlap, end, previewFrame }] of timeline.entries()) {
     const requested = direction?.scenes?.find((entry) => entry.scene?.id === scene.id)?.expectedSettledAt;
-    const frame = settledReviewFrame({ from, duration, overlap, end, previewFrame }, timeline[i + 1]?.from, requested, composition.fps);
+    const frame = settledReviewFrame({ scene, from, duration, overlap, end, previewFrame }, timeline[i + 1]?.from, requested, composition.fps);
     const output = path.join(outputDir, 'scenes', `${String(i + 1).padStart(2, '0')}-${scene.type}.png`);
     await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance, frame, output });
     stills.push({ index: i + 1, id: scene.id, type: scene.type, from, duration, overlap, frame, output });

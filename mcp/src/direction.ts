@@ -218,7 +218,7 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
   const scenes = direction.scenes.map((entry, index) => applyTransition(entry, index, direction.profile));
   const project = prepareProject({ ...currentProject, scenes }) as unknown as ProjectInput;
   const duration = buildTimeline(project.scenes, FPS).at(-1)!.end / FPS;
-  if (direction.profile === 'tour' && appEntries.length > 0) {
+  if (direction.profile === 'tour') {
     if (!direction.scenes.some((entry) => ['product-reveal', 'product-moment'].includes(entry.narrativeRole) && !['text', 'chapter', 'outro'].includes(entry.scene.type))) throw new Error('A product tour requires a real product moment.');
     if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry, currentProject.trimBefore))) throw new Error('A product tour requires a verified result displayed from its verified capture evidence.');
   }

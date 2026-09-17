@@ -249,6 +249,30 @@ function launchDirection() {
   };
 }
 
+async function recordedTour(s: AgentService, id: string, title: string) {
+  const created = await s.store.create(id, title, '#215acb');
+  const launch = launchDirection();
+  const direction = {
+    ...launch,
+    profile: 'tour' as const,
+    poster: { sceneId: 'result', sceneLocalTime: 2 },
+    scenes: [launch.scenes[1], launch.scenes[2]],
+  };
+  const recorded = validate({
+    ...created.project,
+    video: 'captures/demo.webm',
+    sourceDuration: 20,
+    viewport: { width: 1280, height: 800 },
+  });
+  await s.store.commit(id, created.revision, created.project, recorded);
+  await mkdir(path.join(s.store.root, `projects/${id}/public/captures`), { recursive: true });
+  await writeFile(path.join(s.store.root, `projects/${id}/public/captures/demo.webm.json`), JSON.stringify({
+    ...direction.capture,
+    captureFingerprint: direction.captureFingerprint,
+  }));
+  return { project: await s.store.get(id), direction };
+}
+
 test('launch compilation enforces shape, evidence and a 15-25 second runtime', () => {
   const direction = launchDirection();
   const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [direction.scenes[0].scene] });
@@ -259,6 +283,7 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.deepEqual('presentation' in compiled.project.scenes[1]! ? compiled.project.scenes[1].presentation : undefined, { layout: 'full-bleed', caption: 'bottom-right' });
   assert(compiled.duration >= 15 && compiled.duration <= 25);
   assert.throws(() => compileDirection({ ...direction, executionMode: 'plan-only' }, project), /Plan-only directions cannot compile/);
+  assert.throws(() => compileDirection({ ...direction, profile: 'tour', poster: { sceneId: 'hook', sceneLocalTime: 2 }, scenes: [direction.scenes[0]] }, project), /real product moment/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'result', verified: false }] } : entry) }, project), /verified result/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'product-reveal' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 0, verified: false }] } : entry) }, project), /requires a captured marker ID/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'invented', verified: true }] } : entry) }, project), /outside the adopted take/);
@@ -353,23 +378,15 @@ test('client saves cannot author Director-managed lifecycle states', async t => 
 
 test('direction revisions generate review views, compile atomically and detect divergence', async t => {
   const s = await fixture(t);
-  const project = await s.store.create('demo', 'Director demo', '#215acb');
-  const direction = {
-    ...launchDirection(),
-    profile: 'tour' as const,
-    capture: undefined,
-    captureFingerprint: undefined,
-    poster: { sceneId: 'hook', sceneLocalTime: 2 },
-    scenes: [launchDirection().scenes[0]],
-  };
+  const { project, direction } = await recordedTour(s, 'demo', 'Director demo');
   const saved = await s.store.saveDirection('demo', null, direction);
   assert.match(await readFile(path.join(s.store.root, 'projects/demo/direction/BRIEF.md'), 'utf8'), /Director demo|Tour brief/);
-  assert.match(await readFile(path.join(s.store.root, 'projects/demo/direction/STORYBOARD.md'), 'utf8'), /hook/);
+  assert.match(await readFile(path.join(s.store.root, 'projects/demo/direction/STORYBOARD.md'), 'utf8'), /reveal/);
   await assert.rejects(s.store.saveDirection('demo', null, direction), { code: 'DIRECTION_REVISION_CONFLICT' });
   const compiled = await s.compileDirector('demo', saved.directionRevision, project.revision);
   assert.equal(compiled.direction.direction.status, 'compiled');
   const packets = await s.prepareScenePackets('demo', compiled.direction.directionRevision, compiled.project.revision);
-  assert.equal(packets.packets.length, 1);
+  assert.equal(packets.packets.length, direction.scenes.length);
   assert.equal(JSON.parse(await readFile(packets.packets[0].path, 'utf8')).baseDirectionRevision, compiled.direction.directionRevision);
   await s.store.save('demo', compiled.project.revision, { ...compiled.project.project, title: 'Manual edit' });
   const diverged = await s.store.getDirection('demo');
@@ -382,15 +399,7 @@ test('direction revisions generate review views, compile atomically and detect d
 
 test('delivery requires a matching successful final render and strict media report', async t => {
   const s = await fixture(t);
-  const project = await s.store.create('delivery-demo', 'Delivery demo', '#215acb');
-  const direction = {
-    ...launchDirection(),
-    profile: 'tour' as const,
-    capture: undefined,
-    captureFingerprint: undefined,
-    poster: { sceneId: 'hook', sceneLocalTime: 2 },
-    scenes: [launchDirection().scenes[0]],
-  };
+  const { project, direction } = await recordedTour(s, 'delivery-demo', 'Delivery demo');
   const saved = await s.store.saveDirection('delivery-demo', null, direction);
   const compiled = await s.compileDirector('delivery-demo', saved.directionRevision, project.revision);
   const jobId = 'delivery-job';
@@ -441,26 +450,41 @@ test('delivery requires a matching successful final render and strict media repo
 
 test('scene drafts are revision-bound and merge back into an unreviewed direction', async t => {
   const s = await fixture(t);
-  const project = await s.store.create('draft-demo', 'Draft demo', '#215acb');
+  const { project, direction } = await recordedTour(s, 'draft-demo', 'Draft demo');
+  const saved = await s.store.saveDirection('draft-demo', null, direction);
+  const compiled = await s.compileDirector('draft-demo', saved.directionRevision, project.revision);
+  const prepared = await s.prepareScenePackets('draft-demo', compiled.direction.directionRevision, compiled.project.revision);
+  for (const preparedPacket of prepared.packets) {
+    const packet = JSON.parse(await readFile(preparedPacket.path, 'utf8'));
+    const draftFile = path.join(s.store.root, 'projects/draft-demo', packet.output);
+    await mkdir(path.dirname(draftFile), { recursive: true });
+    await writeFile(draftFile, JSON.stringify({ version: 1, sceneId: packet.sceneId, baseDirectionRevision: packet.baseDirectionRevision, baseProjectRevision: packet.baseProjectRevision, captureFingerprint: packet.captureFingerprint, scene: packet.approvedScene }));
+  }
+  const merged = await s.mergeSceneDraftFiles('draft-demo', compiled.direction.directionRevision, compiled.project.revision);
+  assert.equal(merged.direction.status, 'draft');
+  assert.equal(merged.requiresReview, true);
+  assert.equal(merged.mergedSceneCount, direction.scenes.length);
+});
+
+test('plan-only directions block capture adoption, capture and rendering entry points', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('plan-only', 'Plan only', '#215acb');
+  const launch = launchDirection();
   const direction = {
-    ...launchDirection(),
+    ...launch,
+    executionMode: 'plan-only' as const,
     profile: 'tour' as const,
     capture: undefined,
     captureFingerprint: undefined,
     poster: { sceneId: 'hook', sceneLocalTime: 2 },
-    scenes: [launchDirection().scenes[0]],
+    scenes: [launch.scenes[0]],
   };
-  const saved = await s.store.saveDirection('draft-demo', null, direction);
-  const compiled = await s.compileDirector('draft-demo', saved.directionRevision, project.revision);
-  const prepared = await s.prepareScenePackets('draft-demo', compiled.direction.directionRevision, compiled.project.revision);
-  const packet = JSON.parse(await readFile(prepared.packets[0].path, 'utf8'));
-  const draftFile = path.join(s.store.root, 'projects/draft-demo', packet.output);
-  await mkdir(path.dirname(draftFile), { recursive: true });
-  await writeFile(draftFile, JSON.stringify({ version: 1, sceneId: packet.sceneId, baseDirectionRevision: packet.baseDirectionRevision, baseProjectRevision: packet.baseProjectRevision, captureFingerprint: packet.captureFingerprint, scene: packet.approvedScene }));
-  const merged = await s.mergeSceneDraftFiles('draft-demo', compiled.direction.directionRevision, compiled.project.revision);
-  assert.equal(merged.direction.status, 'draft');
-  assert.equal(merged.requiresReview, true);
-  assert.equal(merged.mergedSceneCount, 1);
+  await s.store.saveDirection('plan-only', null, direction);
+  const plan = { url: 'http://localhost:4173', steps: [{ id: 'result', action: 'expect' as const, target: { testId: 'result' } }] };
+  await assert.rejects(s.startCapture('plan-only', project.revision, plan), { code: 'PLAN_ONLY' });
+  await assert.rejects(s.startRender('plan-only', project.revision, 'preview'), { code: 'PLAN_ONLY' });
+  await assert.rejects(s.useCapture('plan-only', project.revision, 'missing-job'), { code: 'PLAN_ONLY' });
+  assert.deepEqual(await readdir(path.join(s.store.root, 'jobs')), []);
 });
 
 test('matching capture jobs are resumed instead of duplicated', async t => {
