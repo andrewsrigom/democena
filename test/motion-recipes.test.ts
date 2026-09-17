@@ -1,27 +1,74 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { motionRecipeFor, motionRecipes, motionRecipeVocabulary } from '../studio/src/motion-recipes.js';
-import type { Scene } from '../studio/src/model.js';
+import {
+  motionImplementationFor,
+  motionRecipeFor,
+  motionRecipeIds,
+  motionRecipeRegistry,
+  motionRecipeVocabulary,
+  transitionForPreset,
+  transitionPresetRegistry,
+  transitionRegistry,
+  transitionStyleFor,
+} from '../studio/src/motion-registry.js';
+import type { Project, Scene } from '../studio/src/model.js';
+import { prepareProject } from '../studio/src/timeline.js';
 
-describe('motion recipe vocabulary', () => {
-  it('maps semantic scene types to deterministic internal recipes', () => {
-    expect(motionRecipeFor({ type: 'text' } as Pick<Scene, 'type'>)).toBe('text-blur-slide');
-    expect(motionRecipeFor({ type: 'chapter' } as Pick<Scene, 'type'>)).toBe('chapter-demote-to-label');
-    expect(motionRecipeFor({ type: 'focus' } as Pick<Scene, 'type'>)).toBe('focus-scan-lock');
-    expect(motionRecipeFor({ type: 'outro' } as Pick<Scene, 'type'>)).toBe('outro-strip-away');
-    expect(motionRecipeFor({ type: 'overview' } as Pick<Scene, 'type'>)).toBeUndefined();
+function projectFixture(file: string) {
+  return JSON.parse(readFileSync(fileURLToPath(new URL(`../${file}`, import.meta.url)), 'utf8')) as Project;
+}
+
+describe('shared motion registry', () => {
+  it('maps every scene type to one deterministic implemented recipe', () => {
+    const expected = {
+      text: 'text-blur-slide', chapter: 'chapter-demote-to-label', overview: 'standard-scene-motion',
+      focus: 'focus-scan-lock', camera: 'standard-scene-motion', annotation: 'standard-scene-motion',
+      result: 'standard-scene-motion', outro: 'outro-strip-away',
+    } as const;
+    for (const [type, id] of Object.entries(expected)) expect(motionRecipeFor({ type } as Pick<Scene, 'type'>)).toBe(id);
+    expect(motionImplementationFor({ type: 'focus' } as Pick<Scene, 'type'>)).toBe('focus-scan');
   });
 
-  it('documents evidence and a safe fallback for every recipe', () => {
-    expect(new Set(motionRecipes.map((recipe) => recipe.id)).size).toBe(motionRecipes.length);
-    for (const recipe of motionRecipes) {
+  it('requires implementation, metadata, a real fixture and a deterministic fallback for every recipe', () => {
+    expect(() => prepareProject(projectFixture('examples/motion-registry/project.json'))).not.toThrow();
+    expect(Object.keys(motionRecipeRegistry)).toEqual([...motionRecipeIds]);
+    expect(motionRecipeVocabulary).toHaveLength(motionRecipeIds.length);
+    const defaults = new Set<Scene['type']>();
+    for (const recipe of motionRecipeVocabulary) {
+      expect(recipe.implementation.length).toBeGreaterThan(0);
       expect(recipe.purpose.length).toBeGreaterThan(20);
-      expect(recipe.fallback.length).toBeGreaterThan(20);
+      expect(recipe.fallbackDescription.length).toBeGreaterThan(20);
       expect(recipe.lifecycle).toEqual(['anticipation', 'action', 'settle', 'hold']);
+      expect(motionRecipeRegistry[recipe.fallback]).toBeDefined();
+      const fixture = projectFixture(recipe.fixture.project);
+      expect(fixture.scenes.some((scene) => scene.id === recipe.fixture.sceneId && recipe.sceneTypes.includes(scene.type))).toBe(true);
+      for (const sceneType of recipe.defaultForSceneTypes) {
+        expect(defaults.has(sceneType)).toBe(false);
+        defaults.add(sceneType);
+      }
     }
+    expect([...defaults].sort()).toEqual(['annotation', 'camera', 'chapter', 'focus', 'outro', 'overview', 'result', 'text']);
   });
 
-  it('advertises the standard fallback used by unspecialized scene types', () => {
-    expect(motionRecipeVocabulary.map((recipe) => recipe.id)).toContain('standard-scene-motion');
-    expect(motionRecipeVocabulary.find((recipe) => recipe.id === 'standard-scene-motion')?.sceneTypes).toContain('overview');
+  it('drives every rendered transition and semantic preset from registered metadata', () => {
+    for (const transition of Object.values(transitionRegistry)) {
+      expect(transition.purpose.length).toBeGreaterThan(20);
+      expect(transitionRegistry[transition.fallback]).toBeDefined();
+      const fixture = projectFixture(transition.fixture.project);
+      const fromIndex = fixture.scenes.findIndex((scene) => scene.id === transition.fixture.fromSceneId);
+      const toIndex = fixture.scenes.findIndex((scene) => scene.id === transition.fixture.toSceneId);
+      expect(fromIndex).toBeGreaterThanOrEqual(0);
+      expect(toIndex).toBe(fromIndex + 1);
+      expect(fixture.scenes[toIndex]?.transition?.type).toBe(transition.id);
+    }
+    for (const preset of Object.values(transitionPresetRegistry)) {
+      expect(transitionRegistry[preset.implementation]).toBeDefined();
+      expect(transitionPresetRegistry[preset.fallback]).toBeDefined();
+      expect(preset.purpose.length).toBeGreaterThan(20);
+    }
+    expect(transitionStyleFor('slide-down', 0)).toEqual({ opacity: 1, transform: 'translateY(-100%)' });
+    expect(transitionStyleFor('slide', .5)).toEqual({ opacity: .5, transform: 'translateY(18px)' });
+    expect(transitionForPreset('rise-cover', 'launch')).toEqual({ type: 'slide-up', duration: .4 });
   });
 });

@@ -6,7 +6,7 @@ import { cameraAt, cameraFor } from './camera';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
 import { browserLayout, fullBleedLayout } from './layout';
-import { motionRecipeFor } from './motion-recipes';
+import { motionImplementationFor } from './motion-registry';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function StripAwayBackdrop({ accent }: { accent: string }) {
@@ -143,7 +143,7 @@ function Annotation({ scene, project, theme, width }: { scene: AnnotationScene; 
 export function SceneContent({ scene, project, theme }: { scene: Scene; project: Project; theme: PresentationTheme }) {
   const frame = useCurrentFrame();
   const { fps, width: compositionWidth, height: compositionHeight } = useVideoConfig();
-  const recipe = motionRecipeFor(scene);
+  const implementation = motionImplementationFor(scene);
   if (scene.type === 'text' || scene.type === 'outro') return <TextPanel scene={scene} accent={project.accent} theme={theme} />;
   if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} />;
   if (scene.type === 'result' && scene.comparison) {
@@ -167,7 +167,7 @@ export function SceneContent({ scene, project, theme }: { scene: Scene; project:
     : { scale: 1 + (target.scale - 1) * strength, x: target.x * strength, y: target.y * strength };
   return <>{caption === 'side' ? <Caption scene={scene} accent={project.accent} theme={theme} /> : null}
     <div style={{ position: 'absolute', left: layout.left, top: layout.top }}>
-      <BrowserFrame project={project} source={scene.source} theme={theme} width={layout.width} camera={camera} focus={focus} scan={recipe === 'focus-scan-lock'}
+      <BrowserFrame project={project} source={scene.source} theme={theme} width={layout.width} camera={camera} focus={focus} scan={implementation === 'focus-scan'}
         framed={!fullBleed} dim={scene.type === 'focus' ? scene.dim ?? .38 : scene.type === 'annotation' ? .14 : 0}>
         {scene.type === 'annotation' ? <Annotation scene={scene} project={project} theme={theme} width={layout.width} /> : null}
       </BrowserFrame>
