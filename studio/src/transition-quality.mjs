@@ -76,3 +76,19 @@ export function psnr(a, b, byteStride = 16) {
   const mse = squaredError / samples;
   return mse === 0 ? Infinity : 10 * Math.log10((255 * 255) / mse);
 }
+
+export function regionPsnr(a, b, { x, y, width, height }, frameWidth = 1920, stride = 4) {
+  assert.equal(a.length, b.length, 'region PSNR inputs must use the same dimensions');
+  let squaredError = 0;
+  let samples = 0;
+  for (let py = y; py < y + height; py += stride) for (let px = x; px < x + width; px += stride) {
+    const offset = (py * frameWidth + px) * 4;
+    for (let channel = 0; channel < 3; channel += 1) {
+      const delta = a[offset + channel] - b[offset + channel];
+      squaredError += delta * delta;
+      samples += 1;
+    }
+  }
+  const mse = squaredError / samples;
+  return mse === 0 ? Infinity : 10 * Math.log10((255 * 255) / mse);
+}

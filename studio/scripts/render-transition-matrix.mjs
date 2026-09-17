@@ -8,7 +8,7 @@ import { bundle } from '@remotion/bundler';
 import { openBrowser, renderStill, selectComposition } from '@remotion/renderer';
 import { chromium } from 'playwright';
 import { chromeMatrix, transitionMatrix, transitionPhases } from '../src/transition-matrix.mjs';
-import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma } from '../src/transition-quality.mjs';
+import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma, regionPsnr } from '../src/transition-quality.mjs';
 
 const { values } = parseArgs({ options: {
   project: { type: 'string', default: '../examples/motion-registry/project.json' },
@@ -42,7 +42,7 @@ function escapeHtml(value) {
 await mkdir(outputDir, { recursive: true });
 const serveUrl = await bundle({ entryPoint: path.join(studioRoot, 'src/index.tsx'), publicDir });
 const puppeteerInstance = await openBrowser('chrome', { browserExecutable: chromium.executablePath() });
-const report = { version: 1, status: 'passed', thresholds: { settledPsnrDb: 42, chromeLumaRange: 8, chromePresenceDelta: .5 }, entries: [], findings: [] };
+const report = { version: 1, status: 'passed', thresholds: { settledPsnrDb: 42, destinationPsnrDb: 42, chromeLumaRange: 8, chromePresenceDelta: .5 }, entries: [], findings: [] };
 try {
   for (const entry of matrix) {
     const entryDir = path.join(outputDir, entry.id);
@@ -60,6 +60,19 @@ try {
     const chromeLuma = transitionPhases.map((phase) => regionMeanLuma(decoded[phase], { x: 72, y: 34, width: 1776, height: 116 }));
     const chromeLumaRange = Math.max(...chromeLuma) - Math.min(...chromeLuma);
     const settledPsnrDb = psnr(decoded.after, decoded.settledCheck);
+    const destinationFile = path.join(entryDir, 'destination.png');
+    const destinationComposition = await selectComposition({ serveUrl, id: 'Democena', inputProps: entry.destinationProject, puppeteerInstance });
+    await renderStill({
+      composition: destinationComposition,
+      serveUrl,
+      inputProps: entry.destinationProject,
+      puppeteerInstance,
+      frame: entry.destinationReferenceFrame,
+      output: destinationFile,
+    });
+    // The bottom progress line depends on total composition duration, which changes when
+    // overlap is removed from the destination reference. Compare the actual scene canvas.
+    const destinationPsnrDb = regionPsnr(decoded.after, decodeRgba(destinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
     let chromePresenceDelta;
     if (entry.expectedChrome) {
       // Remotion merges input props over the selected composition props, so an empty
@@ -67,7 +80,7 @@ try {
       const referenceProject = { ...entry.project, branding: {} };
       const referenceComposition = await selectComposition({ serveUrl, id: 'Democena', inputProps: referenceProject, puppeteerInstance });
       chromePresenceDelta = {};
-      for (const phase of ['before', 'after']) {
+      for (const phase of Object.keys(entry.expectedChrome)) {
         const referenceFile = path.join(entryDir, `reference-${phase}.png`);
         await renderStill({ composition: referenceComposition, serveUrl, inputProps: referenceProject, puppeteerInstance, frame: entry.frames[phase], output: referenceFile });
         chromePresenceDelta[phase] = regionMeanAbsoluteDifference(
@@ -84,6 +97,7 @@ try {
           : chromePresenceDelta[phase] < report.thresholds.chromePresenceDelta),
       } : { stableChrome: chromeLumaRange <= report.thresholds.chromeLumaRange }),
       settledAfter: settledPsnrDb >= report.thresholds.settledPsnrDb,
+      destinationReached: destinationPsnrDb >= report.thresholds.destinationPsnrDb,
     };
     for (const [name, passed] of Object.entries(checks)) if (!passed) report.findings.push({ transitionId: entry.id, check: name });
     report.entries.push({
@@ -94,12 +108,14 @@ try {
       ...(entry.expectedChrome ? { expectedChrome: entry.expectedChrome } : {}),
       frames: entry.frames,
       images: Object.fromEntries(transitionPhases.map((phase) => [phase, `${entry.id}/${phase}.png`])),
+      references: { destination: `${entry.id}/destination.png` },
       metrics: {
         stats,
         chromeLuma: chromeLuma.map((value) => Number(value.toFixed(3))),
         chromeLumaRange: Number(chromeLumaRange.toFixed(3)),
         ...(chromePresenceDelta ? { chromePresenceDelta: Object.fromEntries(Object.entries(chromePresenceDelta).map(([phase, value]) => [phase, Number(value.toFixed(3))])) } : {}),
         settledPsnrDb: displayNumber(settledPsnrDb),
+        destinationPsnrDb: displayNumber(destinationPsnrDb),
       },
       checks,
     });

@@ -18,6 +18,16 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
   const midpoint = incoming.overlap === 0 ? incoming.from : incoming.from + Math.floor((incoming.overlap - 1) / 2);
   const after = settledReviewFrame(incoming, undefined, undefined, fps);
   const settledCheck = Math.min(incoming.end - 1, after + Math.max(1, Math.round(fps * .2)));
+  const destinationProject = {
+    ...project,
+    scenes: [project.scenes[0], { ...project.scenes[1], transition: { type: 'none', duration: 0 } }],
+  };
+  const destinationTimeline = buildTimeline(destinationProject.scenes, fps);
+  const destinationIncoming = destinationTimeline[1];
+  const destinationReferenceFrame = Math.min(
+    destinationIncoming.end - 1,
+    destinationIncoming.from + (after - incoming.from),
+  );
   return {
     id,
     kind: 'transition',
@@ -27,6 +37,8 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
     durationInFrames,
     transitionFrames: incoming.overlap,
     frames: { before, midpoint, after, settledCheck },
+    destinationProject,
+    destinationReferenceFrame,
     ...extra,
   };
 }
@@ -66,9 +78,9 @@ export function chromeMatrix(source, fps = FPS) {
   const focus = productScene(source, 'focus');
   const camera = productScene(source, 'camera');
   const cases = [
-    { id: 'chrome-framed-to-full-bleed', from: withLayout(overview, 'framed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: true, after: false } },
-    { id: 'chrome-full-bleed-to-framed', from: withLayout(focus, 'full-bleed'), to: withLayout(camera, 'framed'), expectedChrome: { before: false, after: true } },
-    { id: 'chrome-full-bleed-to-full-bleed', from: withLayout(overview, 'full-bleed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: false, after: false } },
+    { id: 'chrome-framed-to-full-bleed', from: withLayout(overview, 'framed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: true, midpoint: false, after: false } },
+    { id: 'chrome-full-bleed-to-framed', from: withLayout(focus, 'full-bleed'), to: withLayout(camera, 'framed'), expectedChrome: { before: false, midpoint: false, after: true } },
+    { id: 'chrome-full-bleed-to-full-bleed', from: withLayout(overview, 'full-bleed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: false, midpoint: false, after: false } },
   ];
   return cases.map((entry) => matrixEntry(entry.id, source, entry.from, entry.to, { type: 'fade', duration: .4 }, fps, {
     kind: 'chrome', expectedChrome: entry.expectedChrome,

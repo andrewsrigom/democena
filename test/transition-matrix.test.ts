@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Project } from '../studio/src/model.js';
 import { transitionRegistry } from '../studio/src/motion-registry.js';
 import { chromeMatrix, transitionMatrix, transitionPhases } from '../studio/src/transition-matrix.mjs';
+import { buildTimeline, FPS } from '../studio/src/timeline.js';
 
 const fixture = JSON.parse(readFileSync(fileURLToPath(new URL('../examples/motion-registry/project.json', import.meta.url)), 'utf8')) as Project;
 
@@ -25,6 +26,8 @@ describe('transition matrix', () => {
       expect(entry.frames.after).toBeLessThan(entry.durationInFrames);
       expect(entry.frames.settledCheck).toBeGreaterThan(entry.frames.after);
       expect(entry.frames.settledCheck).toBeLessThan(entry.durationInFrames);
+      expect(entry.destinationReferenceFrame).toBeGreaterThanOrEqual(0);
+      expect(entry.destinationReferenceFrame).toBeLessThan(buildTimeline(entry.destinationProject.scenes, FPS).at(-1)!.end);
     }
   });
 
@@ -47,9 +50,9 @@ describe('transition matrix', () => {
       ['full-bleed', 'full-bleed'],
     ]);
     expect(matrix.map((entry) => entry.expectedChrome)).toEqual([
-      { before: true, after: false },
-      { before: false, after: true },
-      { before: false, after: false },
+      { before: true, midpoint: false, after: false },
+      { before: false, midpoint: false, after: true },
+      { before: false, midpoint: false, after: false },
     ]);
     for (const entry of matrix) {
       expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);

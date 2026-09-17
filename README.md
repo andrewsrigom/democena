@@ -43,7 +43,7 @@ Each scene has its own duration and transition. A small semantic motion vocabula
 
 `npm run playbook` opens the local Motion Playbook. Filter the shared recipe and transition catalog, switch product fixtures, scrub the exact Remotion composition, inspect registry metadata and copy a direct link to the selected entry. The Playbook binds only to `127.0.0.1`, generates its synthetic product media locally and does not upload anything.
 
-`npm run benchmark:transitions` renders before, midpoint and settled-after frames for every registered transition plus framed/full-bleed chrome handoffs. It blocks on blank surfaces, transparent coverage, incorrect presentation-chrome visibility, chrome flashes or an unsettled after frame, then writes a contact sheet, machine-readable report and interactive A/B viewer under the ignored `studio/output/transition-matrix/` directory.
+`npm run benchmark:transitions` renders before, midpoint and settled-after frames for every registered transition plus framed/full-bleed chrome handoffs. It blocks on blank surfaces, transparent coverage, incorrect presentation-chrome visibility, chrome flashes, an unsettled after frame, or an after frame that differs from a transition-free destination reference. It writes a contact sheet, machine-readable report and interactive A/B viewer under the ignored `studio/output/transition-matrix/` directory.
 
 See the [scene authoring guide](docs/scenes.md) and [studio/README.md](studio/README.md) for controls, examples and current limits.
 

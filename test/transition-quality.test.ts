@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma } from '../studio/src/transition-quality.mjs';
+import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma, regionPsnr } from '../studio/src/transition-quality.mjs';
 
 function image(width: number, height: number, pixel: (x: number, y: number) => [number, number, number, number]) {
   const buffer = Buffer.alloc(width * height * 4);
@@ -26,6 +26,8 @@ describe('transition frame quality', () => {
     expect(frameStats(uncovered, 8, 8, 1).alphaMinimum).toBe(0);
     expect(psnr(opaque, opaque, 4)).toBe(Infinity);
     expect(psnr(opaque, changed, 4)).toBeLessThan(20);
+    expect(regionPsnr(opaque, opaque, { x: 0, y: 0, width: 8, height: 7 }, 8, 1)).toBe(Infinity);
+    expect(regionPsnr(opaque, changed, { x: 0, y: 0, width: 8, height: 7 }, 8, 1)).toBeLessThan(20);
   });
 
   it('measures luma inside the requested chrome region', () => {

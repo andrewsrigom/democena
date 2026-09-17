@@ -12,11 +12,13 @@ export type TransitionMatrixEntry = {
   durationInFrames: number;
   transitionFrames: number;
   frames: TransitionMatrixFrames;
+  destinationProject: Project;
+  destinationReferenceFrame: number;
 };
 export type ChromeMatrixEntry = Omit<TransitionMatrixEntry, 'id' | 'kind'> & {
   id: 'chrome-framed-to-full-bleed' | 'chrome-full-bleed-to-framed' | 'chrome-full-bleed-to-full-bleed';
   kind: 'chrome';
-  expectedChrome: { before: boolean; after: boolean };
+  expectedChrome: Record<TransitionPhase, boolean>;
 };
 export function transitionMatrixEntry(id: Transition['type'], source: Project, fps?: number): TransitionMatrixEntry;
 export function transitionMatrix(source: Project, fps?: number): TransitionMatrixEntry[];
