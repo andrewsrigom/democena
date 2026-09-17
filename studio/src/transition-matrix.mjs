@@ -81,6 +81,10 @@ function withChrome(scene, chrome) {
   return { ...scene, chrome };
 }
 
+function withCaption(scene, caption) {
+  return { ...scene, presentation: { ...scene.presentation, caption } };
+}
+
 /** Exercise every presentation-chrome visibility handoff independently from the transition catalog. */
 export function chromeMatrix(source, fps = FPS) {
   const overview = productScene(source, 'overview');
@@ -90,7 +94,7 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-framed-to-full-bleed', from: withLayout(overview, 'framed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: true, midpoint: false, after: false } },
     { id: 'chrome-full-bleed-to-framed', from: withLayout(focus, 'full-bleed'), to: withLayout(camera, 'framed'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-full-bleed-to-full-bleed', from: withLayout(overview, 'full-bleed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: false, midpoint: false, after: false } },
-    { id: 'chrome-visible-framed-to-immersive', from: withLayout(overview, 'framed'), to: withChrome(withLayout(focus, 'full-bleed'), 'show'),
+    { id: 'chrome-visible-framed-to-immersive', from: withLayout(overview, 'framed'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-left'),
       expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { midpoint: true, after: true } },
     { id: 'chrome-visible-immersive-to-framed', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withLayout(camera, 'framed'),
       expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true } },

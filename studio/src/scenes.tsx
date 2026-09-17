@@ -10,6 +10,7 @@ import { motionImplementationFor } from './motion-registry';
 import { chapterLifecycleFrames } from './timeline';
 import { sceneComposition } from './composition-registry.mjs';
 import { CompositionBackground, CompositionForeground, CompositionMidground } from './composition-layers';
+import { overlayCaptionTop } from './presentation-chrome';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function StripAwayBackdrop({ accent }: { accent: string }) {
@@ -131,7 +132,7 @@ function OverlayCaption({ scene, accent, theme, position, layout }: { scene: Sce
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame - 8, fps, config: { damping: 26, stiffness: 95 } });
-  const top = position.startsWith('top') ? layout === 'product-stage' ? 150 : 96 : undefined;
+  const top = overlayCaptionTop(position, layout, sceneComposition(scene).chromeVisible);
   const bottom = position.startsWith('bottom') ? 96 : undefined;
   const left = position.endsWith('left') ? 96 : undefined;
   const right = position.endsWith('right') ? 96 : undefined;

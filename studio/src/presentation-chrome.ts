@@ -1,3 +1,5 @@
+import type { CaptionPlacement, CompositionLayout } from './model.js';
+
 function clamp(value: number) {
   return Math.max(0, Math.min(1, value));
 }
@@ -32,4 +34,10 @@ export function nestedChromeBackdropOpacity(chromeOpacity: number, backdropOpaci
 
 export function presentationChromeUsesBackdrop(activeBacked: boolean, previousBacked: boolean, activeEnter: number) {
   return activeBacked || (previousBacked && activeEnter < 1);
+}
+
+export function overlayCaptionTop(position: CaptionPlacement, layout: CompositionLayout, chromeVisible: boolean) {
+  if (!position.startsWith('top')) return undefined;
+  if (position === 'top-left' && chromeVisible) return 190;
+  return layout === 'product-stage' ? 150 : 96;
 }
