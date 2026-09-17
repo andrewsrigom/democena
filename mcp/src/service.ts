@@ -259,14 +259,15 @@ export class AgentService {
   async deliverDirection(id: string, expectedDirectionRevision: string, expectedProjectRevision: string, jobId: string) {
     const job = await this.getJob(jobId);
     if (job.projectId !== id) throw new AgentError('WRONG_PROJECT', 'The final render belongs to a different project.');
-    if (job.mode !== 'video' || job.status !== 'succeeded' || !job.artifacts?.video || !job.artifacts.quality || !job.artifacts.poster || !job.artifacts.contactSheet || !job.artifacts.storyboard) {
+    if (job.mode !== 'video' || job.status !== 'succeeded' || !job.artifacts?.video || !job.artifacts.quality || !job.artifacts.poster || !job.artifacts.contactSheet || !job.artifacts.storyboard || !job.artifacts.preview || !Array.isArray(job.artifacts.scenes) || job.artifacts.scenes.length === 0 || !job.artifacts.scenes.every((scene) => scene && typeof scene.output === 'string' && scene.output)) {
       throw new AgentError('DELIVERY_NOT_READY', 'Choose a successful final-video job with its complete review bundle.');
     }
     if (job.revision !== expectedProjectRevision || job.directionRevision !== expectedDirectionRevision) {
       throw new AgentError('STALE_RENDER', 'The final render does not match the requested compiled project and direction revisions.');
     }
     const output = await this.store.safe(`jobs/${jobId}/output`);
-    const artifacts = [job.artifacts.video, job.artifacts.quality, job.artifacts.poster, job.artifacts.contactSheet, job.artifacts.storyboard];
+    const artifacts = [job.artifacts.video, job.artifacts.quality, job.artifacts.poster, job.artifacts.contactSheet, job.artifacts.storyboard, job.artifacts.preview,
+      ...(job.artifacts.recording ? [job.artifacts.recording] : []), ...(job.artifacts.events ? [job.artifacts.events] : []), ...job.artifacts.scenes.map((scene) => scene.output)];
     for (const artifact of artifacts) {
       const file = await this.store.safe(path.relative(this.store.root, artifact));
       const relative = path.relative(output, file);

@@ -382,7 +382,9 @@ test('delivery requires a matching successful final render and strict media repo
   const jobId = 'delivery-job';
   const output = path.join(s.store.root, 'jobs', jobId, 'output');
   const review = path.join(output, 'review');
+  const scenePreview = path.join(output, 'scenes', '01-text.png');
   await mkdir(review, { recursive: true });
+  await mkdir(path.dirname(scenePreview), { recursive: true });
   const artifacts = {
     video: path.join(output, 'democena.mp4'),
     quality: path.join(review, 'quality.json'),
@@ -390,9 +392,9 @@ test('delivery requires a matching successful final render and strict media repo
     contactSheet: path.join(review, 'contact-sheet.jpg'),
     storyboard: path.join(output, 'storyboard.json'),
     preview: path.join(output, 'preview.png'),
-    scenes: [],
+    scenes: [{ id: 'hook', type: 'text', output: scenePreview }],
   };
-  for (const file of [artifacts.video, artifacts.poster, artifacts.contactSheet, artifacts.storyboard, artifacts.preview]) await writeFile(file, 'artifact');
+  for (const file of [artifacts.video, artifacts.poster, artifacts.contactSheet, artifacts.storyboard, artifacts.preview, scenePreview]) await writeFile(file, 'artifact');
   await writeFile(path.join(s.store.root, 'jobs', jobId, 'job.json'), JSON.stringify({
     jobId,
     projectId: 'delivery-demo',
@@ -415,6 +417,9 @@ test('delivery requires a matching successful final render and strict media repo
   await writeFile(artifacts.quality, JSON.stringify(quality));
   await assert.rejects(s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId), { code: 'DELIVERY_NOT_READY' });
   await promisify(execFile)('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=black:s=1920x1080:r=30:d=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-an', artifacts.video]);
+  await rm(scenePreview);
+  await assert.rejects(s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId), { code: 'DELIVERY_NOT_READY' });
+  await writeFile(scenePreview, 'artifact');
   const delivered = await s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId);
   assert.equal(delivered.direction.status, 'delivered');
   assert.equal(delivered.delivery.jobId, jobId);

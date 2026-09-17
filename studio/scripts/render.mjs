@@ -179,7 +179,9 @@ try {
   ]);
   for (const [index, scene] of props.scenes.entries()) {
     const entry = timeline[index];
-    const settledFrames = Math.max(0, (timeline[index + 1]?.from ?? entry.end) - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));
+    const sceneEnd = timeline[index + 1]?.from ?? entry.end;
+    const readableEnd = scene.type === 'chapter' ? Math.min(sceneEnd, entry.from + Math.floor(entry.duration * 0.5)) : sceneEnd;
+    const settledFrames = Math.max(0, readableEnd - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));
     const settledSeconds = settledFrames / composition.fps;
     const copyVisible = sceneCopyVisible(scene);
     const count = words(readableSceneCopy(scene), locale);

@@ -7,7 +7,7 @@ The final local bundle contains:
 - `review/contact-sheet.jpg`;
 - `review/transitions/`;
 - `review/quality.json`;
-- individual scene previews and `storyboard.json`.
+- individual scene and transition previews and `storyboard.json`.
 
 Verify H.264, yuv420p, 1920×1080, 30 fps, expected duration and absence of an audio stream. The quality report must not contain blocking findings.
 
