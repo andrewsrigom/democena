@@ -1,0 +1,27 @@
+{
+  "id": "forma",
+  "name": "Forma",
+  "kicker": "COLLECTIONS, IN MOTION",
+  "headline": "Shape a collection with clarity.",
+  "description": "A calm workspace for products, notes, and publish-ready collections.",
+  "mode": "light",
+  "accent": "#215acb",
+  "background": "#f3f6fb",
+  "surface": "#ffffff",
+  "foreground": "#122139",
+  "muted": "#5d6d83",
+  "nav": ["Collections", "Review", "Published"],
+  "metrics": [
+    { "label": "Items", "value": "24" },
+    { "label": "Ready", "value": "18" },
+    { "label": "Shared", "value": "07" }
+  ],
+  "panelTitle": "Spring edit",
+  "panelNote": "Ready for final review",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
+  "rows": [
+    { "name": "Arc chair", "detail": "Oak · Natural", "state": "Ready" },
+    { "name": "Fold lamp", "detail": "Steel · Chalk", "state": "Ready" },
+    { "name": "Line vessel", "detail": "Stoneware · Ink", "state": "Draft" }
+  ]
+}

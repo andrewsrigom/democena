@@ -69,6 +69,7 @@
     "studio:capture": "npm --prefix studio run capture",
     "studio:render": "npm --prefix studio run render",
     "studio:preview": "npm --prefix studio run preview",
+    "benchmark:visual": "node scripts/benchmark-visual.mjs",
     "mcp:install": "npm --prefix mcp ci --ignore-scripts",
     "mcp:build": "npm --prefix mcp run build",
     "mcp:test": "npm --prefix mcp test",

@@ -1,0 +1,27 @@
+{
+  "id": "northstar",
+  "name": "Northstar",
+  "kicker": "SYSTEM OBSERVABILITY",
+  "headline": "See the signal before it becomes noise.",
+  "description": "A technical command center for traces, services, and active incidents.",
+  "mode": "dark",
+  "accent": "#79a7ff",
+  "background": "#0b1020",
+  "surface": "#141c31",
+  "foreground": "#edf3ff",
+  "muted": "#9cabc5",
+  "nav": ["Signals", "Services", "Traces", "Incidents"],
+  "metrics": [
+    { "label": "Availability", "value": "99.98%" },
+    { "label": "P95 latency", "value": "184ms" },
+    { "label": "Open alerts", "value": "03" }
+  ],
+  "panelTitle": "Service map",
+  "panelNote": "Checkout latency recovered",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
+  "rows": [
+    { "name": "edge-gateway", "detail": "42ms · healthy", "state": "Live" },
+    { "name": "checkout-api", "detail": "184ms · recovered", "state": "Stable" },
+    { "name": "orders-db", "detail": "31ms · healthy", "state": "Live" }
+  ]
+}

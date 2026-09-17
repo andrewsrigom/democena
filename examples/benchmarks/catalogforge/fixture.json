@@ -1,0 +1,27 @@
+{
+  "id": "catalogforge",
+  "name": "CatalogForge",
+  "kicker": "CATALOG OPERATIONS",
+  "headline": "Every source. One reliable catalog.",
+  "description": "Normalize product data, inspect issues, and publish a trusted feed.",
+  "mode": "light",
+  "accent": "#3457d5",
+  "background": "#eef2fa",
+  "surface": "#ffffff",
+  "foreground": "#17213a",
+  "muted": "#64718b",
+  "nav": ["Overview", "Sources", "Products", "Rules"],
+  "metrics": [
+    { "label": "Products", "value": "12,480" },
+    { "label": "Validated", "value": "98.4%" },
+    { "label": "Issues", "value": "21" }
+  ],
+  "panelTitle": "Feed health",
+  "panelNote": "All critical checks passed",
+  "panelBounds": { "x": 890, "y": 274, "width": 314, "height": 212 },
+  "rows": [
+    { "name": "Storefront API", "detail": "4,820 records", "state": "Synced" },
+    { "name": "Partner CSV", "detail": "5,140 records", "state": "Synced" },
+    { "name": "ERP export", "detail": "2,520 records", "state": "Review" }
+  ]
+}
