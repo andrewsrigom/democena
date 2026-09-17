@@ -128,8 +128,13 @@ test('real stdio MCP handshake, discovery, resources, edits and errors', async t
   t.after(async () => { await client.close(); });
   await client.connect(transport);
   assert.equal((await client.listTools()).tools.length, 20);
-  assert.equal((await client.listResources()).resources.length, 2);
+  assert.equal((await client.listResources()).resources.length, 3);
   assert((await client.readResource({ uri: 'democena://guide' })).contents.length > 0);
+  const motionResource = await client.readResource({ uri: 'democena://motion' });
+  const motionCatalog = JSON.parse(String((motionResource.contents[0] as { text?: string }).text));
+  assert.equal(motionCatalog.version, 1);
+  assert.deepEqual(motionCatalog.recipes.map((recipe: { id: string }) => recipe.id), capabilities().motionRecipes.map((recipe) => recipe.id));
+  assert.deepEqual(motionCatalog.transitions, capabilities().transitions);
   const created = await client.callTool({ name: 'democena_create_project', arguments: { projectId: 'via-mcp', title: 'Agent demo' } });
   assert.equal(created.isError, undefined);
   const data = created.structuredContent as any;

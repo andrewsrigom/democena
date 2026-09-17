@@ -79,7 +79,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 | `democena_get_job` | Poll persisted job status and retrieve artifact paths or a failure reason. |
 | `democena_read_preview` | Return a capture marker, scene, transition, contact sheet or poster image as MCP image content. |
 
-Read-only resources: `democena://guide` and `democena://scenes`. Tool successes include `structuredContent` and equivalent JSON text. Failures set `isError` and return an error code and message; malformed protocol arguments are rejected by the SDK.
+Read-only resources: `democena://guide`, `democena://scenes` and `democena://motion`. The motion resource is the same recipe, rendered-transition and Director-preset catalog used by Studio and the local Playbook. Tool successes include `structuredContent` and equivalent JSON text. Failures set `isError` and return an error code and message; malformed protocol arguments are rejected by the SDK.
 
 ## Suggested agent workflow
 

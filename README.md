@@ -33,11 +33,14 @@ npm run studio:install
 npm run studio:capture
 npm run studio:render
 npm run studio:dev
+npm run playbook # local motion catalog at http://127.0.0.1:4179
 ```
 
 Capture produces a clean browser video plus an editable scene manifest. Render creates `studio/output/democena.mp4`. Studio previews the same composition. Change the text, accent, light/dark appearance, product-derived visual tokens, branding and focus points in `studio/project.json`, then render again without replaying the application. Generated projects have no Democena watermark; add a name, tagline, footer or imported logo only when the demo needs them.
 
 Each scene has its own duration and transition. A small semantic motion vocabulary adds restrained text reveals, chapter continuity, evidence-linked focus scanning and a subtractive close. Freeze the recording for an explanation, move between real elements, or compare two recorded states. `npm run studio:preview` exports a still of every scene.
+
+`npm run playbook` opens the local Motion Playbook. Filter the shared recipe and transition catalog, switch product fixtures, scrub the exact Remotion composition, inspect registry metadata and copy a direct link to the selected entry. The Playbook binds only to `127.0.0.1`, generates its synthetic product media locally and does not upload anything.
 
 See the [scene authoring guide](docs/scenes.md) and [studio/README.md](studio/README.md) for controls, examples and current limits.
 

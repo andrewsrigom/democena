@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { inputs, descriptions, errorResult, guide, capabilities, type Operation } from './contracts.js';
+import { inputs, descriptions, errorResult, guide, capabilities, motionCatalog, type Operation } from './contracts.js';
 import { AgentService } from './service.js';
 
 export function createServer(service: AgentService) {
@@ -21,5 +21,6 @@ export function createServer(service: AgentService) {
   }
   server.registerResource('agent-guide', 'democena://guide', { mimeType: 'text/plain', description: 'Recommended agent workflow and rendering limitations.' }, async uri => ({ contents: [{ uri: uri.href, mimeType: 'text/plain', text: guide }] }));
   server.registerResource('scene-catalog', 'democena://scenes', { mimeType: 'application/json', description: 'All eight scene examples and editable project schema.' }, async uri => ({ contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(capabilities()) }] }));
+  server.registerResource('motion-catalog', 'democena://motion', { mimeType: 'application/json', description: 'Shared recipe, transition and Director preset registry used by Studio and the local Playbook.' }, async uri => ({ contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(motionCatalog()) }] }));
   return server;
 }
