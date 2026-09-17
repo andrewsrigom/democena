@@ -10,9 +10,14 @@ npm run studio:capture
 npm run studio:preview # one still per scene, plus a default preview
 npm run studio:render
 npm run studio:dev
+npm run playbook
 ```
 
 Capture creates `studio/public/captures/forma-<take-id>.webm` and `studio/project.json`. Rendering produces `studio/output/democena.mp4` (1920 × 1080, 30 fps, silent H.264), `output/preview.png`, numbered stills in `output/scenes/`, and `output/storyboard.json` with exact output frame positions. Run these commands from the repository root; npm selects the studio working directory.
+
+## Motion Playbook
+
+`npm run playbook` starts a Vite application on `http://127.0.0.1:4179`. It renders the production `Demo` composition through `@remotion/player`; catalog previews do not use a separate visual approximation. Use search and type filters, switch between the Registry, Forma, CatalogForge, Northstar and Relay fixtures, scrub any frame, inspect lifecycle and compatibility metadata, and copy the current query-string deep link. The startup script creates the synthetic product fixture under the ignored `studio/public/captures/` directory from local source data. Chromium and FFmpeg must be available.
 
 ## Eight scene types
 

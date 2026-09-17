@@ -87,6 +87,16 @@ export const guide = `Democena Director workflow:
 6. Validate, render a preview, and inspect scene and review images. Fix blocking quality findings before video render. Reuse matching nonterminal jobs rather than starting duplicates.
 7. After a matching final-video job succeeds and its artifacts are inspected, call deliver_direction with the exact project and compiled direction revisions. Return local artifact paths and observed limitations. Publishing or upload is a separate action.
 The server captures one browser page through declarative actions and edits/renders recordings. Capture can change real application data: use only authorized workflows. Existing arbitrary TypeScript scenarios are not automatically converted. Media files and prior revisions are preserved. Jobs run locally, no upload or external model is used. Rendering needs the optional Studio installation, Chromium and ffprobe.\n`;
+export function motionCatalog() {
+  return {
+    version: 1,
+    recipes: motionRecipeVocabulary,
+    transitions: {
+      implementations: Object.values(transitionRegistry),
+      presets: Object.values(transitionPresetRegistry),
+    },
+  };
+}
 export function capabilities() {
   const base = { id: 'example', duration: 4, eyebrow: '', title: 'Show the outcome', body: '', transition: { type: 'fade', duration: 0.4 } };
   const focus = { x: 300, y: 200, width: 400, height: 150 };
@@ -101,6 +111,7 @@ export function capabilities() {
     { ...base, type: 'result', source, comparison: { before: 0, after: 2, crop: focus, beforeLabel: 'Before', afterLabel: 'After' } },
     { ...base, type: 'outro', cta: 'Share your result', reveal: 'lines' },
   ];
+  const motion = motionCatalog();
   return {
     guide,
     profiles: {
@@ -119,11 +130,8 @@ export function capabilities() {
     motionLanguages: ['editorial', 'precise', 'kinetic', 'cinematic', 'quiet'],
     projectSchema: z.toJSONSchema(projectSchema),
     directionSchema: z.toJSONSchema(directionSchema),
-    motionRecipes: motionRecipeVocabulary,
-    transitions: {
-      implementations: Object.values(transitionRegistry),
-      presets: Object.values(transitionPresetRegistry),
-    },
+    motionRecipes: motion.recipes,
+    transitions: motion.transitions,
     examples,
     tools: Object.fromEntries(Object.entries(inputs).map(([name, schema]) => [name, { description: descriptions[name as Operation], inputSchema: z.toJSONSchema(schema) }]))
   };

@@ -4,11 +4,12 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "lib": ["ES2023", "DOM"]
   },
-  "include": ["src"]
+  "include": ["src", "playbook/src", "vite.playbook.config.ts"]
 }

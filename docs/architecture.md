@@ -16,6 +16,8 @@ The capture remains a single continuous video. The version 2 scene manifest sepa
 
 `studio/src/motion-registry.ts` is the shared source of truth for semantic recipes, rendered transition implementations and Director transition presets. Registry entries bind an implementation to compatibility metadata, a committed source fixture and a deterministic fallback. Studio rendering, Direction compilation, tests and MCP capability discovery consume this same catalog. The unimplemented `restrained-zoom` preset is no longer valid Direction v2 vocabulary; legacy Direction v1 values migrate to the crossfade they historically rendered.
 
+The local Motion Playbook uses Vite and `@remotion/player` to render the production composition on `127.0.0.1:4179`. It reads the shared registry directly and supports catalog filtering, frame scrubbing, fixture switching, metadata inspection and query-string deep links. Its product surface is generated locally into an ignored capture path before startup. MCP exposes the same serializable catalog at `democena://motion`.
+
 The capture clock starts at the timestamp of the first browser-presented screencast frame. Events and marker images include measured viewport rectangles. Frame sampling and action scheduling still make alignment approximate; frame-perfect timing is not claimed. Do not silently treat these approximate timestamps as ground truth for precise click effects.
 
 ## Local agent interface
