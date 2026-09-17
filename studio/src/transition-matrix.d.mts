@@ -16,7 +16,7 @@ export type TransitionMatrixEntry = {
   destinationReferenceFrame: number;
 };
 export type ChromeMatrixEntry = Omit<TransitionMatrixEntry, 'id' | 'kind'> & {
-  id: 'chrome-framed-to-full-bleed' | 'chrome-full-bleed-to-framed' | 'chrome-full-bleed-to-full-bleed';
+  id: 'chrome-framed-to-full-bleed' | 'chrome-full-bleed-to-framed' | 'chrome-full-bleed-to-full-bleed' | 'chrome-explicit-hide-to-show' | 'chrome-explicit-show-to-hide';
   kind: 'chrome';
   expectedChrome: Record<TransitionPhase, boolean>;
 };

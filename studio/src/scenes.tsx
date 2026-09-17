@@ -94,14 +94,17 @@ function Chapter({ scene, accent, theme, entranceOffsetFrames, incomingOverlapFr
   const demote = interpolate(frame, [demotionStart, demotionEnd], [0, 1], CLAMP);
   const heroExit = interpolate(demote, [.62, 1], [0, 1], CLAMP);
   const labelEnter = interpolate(demote, [.5, .92], [0, 1], CLAMP);
+  const role = scene.typographicRole ?? 'label';
+  const type = roleTypography[role];
+  const titleSize = role === 'label' ? 92 : type.title;
   return <>
     <div style={{ position: 'absolute', right: 105, top: 150, color: accent, opacity: .62 * (1 - demote), fontSize: 620, lineHeight: 1, letterSpacing: -45, fontWeight: 700, transform: `translateX(${(1 - enter) * 100 + demote * 80}px)` }}>{scene.number}</div>
     <div style={{ position: 'absolute', left: 148, top: 334, width: 1330, opacity: 1 - heroExit,
       transformOrigin: 'top left', transform: `translate(${demote * -52}px, ${(1 - enter) * 30 + demote * -210}px) scale(${1 - demote * .64})` }}>
       <Eyebrow accent={accent}>{`${scene.number} — ${scene.eyebrow}`}</Eyebrow>
-      <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: 92, maxWidth: 1300 }} entranceOffsetFrames={entranceOffsetFrames} />
+      <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: titleSize, fontWeight: type.weight, letterSpacing: type.tracking, maxWidth: Math.min(1300, type.width || 1300) }} entranceOffsetFrames={entranceOffsetFrames} />
       <div style={{ width: 130 * enter, height: 4, background: accent, marginBottom: 28 }} />
-      <p style={{ color: theme.muted, fontSize: 27, lineHeight: 1.6, maxWidth: 880, opacity: 1 - demote }}>{scene.body}</p>
+      <p style={{ color: theme.muted, fontSize: role === 'label' ? 27 : type.body, lineHeight: 1.6, maxWidth: 880, opacity: 1 - demote }}>{scene.body}</p>
     </div>
     <ChapterLabel scene={scene} accent={accent} theme={theme} style={{ opacity: labelEnter, transform: `translateY(${(1 - labelEnter) * 10}px)` }} />
   </>;
@@ -187,7 +190,7 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
   const defaultZoom = composition.id === 'detail-crop' ? 1.85 : composition.id === 'full-bleed-proof' ? 1.24 : 1.14;
   const target = cameraFor(focus, project.viewport, primary.width, scene.type === 'focus' ? scene.zoom ?? defaultZoom : defaultZoom);
   const camera = scene.type === 'camera' ? cameraAt(scene.path, frame / fps, project.viewport, primary.width)
-    : scene.type === 'annotation' ? cameraFor(undefined, project.viewport, primary.width)
+    : scene.type === 'annotation' && !composition.requiresFocus ? cameraFor(undefined, project.viewport, primary.width)
     : { scale: 1 + (target.scale - 1) * strength, x: target.x * strength, y: target.y * strength };
   const framed = !composition.immersive;
   const dim = scene.type === 'focus' ? scene.dim ?? (composition.id === 'full-bleed-proof' ? .48 : .38) : scene.type === 'annotation' ? .14 : 0;

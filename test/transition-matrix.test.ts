@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Project } from '../studio/src/model.js';
 import { transitionRegistry } from '../studio/src/motion-registry.js';
 import { chromeMatrix, transitionMatrix, transitionPhases } from '../studio/src/transition-matrix.mjs';
+import type { ChromeMatrixEntry } from '../studio/src/transition-matrix.mjs';
 import { buildTimeline, FPS } from '../studio/src/timeline.js';
 
 const fixture = JSON.parse(readFileSync(fileURLToPath(new URL('../examples/motion-registry/project.json', import.meta.url)), 'utf8')) as Project;
@@ -39,13 +40,14 @@ describe('transition matrix', () => {
 
   it('covers every presentation chrome handoff with explicit visibility expectations', () => {
     const matrix = chromeMatrix(fixture);
-    expect(matrix.map((entry) => entry.id)).toEqual([
+    const expectedIds: ChromeMatrixEntry['id'][] = [
       'chrome-framed-to-full-bleed',
       'chrome-full-bleed-to-framed',
       'chrome-full-bleed-to-full-bleed',
       'chrome-explicit-hide-to-show',
       'chrome-explicit-show-to-hide',
-    ]);
+    ];
+    expect(matrix.map((entry) => entry.id)).toEqual(expectedIds);
     expect(matrix.map((entry) => entry.project.scenes.map((scene) => 'presentation' in scene ? scene.presentation?.layout : undefined))).toEqual([
       ['framed', 'full-bleed'],
       ['full-bleed', 'framed'],
