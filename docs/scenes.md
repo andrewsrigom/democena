@@ -166,7 +166,7 @@ The CTA is optional. It is a visual closing message in the video, not an interac
 
 ## Motion vocabulary
 
-Democena maps semantic scene types to a small deterministic recipe catalog. The current recipes are `text-blur-slide`, `chapter-demote-to-label`, `focus-scan-lock` and `outro-strip-away`. MCP `capabilities` returns their purpose, evidence requirement, lifecycle and fallback, while `get_project` identifies the resolved recipe in each timeline entry. Recipes remain renderer presets in project version 2, so older manifests gain the refined motion without a migration or extra scene fields.
+Democena maps semantic scene types to a small deterministic recipe catalog. The current recipes are `text-blur-slide`, `chapter-demote-to-label`, `focus-scan-lock` and `outro-strip-away`. MCP `capabilities` returns their purpose, vibe, recommended duration, use and avoid guidance, evidence requirement, lifecycle and fallback, while `get_project` identifies the resolved recipe in each timeline entry. This lets an agent reason about pacing and suitability before it writes a scene. Recipes remain renderer presets in project version 2, so older manifests gain the refined motion without a migration or extra scene fields.
 
 Each recipe follows anticipation → action → settle → hold. The safe fallback preserves the scene's meaning if a later renderer cannot apply the specialized treatment.
 

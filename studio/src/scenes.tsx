@@ -29,13 +29,29 @@ function StripAwayBackdrop({ theme }: { theme: PresentationTheme }) {
   })}</>;
 }
 
+function KeywordEcho({ scene, accent }: { scene: TextScene; accent: string }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame: frame - 10, fps, config: { damping: 30, stiffness: 75 } });
+  const raw = scene.highlight ?? '';
+  const text = raw.replace(/[^\p{L}\p{N}\s-]+/gu, '').trim();
+  if (!text) return null;
+  const fontSize = text.length > 12 ? 176 : text.length > 7 ? 228 : 286;
+  return <div style={{ position: 'absolute', right: -84, top: 210, width: 820, height: 600, overflow: 'hidden', pointerEvents: 'none' }}>
+    <div style={{ position: 'absolute', right: 0, top: 88, color: accent, opacity: .075 * enter, fontSize, lineHeight: .82,
+      fontWeight: 760, letterSpacing: '-0.075em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+      transformOrigin: 'right center', transform: `translateX(${(1 - enter) * 70}px) scale(${.94 + enter * .06})` }}>{text}</div>
+    <div style={{ position: 'absolute', right: 118, top: 390, width: 420 * enter, height: 2, background: accent, opacity: .34 }} />
+  </div>;
+}
+
 function TextPanel({ scene, accent, theme }: { scene: TextScene | OutroScene; accent: string; theme: PresentationTheme }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const closing = scene.type === 'outro';
   const enter = spring({ frame: frame - (closing ? 28 : 20), fps, config: { damping: 26 } });
   return <>
-    {closing ? <StripAwayBackdrop theme={theme} /> : <div style={{ position: 'absolute', width: 510, height: 560, right: -150, top: 180, border: `1px solid ${accent}28`, borderRadius: 28, background: `${theme.surface}88`, transform: `scale(${0.9 + enter * 0.1})` }} />}
+    {closing ? <StripAwayBackdrop theme={theme} /> : <KeywordEcho scene={scene} accent={accent} />}
     <div style={{ position: 'absolute', left: 148, right: 148, top: closing ? 250 : 270 }}>
       <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
       <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} />
