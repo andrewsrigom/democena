@@ -61,10 +61,11 @@ export function authoredEntranceOffsetFrames(scene, fps, first) {
 }
 
 /** Keep the chapter hero readable after its entrance, even when the authored scene is short. */
-export function chapterLifecycleFrames(scene, fps) {
+export function chapterLifecycleFrames(scene, fps, incomingOverlapFrames = 0) {
   const sceneFrames = Math.max(1, frames(scene.duration, fps));
   const entranceEnd = titleEntranceFrames(scene, fps);
-  const demotionStart = Math.max(Math.floor(sceneFrames * .5), entranceEnd + Math.max(1, frames(.25, fps)));
+  const readableHold = Math.max(1, frames(.25, fps));
+  const demotionStart = Math.max(Math.floor(sceneFrames * .5), entranceEnd + readableHold, incomingOverlapFrames + readableHold);
   const demotionEnd = Math.max(demotionStart + 1, Math.floor(sceneFrames * .8));
   return { sceneFrames, entranceEnd, demotionStart, demotionEnd };
 }
@@ -76,7 +77,7 @@ export function settledReviewFrame(entry, nextFrom, requestedLocalSeconds, fps) 
   const requestedEntranceEnd = entry.from + Math.max(entry.overlap, titleEntranceFrames(entry.scene, fps));
   const entranceEnd = Math.min(sceneLast, requestedEntranceEnd);
   const settledEnd = entry.scene.type === 'chapter'
-    ? Math.min(sceneEnd, entry.from + chapterLifecycleFrames(entry.scene, fps).demotionStart)
+    ? Math.min(sceneEnd, entry.from + chapterLifecycleFrames(entry.scene, fps, entry.overlap).demotionStart)
     : sceneEnd;
   const settledLast = Math.max(entry.from, settledEnd - 1);
   const defaultRequested = entry.scene.type === 'chapter'

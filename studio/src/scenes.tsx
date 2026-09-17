@@ -72,11 +72,11 @@ export function ChapterLabel({ scene, accent, theme, style }: { scene: ChapterSc
   </div>;
 }
 
-function Chapter({ scene, accent, theme, entranceOffsetFrames }: { scene: ChapterScene; accent: string; theme: PresentationTheme; entranceOffsetFrames: number }) {
+function Chapter({ scene, accent, theme, entranceOffsetFrames, incomingOverlapFrames }: { scene: ChapterScene; accent: string; theme: PresentationTheme; entranceOffsetFrames: number; incomingOverlapFrames: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame + entranceOffsetFrames, fps, config: { damping: 30, stiffness: 90 } });
-  const { demotionStart, demotionEnd } = chapterLifecycleFrames(scene, fps);
+  const { demotionStart, demotionEnd } = chapterLifecycleFrames(scene, fps, incomingOverlapFrames);
   const demote = interpolate(frame, [demotionStart, demotionEnd], [0, 1], CLAMP);
   const heroExit = interpolate(demote, [.62, 1], [0, 1], CLAMP);
   const labelEnter = interpolate(demote, [.5, .92], [0, 1], CLAMP);
@@ -141,12 +141,12 @@ function Annotation({ scene, project, theme, width }: { scene: AnnotationScene; 
   </>;
 }
 
-export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0 }: { scene: Scene; project: Project; theme: PresentationTheme; entranceOffsetFrames?: number }) {
+export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, incomingOverlapFrames = 0 }: { scene: Scene; project: Project; theme: PresentationTheme; entranceOffsetFrames?: number; incomingOverlapFrames?: number }) {
   const frame = useCurrentFrame();
   const { fps, width: compositionWidth, height: compositionHeight } = useVideoConfig();
   const implementation = motionImplementationFor(scene);
   if (scene.type === 'text' || scene.type === 'outro') return <TextPanel scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} />;
-  if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} />;
+  if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} incomingOverlapFrames={incomingOverlapFrames} />;
   if (scene.type === 'result' && scene.comparison) {
     const c = scene.comparison;
     const after = spring({ frame: frame - 16, fps, config: { damping: 28 } });

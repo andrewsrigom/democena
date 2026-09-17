@@ -163,6 +163,19 @@ describe('scene timeline and source clock', () => {
     expect(settledReviewFrame(oneFrameEntry, undefined, undefined, FPS)).toBe(0);
   });
 
+  it('preserves a readable chapter hold after a long incoming transition', () => {
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text', duration: 4 },
+      { ...base, id: 'chapter', type: 'chapter', duration: 4, number: '01', transition: { type: 'slide', duration: 1.9 } },
+    ];
+    const chapter = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS)[1]!;
+    if (chapter.scene.type !== 'chapter') throw new Error('missing chapter fixture');
+    const lifecycle = chapterLifecycleFrames(chapter.scene, FPS, chapter.overlap);
+    expect(chapter.overlap).toBe(57);
+    expect(lifecycle.demotionStart).toBe(65);
+    expect(settledReviewFrame(chapter, undefined, undefined, FPS)).toBe(chapter.from + 60);
+  });
+
   it('waits for every title token before selecting a review frame', () => {
     const longTitle = Array.from({ length: 20 }, (_, index) => `word${index + 1}`).join(' ');
     const scenes: Scene[] = [

@@ -23,6 +23,7 @@ function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: P
   const { fps } = useVideoConfig();
   const transition = scene.transition ?? DEFAULT_TRANSITION;
   const duration = transitionFrames(scene, fps);
+  const incomingOverlapFrames = first ? 0 : duration;
   const implementation = transitionRegistry[transition.type].implementation;
   const directional = implementation.kind === 'translate' && !implementation.fade;
   const entranceOffsetFrames = authoredEntranceOffsetFrames(scene, fps, first);
@@ -31,7 +32,7 @@ function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: P
   const transitionStyle = transitionStyleFor(transition.type, enter);
   return <AbsoluteFill style={{ background: theme.background, ...transitionStyle }}>
     <div style={{ position: 'absolute', width: 1220, height: 1080, right: 0, top: 0, background: `linear-gradient(125deg, ${theme.background}00, ${theme.tint})`, opacity: .9 }} />
-    <SceneContent scene={scene} project={project} theme={theme} entranceOffsetFrames={entranceOffsetFrames} />
+    <SceneContent scene={scene} project={project} theme={theme} entranceOffsetFrames={entranceOffsetFrames} incomingOverlapFrames={incomingOverlapFrames} />
   </AbsoluteFill>;
 }
 export function Demo(project: Project) {

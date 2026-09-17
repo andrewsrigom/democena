@@ -13,7 +13,7 @@ export function animatedTitleLines(
 ): Array<Array<{ text: string; marked: boolean; delay?: number }>>;
 export function titleEntranceFrames(scene: Scene, fps: number): number;
 export function authoredEntranceOffsetFrames(scene: Scene, fps: number, first: boolean): number;
-export function chapterLifecycleFrames(scene: ChapterScene, fps: number): {
+export function chapterLifecycleFrames(scene: ChapterScene, fps: number, incomingOverlapFrames?: number): {
   sceneFrames: number; entranceEnd: number; demotionStart: number; demotionEnd: number;
 };
 export function settledReviewFrame(
