@@ -6,7 +6,7 @@ import { cameraAt, cameraFor } from './camera';
 import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
 import { browserLayout, fullBleedLayout } from './layout';
-import { motionImplementationFor } from './motion-recipes';
+import { motionImplementationFor } from './motion-registry';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function StripAwayBackdrop({ accent }: { accent: string }) {
