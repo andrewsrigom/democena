@@ -9,7 +9,7 @@
     "dev": "remotion studio src/index.tsx --props=project.json --no-open",
     "render": "node scripts/render.mjs",
     "playbook": "node scripts/prepare-playbook.mjs && vite --config vite.playbook.config.ts",
-    "playbook:build": "vite build --config vite.playbook.config.ts",
+    "playbook:build": "node scripts/prepare-playbook.mjs && vite build --config vite.playbook.config.ts",
     "typecheck": "tsc --noEmit",
     "preview": "node scripts/render.mjs --still"
   },
