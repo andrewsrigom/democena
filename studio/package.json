@@ -10,6 +10,7 @@
     "render": "node scripts/render.mjs",
     "playbook": "node scripts/prepare-playbook.mjs && vite --config vite.playbook.config.ts",
     "playbook:build": "node scripts/prepare-playbook.mjs && vite build --config vite.playbook.config.ts",
+    "matrix": "node scripts/prepare-playbook.mjs && node scripts/render-transition-matrix.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "node scripts/render.mjs --still"
   },

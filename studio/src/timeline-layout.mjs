@@ -56,8 +56,14 @@ export function titleEntranceFrames(scene, fps) {
 
 /** Keep review artifacts beyond transitions and the latest delayed content entrance. */
 export function settledReviewFrame(entry, nextFrom, requestedLocalSeconds, fps) {
-  const settledEnd = nextFrom ?? entry.end;
-  const requested = requestedLocalSeconds === undefined ? entry.previewFrame : entry.from + frames(requestedLocalSeconds, fps);
+  const sceneEnd = nextFrom ?? entry.end;
+  const settledEnd = entry.scene.type === 'chapter'
+    ? Math.min(sceneEnd, entry.from + Math.floor(entry.duration * .5))
+    : sceneEnd;
   const entranceEnd = entry.from + Math.max(entry.overlap, titleEntranceFrames(entry.scene, fps));
+  const defaultRequested = entry.scene.type === 'chapter'
+    ? Math.floor((entranceEnd + settledEnd - 1) / 2)
+    : entry.previewFrame;
+  const requested = requestedLocalSeconds === undefined ? defaultRequested : entry.from + frames(requestedLocalSeconds, fps);
   return Math.min(settledEnd - 1, Math.max(entranceEnd, requested));
 }

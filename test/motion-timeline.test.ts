@@ -135,6 +135,17 @@ describe('scene timeline and source clock', () => {
     expect(settledReviewFrame(middle, timeline[2]!.from, 2, FPS)).toBe(middle.from + 60);
   });
 
+  it('keeps chapter review frames inside the settled hero hold', () => {
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text', duration: 4 },
+      { ...base, id: 'chapter', type: 'chapter', duration: 4, number: '01', transition: { type: 'slide', duration: .4 } },
+      { ...base, id: 'product', type: 'overview', duration: 4, source: { from: 0, freeze: true }, transition: { type: 'slide-left', duration: .5 } },
+    ];
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const chapter = timeline[1]!;
+    expect(settledReviewFrame(chapter, timeline[2]!.from, undefined, FPS)).toBe(chapter.from + 52);
+  });
+
   it('waits for every title token before selecting a review frame', () => {
     const longTitle = Array.from({ length: 20 }, (_, index) => `word${index + 1}`).join(' ');
     const scenes: Scene[] = [

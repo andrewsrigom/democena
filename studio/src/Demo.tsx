@@ -2,7 +2,7 @@ import { resolveTheme } from './theme';
 import type { PresentationTheme } from './theme';
 import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ChapterScene, Project, Scene } from './model';
-import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
+import { buildTimeline, DEFAULT_TRANSITION, titleEntranceFrames, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
 import { presentationChromeOpacity } from './presentation-chrome';
 import { transitionRegistry, transitionStyleFor } from './motion-registry';
@@ -25,12 +25,14 @@ function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: P
   const duration = transitionFrames(scene, fps);
   const implementation = transitionRegistry[transition.type].implementation;
   const directional = implementation.kind === 'translate' && !implementation.fade;
+  const authoredPanel = scene.type === 'text' || scene.type === 'chapter' || scene.type === 'outro';
+  const hardCutOffset = transition.type === 'none' && !first && authoredPanel ? titleEntranceFrames(scene, fps) : 0;
   const enter = duration === 0 || first ? 1 : interpolate(frame, [0, duration], [0, 1], { ...CLAMP,
     easing: directional ? Easing.inOut(Easing.cubic) : Easing.out(Easing.cubic) });
   const transitionStyle = transitionStyleFor(transition.type, enter);
   return <AbsoluteFill style={{ background: theme.background, ...transitionStyle }}>
     <div style={{ position: 'absolute', width: 1220, height: 1080, right: 0, top: 0, background: `linear-gradient(125deg, ${theme.background}00, ${theme.tint})`, opacity: .9 }} />
-    <SceneContent scene={scene} project={project} theme={theme} />
+    <Sequence from={-hardCutOffset}><SceneContent scene={scene} project={project} theme={theme} /></Sequence>
   </AbsoluteFill>;
 }
 export function Demo(project: Project) {
