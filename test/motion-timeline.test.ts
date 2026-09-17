@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimeline, FPS, prepareProject, settledReviewFrame, sourceFrame } from '../studio/src/timeline.js';
+import { authoredEntranceOffsetFrames, buildTimeline, chapterLifecycleFrames, FPS, prepareProject, settledReviewFrame, sourceFrame } from '../studio/src/timeline.js';
 import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
@@ -133,6 +133,47 @@ describe('scene timeline and source clock', () => {
     const middle = timeline[1]!;
     expect(settledReviewFrame(middle, timeline[2]!.from, 0, FPS)).toBe(middle.from + 45);
     expect(settledReviewFrame(middle, timeline[2]!.from, 2, FPS)).toBe(middle.from + 60);
+  });
+
+  it('keeps chapter review frames inside the settled hero hold', () => {
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text', duration: 4 },
+      { ...base, id: 'chapter', type: 'chapter', duration: 4, number: '01', transition: { type: 'slide', duration: .4 } },
+      { ...base, id: 'product', type: 'overview', duration: 4, source: { from: 0, freeze: true }, transition: { type: 'slide-left', duration: .5 } },
+    ];
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const chapter = timeline[1]!;
+    expect(settledReviewFrame(chapter, timeline[2]!.from, undefined, FPS)).toBe(chapter.from + 52);
+  });
+
+  it('skips only authored entrances on hard cuts and preserves the chapter lifecycle clock', () => {
+    const chapter: Scene = { ...base, id: 'chapter', type: 'chapter', duration: 4, number: '01', transition: { type: 'none', duration: 0 } };
+    expect(authoredEntranceOffsetFrames(chapter, FPS, false)).toBe(45);
+    expect(authoredEntranceOffsetFrames(chapter, FPS, true)).toBe(0);
+    expect(chapterLifecycleFrames(chapter, FPS)).toMatchObject({ sceneFrames: 120, entranceEnd: 45, demotionStart: 60, demotionEnd: 96 });
+  });
+
+  it('keeps short chapter review frames inside their scene and delays demotion until after the entrance', () => {
+    const shortChapter: Scene = { ...base, id: 'chapter', type: 'chapter', duration: 2.5, number: '01' };
+    const oneFrameChapter: Scene = { ...base, id: 'one-frame', type: 'chapter', duration: 1 / FPS, number: '02' };
+    const shortEntry = buildTimeline([shortChapter], FPS)[0]!;
+    const oneFrameEntry = buildTimeline([oneFrameChapter], FPS)[0]!;
+    expect(chapterLifecycleFrames(shortChapter, FPS)).toMatchObject({ sceneFrames: 75, entranceEnd: 45, demotionStart: 53, demotionEnd: 60 });
+    expect(settledReviewFrame(shortEntry, undefined, undefined, FPS)).toBe(48);
+    expect(settledReviewFrame(oneFrameEntry, undefined, undefined, FPS)).toBe(0);
+  });
+
+  it('preserves a readable chapter hold after a long incoming transition', () => {
+    const scenes: Scene[] = [
+      { ...base, id: 'opening', type: 'text', duration: 4 },
+      { ...base, id: 'chapter', type: 'chapter', duration: 4, number: '01', transition: { type: 'slide', duration: 1.9 } },
+    ];
+    const chapter = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS)[1]!;
+    if (chapter.scene.type !== 'chapter') throw new Error('missing chapter fixture');
+    const lifecycle = chapterLifecycleFrames(chapter.scene, FPS, chapter.overlap);
+    expect(chapter.overlap).toBe(57);
+    expect(lifecycle.demotionStart).toBe(65);
+    expect(settledReviewFrame(chapter, undefined, undefined, FPS)).toBe(chapter.from + 60);
   });
 
   it('waits for every title token before selecting a review frame', () => {

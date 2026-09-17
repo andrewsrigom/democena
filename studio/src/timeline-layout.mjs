@@ -54,10 +54,35 @@ export function titleEntranceFrames(scene, fps) {
   return Math.max(frames(1.5, fps), latestStart + frames(0.6, fps));
 }
 
+/** Hard cuts can skip authored entrances without advancing duration-based scene lifecycles. */
+export function authoredEntranceOffsetFrames(scene, fps, first) {
+  if (first || scene.transition?.type !== 'none' || !['text', 'chapter', 'outro'].includes(scene.type)) return 0;
+  return titleEntranceFrames(scene, fps);
+}
+
+/** Keep the chapter hero readable after its entrance, even when the authored scene is short. */
+export function chapterLifecycleFrames(scene, fps, incomingOverlapFrames = 0) {
+  const sceneFrames = Math.max(1, frames(scene.duration, fps));
+  const entranceEnd = titleEntranceFrames(scene, fps);
+  const readableHold = Math.max(1, frames(.25, fps));
+  const demotionStart = Math.max(Math.floor(sceneFrames * .5), entranceEnd + readableHold, incomingOverlapFrames + readableHold);
+  const demotionEnd = Math.max(demotionStart + 1, Math.floor(sceneFrames * .8));
+  return { sceneFrames, entranceEnd, demotionStart, demotionEnd };
+}
+
 /** Keep review artifacts beyond transitions and the latest delayed content entrance. */
 export function settledReviewFrame(entry, nextFrom, requestedLocalSeconds, fps) {
-  const settledEnd = nextFrom ?? entry.end;
-  const requested = requestedLocalSeconds === undefined ? entry.previewFrame : entry.from + frames(requestedLocalSeconds, fps);
-  const entranceEnd = entry.from + Math.max(entry.overlap, titleEntranceFrames(entry.scene, fps));
-  return Math.min(settledEnd - 1, Math.max(entranceEnd, requested));
+  const sceneEnd = nextFrom ?? entry.end;
+  const sceneLast = Math.max(entry.from, sceneEnd - 1);
+  const requestedEntranceEnd = entry.from + Math.max(entry.overlap, titleEntranceFrames(entry.scene, fps));
+  const entranceEnd = Math.min(sceneLast, requestedEntranceEnd);
+  const settledEnd = entry.scene.type === 'chapter'
+    ? Math.min(sceneEnd, entry.from + chapterLifecycleFrames(entry.scene, fps, entry.overlap).demotionStart)
+    : sceneEnd;
+  const settledLast = Math.max(entry.from, settledEnd - 1);
+  const defaultRequested = entry.scene.type === 'chapter'
+    ? Math.floor((entranceEnd + settledEnd - 1) / 2)
+    : entry.previewFrame;
+  const requested = requestedLocalSeconds === undefined ? defaultRequested : entry.from + frames(requestedLocalSeconds, fps);
+  return Math.min(settledLast, Math.max(entranceEnd, requested));
 }

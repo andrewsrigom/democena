@@ -1,4 +1,4 @@
-import type { Scene } from './model.js';
+import type { ChapterScene, Scene } from './model.js';
 export const FPS: 30;
 export const DEFAULT_TRANSITION: { readonly type: 'fade'; readonly duration: 0.4 };
 export function frames(seconds: number, fps: number): number;
@@ -12,6 +12,10 @@ export function animatedTitleLines(
   reveal?: 'words' | 'lines',
 ): Array<Array<{ text: string; marked: boolean; delay?: number }>>;
 export function titleEntranceFrames(scene: Scene, fps: number): number;
+export function authoredEntranceOffsetFrames(scene: Scene, fps: number, first: boolean): number;
+export function chapterLifecycleFrames(scene: ChapterScene, fps: number, incomingOverlapFrames?: number): {
+  sceneFrames: number; entranceEnd: number; demotionStart: number; demotionEnd: number;
+};
 export function settledReviewFrame(
   entry: { scene: Scene; from: number; duration: number; overlap: number; end: number; previewFrame: number },
   nextFrom: number | undefined,

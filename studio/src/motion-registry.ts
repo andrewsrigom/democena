@@ -1,4 +1,9 @@
 import type { Scene, Transition } from './model.js';
+import { transitionRegistry } from './transition-registry.mjs';
+import type { TransitionFixture } from './transition-registry.mjs';
+
+export { transitionRegistry, transitionStyleFor } from './transition-registry.mjs';
+export type { TransitionDefinition, TransitionFixture, TransitionImplementation } from './transition-registry.mjs';
 
 export const motionRecipeIds = [
   'standard-scene-motion',
@@ -82,41 +87,15 @@ for (const recipe of motionRecipeVocabulary) for (const sceneType of recipe.defa
 export function motionRecipeFor(scene: Pick<Scene, 'type'>): MotionRecipeId { return defaultRecipeBySceneType.get(scene.type) ?? 'standard-scene-motion'; }
 export function motionImplementationFor(scene: Pick<Scene, 'type'>): MotionRecipeImplementation { return motionRecipeRegistry[motionRecipeFor(scene)].implementation; }
 
-export type TransitionImplementation =
-  | { kind: 'cut' }
-  | { kind: 'fade' }
-  | { kind: 'translate'; axis: 'x' | 'y'; direction: -1 | 1; distance: number; unit: 'px' | '%'; fade: boolean };
-export type TransitionFixture = { project: string; fromSceneId: string; toSceneId: string };
-export type TransitionDefinition = { id: Transition['type']; implementation: TransitionImplementation; purpose: string; fixture: TransitionFixture; fallback: Transition['type'] };
-const fixtureProject = 'examples/motion-registry/project.json';
-const fixturePair = (fromSceneId: string, toSceneId: string) => ({ project: fixtureProject, fromSceneId, toSceneId });
-export const transitionRegistry: Record<Transition['type'], TransitionDefinition> = {
-  none: { id: 'none', implementation: { kind: 'cut' }, purpose: 'Cut directly without overlapping visual motion.', fixture: fixturePair('opening', 'cut-text'), fallback: 'none' },
-  fade: { id: 'fade', implementation: { kind: 'fade' }, purpose: 'Blend neighboring scenes without adding directional velocity.', fixture: fixturePair('overview', 'focus'), fallback: 'none' },
-  slide: { id: 'slide', implementation: { kind: 'translate', axis: 'y', direction: 1, distance: 36, unit: 'px', fade: true }, purpose: 'Lift content subtly while fading it into the current composition.', fixture: fixturePair('cut-text', 'chapter'), fallback: 'fade' },
-  'slide-up': { id: 'slide-up', implementation: { kind: 'translate', axis: 'y', direction: 1, distance: 100, unit: '%', fade: false }, purpose: 'Cover the outgoing scene from below for a strong upward advance.', fixture: fixturePair('camera', 'annotation'), fallback: 'fade' },
-  'slide-down': { id: 'slide-down', implementation: { kind: 'translate', axis: 'y', direction: -1, distance: 100, unit: '%', fade: false }, purpose: 'Cover the outgoing scene from above for a downward reveal.', fixture: fixturePair('annotation', 'comparison'), fallback: 'fade' },
-  'slide-left': { id: 'slide-left', implementation: { kind: 'translate', axis: 'x', direction: 1, distance: 100, unit: '%', fade: false }, purpose: 'Advance horizontally while preserving leftward reading momentum.', fixture: fixturePair('chapter', 'overview'), fallback: 'fade' },
-  'slide-right': { id: 'slide-right', implementation: { kind: 'translate', axis: 'x', direction: -1, distance: 100, unit: '%', fade: false }, purpose: 'Return horizontally while preserving rightward reading momentum.', fixture: fixturePair('focus', 'camera'), fallback: 'fade' },
-};
-export function transitionStyleFor(type: Transition['type'], enter: number) {
-  const implementation = transitionRegistry[type].implementation;
-  if (implementation.kind === 'cut') return { opacity: 1 };
-  if (implementation.kind === 'fade') return { opacity: enter };
-  const offset = (1 - enter) * implementation.direction * implementation.distance;
-  const transform = implementation.axis === 'x' ? `translateX(${offset}${implementation.unit})` : `translateY(${offset}${implementation.unit})`;
-  return { opacity: implementation.fade ? enter : 1, transform };
-}
-
 export const transitionPresetIds = ['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover'] as const;
 export type TransitionPresetId = (typeof transitionPresetIds)[number];
 export type TransitionPreset = { id: TransitionPresetId; implementation: Transition['type']; purpose: string; duration: { default: number; launch: number }; fixture: TransitionFixture; fallback: TransitionPresetId };
 export const transitionPresetRegistry: Record<TransitionPresetId, TransitionPreset> = {
-  'hard-cut': { id: 'hard-cut', implementation: 'none', purpose: 'Start or reset a sequence without transition overlap.', duration: { default: 0, launch: 0 }, fixture: fixturePair('opening', 'cut-text'), fallback: 'hard-cut' },
-  'soft-crossfade': { id: 'soft-crossfade', implementation: 'fade', purpose: 'Continue between compatible compositions without directional emphasis.', duration: { default: .4, launch: .3 }, fixture: fixturePair('overview', 'focus'), fallback: 'hard-cut' },
-  'clean-slide': { id: 'clean-slide', implementation: 'slide', purpose: 'Advance related content with a restrained vertical lift.', duration: { default: .45, launch: .35 }, fixture: fixturePair('cut-text', 'chapter'), fallback: 'soft-crossfade' },
-  'rise-cover': { id: 'rise-cover', implementation: 'slide-up', purpose: 'Reveal a meaningful new stage by covering upward.', duration: { default: .55, launch: .4 }, fixture: fixturePair('camera', 'annotation'), fallback: 'soft-crossfade' },
-  'drop-cover': { id: 'drop-cover', implementation: 'slide-down', purpose: 'Reveal a meaningful new stage by covering downward.', duration: { default: .55, launch: .4 }, fixture: fixturePair('annotation', 'comparison'), fallback: 'soft-crossfade' },
+  'hard-cut': { id: 'hard-cut', implementation: 'none', purpose: 'Start or reset a sequence without transition overlap.', duration: { default: 0, launch: 0 }, fixture: transitionRegistry.none.fixture, fallback: 'hard-cut' },
+  'soft-crossfade': { id: 'soft-crossfade', implementation: 'fade', purpose: 'Continue between compatible compositions without directional emphasis.', duration: { default: .4, launch: .3 }, fixture: transitionRegistry.fade.fixture, fallback: 'hard-cut' },
+  'clean-slide': { id: 'clean-slide', implementation: 'slide', purpose: 'Advance related content with a restrained vertical lift.', duration: { default: .45, launch: .35 }, fixture: transitionRegistry.slide.fixture, fallback: 'soft-crossfade' },
+  'rise-cover': { id: 'rise-cover', implementation: 'slide-up', purpose: 'Reveal a meaningful new stage by covering upward.', duration: { default: .55, launch: .4 }, fixture: transitionRegistry['slide-up'].fixture, fallback: 'soft-crossfade' },
+  'drop-cover': { id: 'drop-cover', implementation: 'slide-down', purpose: 'Reveal a meaningful new stage by covering downward.', duration: { default: .55, launch: .4 }, fixture: transitionRegistry['slide-down'].fixture, fallback: 'soft-crossfade' },
 };
 export function transitionForPreset(id: TransitionPresetId, storyMode: string): Transition {
   const preset = transitionPresetRegistry[id];

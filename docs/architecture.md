@@ -18,6 +18,8 @@ The capture remains a single continuous video. The version 2 scene manifest sepa
 
 The local Motion Playbook uses Vite and `@remotion/player` to render the production composition on `127.0.0.1:4179`. It reads the shared registry directly and supports catalog filtering, frame scrubbing, fixture switching, metadata inspection and query-string deep links. Its product surface is generated locally into an ignored capture path before startup. MCP exposes the same serializable catalog at `democena://motion`.
 
+The transition matrix consumes the same portable registry data from Node and Studio. It renders the production composition at before, midpoint and settled-after frames, then checks frame content, alpha coverage, chrome luminance, explicit framed/full-bleed chrome visibility at every phase, settled-frame stability, and parity with a transition-free destination render. The generated report, contact sheet and interactive A/B viewer stay in ignored local output. A no-overlap cut advances authored entrance animations so it cannot expose an empty presentation frame while duration-based scene lifecycles keep their own clock.
+
 The capture clock starts at the timestamp of the first browser-presented screencast frame. Events and marker images include measured viewport rectangles. Frame sampling and action scheduling still make alignment approximate; frame-perfect timing is not claimed. Do not silently treat these approximate timestamps as ground truth for precise click effects.
 
 ## Local agent interface

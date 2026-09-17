@@ -71,6 +71,7 @@
     "studio:preview": "npm --prefix studio run preview",
     "playbook": "npm --prefix studio run playbook",
     "benchmark:visual": "node scripts/benchmark-visual.mjs",
+    "benchmark:transitions": "npm --prefix studio run matrix",
     "mcp:install": "npm --prefix mcp ci --ignore-scripts",
     "mcp:build": "npm --prefix mcp run build",
     "mcp:test": "npm --prefix mcp test",

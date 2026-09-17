@@ -7,6 +7,7 @@ import { BrowserFrame, ComparisonFrame } from './BrowserFrame';
 import { AnimatedTitle, Eyebrow } from './typography';
 import { browserLayout, fullBleedLayout } from './layout';
 import { motionImplementationFor } from './motion-registry';
+import { chapterLifecycleFrames } from './timeline';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function StripAwayBackdrop({ accent }: { accent: string }) {
@@ -29,8 +30,8 @@ function StripAwayBackdrop({ accent }: { accent: string }) {
   })}</>;
 }
 
-function KeywordEcho({ scene, accent }: { scene: TextScene; accent: string }) {
-  const frame = useCurrentFrame();
+function KeywordEcho({ scene, accent, entranceOffsetFrames }: { scene: TextScene; accent: string; entranceOffsetFrames: number }) {
+  const frame = useCurrentFrame() + entranceOffsetFrames;
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame - 10, fps, config: { damping: 30, stiffness: 75 } });
   const raw = scene.highlight ?? '';
@@ -45,16 +46,16 @@ function KeywordEcho({ scene, accent }: { scene: TextScene; accent: string }) {
   </div>;
 }
 
-function TextPanel({ scene, accent, theme }: { scene: TextScene | OutroScene; accent: string; theme: PresentationTheme }) {
-  const frame = useCurrentFrame();
+function TextPanel({ scene, accent, theme, entranceOffsetFrames }: { scene: TextScene | OutroScene; accent: string; theme: PresentationTheme; entranceOffsetFrames: number }) {
+  const frame = useCurrentFrame() + entranceOffsetFrames;
   const { fps } = useVideoConfig();
   const closing = scene.type === 'outro';
   const enter = spring({ frame: frame - (closing ? 28 : 20), fps, config: { damping: 26 } });
   return <>
-    {closing ? <StripAwayBackdrop accent={accent} /> : <KeywordEcho scene={scene} accent={accent} />}
+    {closing ? <StripAwayBackdrop accent={accent} /> : <KeywordEcho scene={scene} accent={accent} entranceOffsetFrames={entranceOffsetFrames} />}
     <div style={{ position: 'absolute', left: 148, right: 148, top: closing ? 250 : 270 }}>
       <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
-      <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} />
+      <AnimatedTitle text={scene.title} highlight={scene.highlight} reveal={scene.reveal} accent={accent} entranceOffsetFrames={entranceOffsetFrames} />
       <p style={{ maxWidth: 1030, color: theme.muted, fontSize: 29, lineHeight: 1.6, margin: '0 0 32px', opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.body}</p>
       {closing && scene.cta ? <div style={{ display: 'inline-flex', alignItems: 'center', gap: 42, padding: '20px 28px', borderRadius: 12, background: accent, color: '#fff', fontSize: 23, opacity: enter, transform: `translateY(${(1 - enter) * 18}px)` }}>{scene.cta}<span>↗</span></div> : null}
     </div>
@@ -71,12 +72,12 @@ export function ChapterLabel({ scene, accent, theme, style }: { scene: ChapterSc
   </div>;
 }
 
-function Chapter({ scene, accent, theme }: { scene: ChapterScene; accent: string; theme: PresentationTheme }) {
+function Chapter({ scene, accent, theme, entranceOffsetFrames, incomingOverlapFrames }: { scene: ChapterScene; accent: string; theme: PresentationTheme; entranceOffsetFrames: number; incomingOverlapFrames: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ frame, fps, config: { damping: 30, stiffness: 90 } });
-  const sceneFrames = Math.max(1, Math.round(scene.duration * fps));
-  const demote = interpolate(frame, [Math.floor(sceneFrames * .5), Math.max(Math.floor(sceneFrames * .5) + 1, Math.floor(sceneFrames * .8))], [0, 1], CLAMP);
+  const enter = spring({ frame: frame + entranceOffsetFrames, fps, config: { damping: 30, stiffness: 90 } });
+  const { demotionStart, demotionEnd } = chapterLifecycleFrames(scene, fps, incomingOverlapFrames);
+  const demote = interpolate(frame, [demotionStart, demotionEnd], [0, 1], CLAMP);
   const heroExit = interpolate(demote, [.62, 1], [0, 1], CLAMP);
   const labelEnter = interpolate(demote, [.5, .92], [0, 1], CLAMP);
   return <>
@@ -84,7 +85,7 @@ function Chapter({ scene, accent, theme }: { scene: ChapterScene; accent: string
     <div style={{ position: 'absolute', left: 148, top: 334, width: 1330, opacity: 1 - heroExit,
       transformOrigin: 'top left', transform: `translate(${demote * -52}px, ${(1 - enter) * 30 + demote * -210}px) scale(${1 - demote * .64})` }}>
       <Eyebrow accent={accent}>{`${scene.number} — ${scene.eyebrow}`}</Eyebrow>
-      <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: 92, maxWidth: 1300 }} />
+      <AnimatedTitle text={scene.title} reveal="lines" accent={accent} style={{ fontSize: 92, maxWidth: 1300 }} entranceOffsetFrames={entranceOffsetFrames} />
       <div style={{ width: 130 * enter, height: 4, background: accent, marginBottom: 28 }} />
       <p style={{ color: theme.muted, fontSize: 27, lineHeight: 1.6, maxWidth: 880, opacity: 1 - demote }}>{scene.body}</p>
     </div>
@@ -140,12 +141,12 @@ function Annotation({ scene, project, theme, width }: { scene: AnnotationScene; 
   </>;
 }
 
-export function SceneContent({ scene, project, theme }: { scene: Scene; project: Project; theme: PresentationTheme }) {
+export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, incomingOverlapFrames = 0 }: { scene: Scene; project: Project; theme: PresentationTheme; entranceOffsetFrames?: number; incomingOverlapFrames?: number }) {
   const frame = useCurrentFrame();
   const { fps, width: compositionWidth, height: compositionHeight } = useVideoConfig();
   const implementation = motionImplementationFor(scene);
-  if (scene.type === 'text' || scene.type === 'outro') return <TextPanel scene={scene} accent={project.accent} theme={theme} />;
-  if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} />;
+  if (scene.type === 'text' || scene.type === 'outro') return <TextPanel scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} />;
+  if (scene.type === 'chapter') return <Chapter scene={scene} accent={project.accent} theme={theme} entranceOffsetFrames={entranceOffsetFrames} incomingOverlapFrames={incomingOverlapFrames} />;
   if (scene.type === 'result' && scene.comparison) {
     const c = scene.comparison;
     const after = spring({ frame: frame - 16, fps, config: { damping: 28 } });

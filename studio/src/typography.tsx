@@ -9,10 +9,10 @@ export function Eyebrow({ children, accent }: { children: string; accent: string
 }
 
 /** Keep a highlighted phrase together while other words enter independently. */
-export function AnimatedTitle({ text, highlight, reveal = 'words', accent, style }: {
-  text: string; highlight?: string; reveal?: 'words' | 'lines'; accent: string; style?: CSSProperties;
+export function AnimatedTitle({ text, highlight, reveal = 'words', accent, style, entranceOffsetFrames = 0 }: {
+  text: string; highlight?: string; reveal?: 'words' | 'lines'; accent: string; style?: CSSProperties; entranceOffsetFrames?: number;
 }) {
-  const frame = useCurrentFrame();
+  const frame = useCurrentFrame() + entranceOffsetFrames;
   const { fps } = useVideoConfig();
   return <h1 style={{ fontSize: 112, lineHeight: 1.12, fontWeight: 600, letterSpacing: -5.5, margin: '28px 0 32px', ...style }}>
     {animatedTitleLines(text, highlight, reveal).map((words, lineIndex) => {
