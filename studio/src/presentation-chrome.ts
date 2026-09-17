@@ -42,6 +42,11 @@ export function overlayCaptionTop(position: CaptionPlacement, layout: Compositio
   return layout === 'product-stage' ? 150 : 96;
 }
 
+export function overlayCaptionBottom(position: CaptionPlacement, chromeVisible: boolean) {
+  if (!position.startsWith('bottom')) return undefined;
+  return chromeVisible ? 160 : 96;
+}
+
 export function compactChapterChrome(layout: CompositionLayout) {
   return layout === 'product-stage';
 }

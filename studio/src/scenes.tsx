@@ -10,7 +10,7 @@ import { motionImplementationFor } from './motion-registry';
 import { chapterLifecycleFrames } from './timeline';
 import { sceneComposition } from './composition-registry.mjs';
 import { CompositionBackground, CompositionForeground, CompositionMidground } from './composition-layers';
-import { overlayCaptionTop } from './presentation-chrome';
+import { overlayCaptionBottom, overlayCaptionTop } from './presentation-chrome';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function StripAwayBackdrop({ accent }: { accent: string }) {
@@ -134,8 +134,9 @@ function OverlayCaption({ scene, accent, theme, position, layout }: { scene: Sce
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame: frame - 8, fps, config: { damping: 26, stiffness: 95 } });
-  const top = overlayCaptionTop(position, layout, sceneComposition(scene).chromeVisible);
-  const bottom = position.startsWith('bottom') ? 96 : undefined;
+  const chromeVisible = sceneComposition(scene).chromeVisible;
+  const top = overlayCaptionTop(position, layout, chromeVisible);
+  const bottom = overlayCaptionBottom(position, chromeVisible);
   const left = position.endsWith('left') ? 96 : undefined;
   const right = position.endsWith('right') ? 96 : undefined;
   const role = sceneComposition(scene).typographicRole;
