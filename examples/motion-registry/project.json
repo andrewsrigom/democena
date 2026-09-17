@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "title": "Motion registry fixture",
+  "accent": "#215acb",
+  "branding": { "name": "Fixture", "tagline": "MOTION REGISTRY" },
+  "appearance": { "surfaceMode": "light" },
+  "video": "captures/motion-registry.mp4",
+  "sourceDuration": 10,
+  "trimBefore": 0,
+  "viewport": { "width": 1280, "height": 800 },
+  "scenes": [
+    {
+      "id": "opening", "type": "text", "duration": 4,
+      "eyebrow": "Registry fixture", "title": "Motion has one source of truth.", "body": "A portable authored beat.",
+      "reveal": "words", "highlight": "one source", "transition": { "type": "none", "duration": 0 }
+    },
+    {
+      "id": "cut-text", "type": "text", "duration": 4,
+      "eyebrow": "Cut", "title": "A direct handoff.", "body": "No overlap is required.",
+      "reveal": "lines", "transition": { "type": "none", "duration": 0 }
+    },
+    {
+      "id": "chapter", "type": "chapter", "duration": 4,
+      "eyebrow": "Orient", "title": "Enter the product.", "body": "The chapter becomes context.", "number": "01",
+      "transition": { "type": "slide", "duration": 0.4 }
+    },
+    {
+      "id": "overview", "type": "overview", "duration": 4,
+      "eyebrow": "Overview", "title": "Keep the system visible.", "body": "The complete product remains legible.",
+      "source": { "from": 0, "freeze": true }, "transition": { "type": "slide-left", "duration": 0.5 }
+    },
+    {
+      "id": "focus", "type": "focus", "duration": 4,
+      "eyebrow": "Focus", "title": "Guide the eye.", "body": "Measured evidence drives the lock.",
+      "source": { "from": 0, "freeze": true }, "focus": { "x": 820, "y": 220, "width": 320, "height": 180 },
+      "dim": 0.35, "zoom": 1.3, "transition": { "type": "fade", "duration": 0.4 }
+    },
+    {
+      "id": "camera", "type": "camera", "duration": 4,
+      "eyebrow": "Camera", "title": "Follow the action.", "body": "The path stays inside captured geometry.",
+      "source": { "from": 0, "freeze": true },
+      "path": [
+        { "at": 0, "focus": { "x": 120, "y": 120, "width": 420, "height": 220 }, "zoom": 1.15 },
+        { "at": 2, "focus": { "x": 820, "y": 220, "width": 320, "height": 180 }, "zoom": 1.3 }
+      ],
+      "transition": { "type": "slide-right", "duration": 0.5 }
+    },
+    {
+      "id": "annotation", "type": "annotation", "duration": 4,
+      "eyebrow": "Explain", "title": "Point to the proof.", "body": "The note stays attached to evidence.",
+      "source": { "from": 0, "freeze": true }, "focus": { "x": 820, "y": 220, "width": 320, "height": 180 },
+      "note": { "text": "This region is measured.", "x": 520, "y": 520, "width": 360 },
+      "transition": { "type": "slide-up", "duration": 0.5 }
+    },
+    {
+      "id": "comparison", "type": "result", "duration": 4,
+      "eyebrow": "Compare", "title": "Show the verified change.", "body": "Both states keep the same crop.",
+      "source": { "from": 0, "freeze": true },
+      "comparison": {
+        "before": 0, "after": 1, "crop": { "x": 820, "y": 220, "width": 320, "height": 180 },
+        "beforeLabel": "BEFORE", "afterLabel": "AFTER"
+      },
+      "transition": { "type": "slide-down", "duration": 0.5 }
+    },
+    {
+      "id": "closing", "type": "outro", "duration": 4,
+      "eyebrow": "Close", "title": "End on the benefit.", "body": "One calm conclusion.",
+      "reveal": "words", "highlight": "benefit", "transition": { "type": "fade", "duration": 0.4 }
+    }
+  ]
+}

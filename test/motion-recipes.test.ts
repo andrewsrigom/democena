@@ -13,6 +13,7 @@ import {
   transitionStyleFor,
 } from '../studio/src/motion-registry.js';
 import type { Project, Scene } from '../studio/src/model.js';
+import { prepareProject } from '../studio/src/timeline.js';
 
 function projectFixture(file: string) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(`../${file}`, import.meta.url)), 'utf8')) as Project;
@@ -30,6 +31,7 @@ describe('shared motion registry', () => {
   });
 
   it('requires implementation, metadata, a real fixture and a deterministic fallback for every recipe', () => {
+    expect(() => prepareProject(projectFixture('examples/motion-registry/project.json'))).not.toThrow();
     expect(Object.keys(motionRecipeRegistry)).toEqual([...motionRecipeIds]);
     expect(motionRecipeVocabulary).toHaveLength(motionRecipeIds.length);
     const defaults = new Set<Scene['type']>();
@@ -54,8 +56,11 @@ describe('shared motion registry', () => {
       expect(transition.purpose.length).toBeGreaterThan(20);
       expect(transitionRegistry[transition.fallback]).toBeDefined();
       const fixture = projectFixture(transition.fixture.project);
-      expect(fixture.scenes.some((scene) => scene.id === transition.fixture.fromSceneId)).toBe(true);
-      expect(fixture.scenes.some((scene) => scene.id === transition.fixture.toSceneId)).toBe(true);
+      const fromIndex = fixture.scenes.findIndex((scene) => scene.id === transition.fixture.fromSceneId);
+      const toIndex = fixture.scenes.findIndex((scene) => scene.id === transition.fixture.toSceneId);
+      expect(fromIndex).toBeGreaterThanOrEqual(0);
+      expect(toIndex).toBe(fromIndex + 1);
+      expect(fixture.scenes[toIndex]?.transition?.type).toBe(transition.id);
     }
     for (const preset of Object.values(transitionPresetRegistry)) {
       expect(transitionRegistry[preset.implementation]).toBeDefined();
