@@ -3,8 +3,8 @@ import { authoredEntranceOffsetFrames, buildTimeline, chapterLifecycleFrames, FP
 import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
-import { fullBleedLayout } from '../studio/src/layout.js';
-import { presentationChromeOpacity } from '../studio/src/presentation-chrome.js';
+import { annotationNotePlacement, fullBleedLayout } from '../studio/src/layout.js';
+import { compactChapterChrome, nestedChromeBackdropOpacity, outgoingChromeCaptionDelayFrames, overlayCaptionBottom, overlayCaptionTop, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -67,13 +67,60 @@ describe('scene timeline and source clock', () => {
     expect(fullBleedLayout({ width: 1280, height: 800 }, { width: 1920, height: 1080 })).toEqual({ width: 1920, height: 1200, left: 0, top: -60, chromeHeight: 0 });
   });
 
-  it('keeps presentation chrome hidden between consecutive full-bleed scenes', () => {
-    expect(presentationChromeOpacity(true, true, 0)).toBe(0);
-    expect(presentationChromeOpacity(true, true, 1)).toBe(0);
-    expect(presentationChromeOpacity(true, false, 0)).toBe(1);
-    expect(presentationChromeOpacity(true, false, 1)).toBe(0);
-    expect(presentationChromeOpacity(false, true, 0)).toBe(0);
-    expect(presentationChromeOpacity(false, true, 1)).toBe(1);
+  it('keeps full-bleed annotation notes inside the visible canvas crop', () => {
+    const viewport = { width: 1280, height: 800 };
+    const canvas = { width: 1920, height: 1080 };
+    const box = fullBleedLayout(viewport, canvas);
+    const top = annotationNotePlacement({ x: 0, y: 0, width: 400 }, viewport, box, canvas);
+    const bottom = annotationNotePlacement({ x: 880, y: 660, width: 400 }, viewport, box, canvas);
+    expect(top).toMatchObject({ left: 24, top: 84, width: 600, anchorY: 84 });
+    expect(box.top + top.anchorY).toBe(24);
+    expect(bottom).toMatchObject({ left: 1296, bottom: 84, width: 600, anchorY: 1116 });
+    expect(box.top + bottom.anchorY).toBe(1056);
+  });
+
+  it('keeps stable chrome states and fades only when visibility changes', () => {
+    expect(presentationChromeOpacity(true, true, 0)).toBe(1);
+    expect(presentationChromeOpacity(true, true, 1)).toBe(1);
+    expect(presentationChromeOpacity(false, false, 0)).toBe(0);
+    expect(presentationChromeOpacity(false, false, 1)).toBe(0);
+    expect(presentationChromeOpacity(false, true, 0)).toBe(1);
+    expect(presentationChromeOpacity(false, true, 1)).toBe(0);
+    expect(presentationChromeOpacity(true, false, 0)).toBe(0);
+    expect(presentationChromeOpacity(true, false, 1)).toBe(1);
+  });
+
+  it('backs visible chrome throughout a framed-to-immersive handoff', () => {
+    expect(presentationChromeBackdropOpacity(true, false, true, true, 0)).toBe(1);
+    expect(presentationChromeBackdropOpacity(true, false, true, true, .5)).toBe(1);
+    expect(presentationChromeBackdropOpacity(true, false, true, true, 1)).toBe(1);
+    expect(presentationChromeBackdropOpacity(false, true, true, true, .99)).toBe(1);
+    expect(presentationChromeBackdropOpacity(false, true, true, true, 1)).toBe(0);
+    expect(nestedChromeBackdropOpacity(.5, .5)).toBe(1);
+    expect(nestedChromeBackdropOpacity(1, .5)).toBe(.5);
+    expect(nestedChromeBackdropOpacity(0, 0)).toBe(0);
+    expect(presentationChromeUsesBackdrop(false, true, .99)).toBe(true);
+    expect(presentationChromeUsesBackdrop(false, true, 1)).toBe(false);
+  });
+
+  it('keeps top-left overlay copy below visible presentation chrome', () => {
+    expect(overlayCaptionTop('top-left', 'full-bleed', true)).toBe(190);
+    expect(overlayCaptionTop('top-left', 'full-bleed', false)).toBe(96);
+    expect(overlayCaptionTop('top-right', 'full-bleed', true)).toBe(190);
+    expect(overlayCaptionTop('top-right', 'full-bleed', false)).toBe(96);
+    expect(overlayCaptionTop('top-left', 'product-stage', false)).toBe(150);
+    expect(overlayCaptionTop('bottom-left', 'full-bleed', true)).toBeUndefined();
+    expect(outgoingChromeCaptionDelayFrames(false, true, 57)).toBe(20);
+    expect(outgoingChromeCaptionDelayFrames(false, false, 57)).toBe(0);
+    expect(outgoingChromeCaptionDelayFrames(true, true, 57)).toBe(0);
+    expect(overlayCaptionBottom('bottom-left', true)).toBe(160);
+    expect(overlayCaptionBottom('bottom-right', true)).toBe(160);
+    expect(overlayCaptionBottom('bottom-left', false)).toBe(96);
+    expect(overlayCaptionBottom('top-left', true)).toBeUndefined();
+    expect(compactChapterChrome('product-stage')).toBe(true);
+    expect(compactChapterChrome('detail-crop')).toBe(true);
+    expect(compactChapterChrome('layered-product')).toBe(true);
+    expect(compactChapterChrome('framed')).toBe(false);
   });
 
   it('migrates old manifests, including merged Remotion defaults, without changing the file object', () => {
@@ -107,11 +154,28 @@ describe('scene timeline and source clock', () => {
     }
   });
 
+  it('rejects immersive focus geometry that cannot fit the visible canvas', () => {
+    expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'proof', type: 'focus', source: { from: 0, freeze: true },
+      focus: { x: 100, y: 20, width: 300, height: 721 }, presentation: { layout: 'full-bleed-proof', caption: 'bottom-left' } }] })).toThrow(/focus cannot fit the visible canvas/);
+  });
+
+  it('rejects focus geometry that erases a layout required zoom', () => {
+    expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'detail', type: 'focus', source: { from: 0, freeze: true }, zoom: 1.2,
+      focus: { x: 0, y: 0, width: 1280, height: 800 }, presentation: { layout: 'detail-crop', caption: 'side' } }] })).toThrow(/cannot preserve the required 1.2x zoom/);
+  });
+
+  it('rejects focus zoom values that neutralize evidence-led crop layouts', () => {
+    const scene = { id: 'focus', type: 'focus' as const, duration: 4, eyebrow: '', title: 'Detail', body: '', source: { from: 0, freeze: true }, focus, zoom: 1 };
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'detail-crop' as const } }] })).toThrow(/zoom must be at least 1.2/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed-proof' as const } }] })).toThrow(/zoom must be at least 1.1/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'framed' as const } }] })).not.toThrow();
+  });
+
   it('rejects invalid product presentation', () => {
     const scene = { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true } };
     expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'edge-to-edge' } }] })).toThrow(/presentation.layout/);
     expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { caption: 'center' } }] })).toThrow(/presentation.caption/);
-    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed', caption: 'side' } }] })).toThrow(/side requires the framed layout/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed', caption: 'side' } }] })).toThrow(/side requires the framed or detail-crop layout/);
     expect(() => prepareProject({ ...project(), scenes: [{ ...base, id: 'text', type: 'text', presentation: { layout: 'full-bleed' } }] })).toThrow(/only available on product scenes/);
     const comparison = project().scenes[6];
     expect(() => prepareProject({ ...project(), scenes: [{ ...comparison, presentation: { layout: 'full-bleed' } }] })).toThrow(/not available on comparison results/);

@@ -12,8 +12,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { AgentService } from '../src/service.js';
 import { Workspace } from '../src/storage.js';
 import { capturePlanSchema } from '../src/capture-contracts.js';
-import { capabilities, validate } from '../src/contracts.js';
-import { captureFingerprint, compileDirection, digest, directionSchema } from '../src/direction.js';
+import { capabilities, describeProject, validate } from '../src/contracts.js';
+import { captureFingerprint, compileDirection, digest, directionSchema, renderStoryboard } from '../src/direction.js';
 import { example } from '../../studio/src/model.js';
 
 async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
@@ -32,6 +32,9 @@ test('all eight discoverable examples pass the shared Studio validator', () => {
   assert.deepEqual(discovered.transitions.presets.map(preset => preset.id), ['hard-cut', 'soft-crossfade', 'clean-slide', 'rise-cover', 'drop-cover']);
   assert(discovered.transitions.implementations.every(transition => transition.implementation && transition.fixture && transition.fallback));
   assert.deepEqual(discovered.motionLanguages, ['editorial', 'precise', 'kinetic', 'cinematic', 'quiet']);
+  assert.deepEqual(discovered.compositions.layouts.map(layout => layout.id), ['framed', 'full-bleed', 'product-stage', 'detail-crop', 'layered-product', 'full-bleed-proof']);
+  assert.deepEqual(discovered.compositions.typographicRoles, ['hero', 'statement', 'metadata', 'proof', 'label', 'silent-product']);
+  assert(discovered.compositions.layouts.every(layout => layout.layers.background && layout.layers.midground && layout.layers.foreground));
   assert.equal(discovered.storyModes.launch.renderable, true);
   assert.equal(discovered.storyModes.spotlight.renderable, false);
   assert.deepEqual((discovered.directionSchema as { properties?: { version?: { const?: number } } }).properties?.version?.const, 2);
@@ -59,6 +62,12 @@ test('project appearance can be created and edited through the shared contract',
   const saved = await s.store.save('dark-demo', created.revision, { ...created.project, appearance: { ...created.project.appearance, fontFamily: 'Inter, sans-serif' } });
   assert.equal(saved.project.appearance?.fontFamily, 'Inter, sans-serif');
 });
+test('silent product copy does not create reading-time or text-layout warnings', () => {
+  const project = describeProject({ version: 2, title: 'Silent product', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [{
+    id: 'silent', type: 'overview', duration: 1, eyebrow: 'Hidden metadata', title: 'This deliberately long hidden title must not produce a visible text layout warning in the authoring service.', body: 'This hidden body also has no reading-time requirement.', source: { from: 0, freeze: true }, typographicRole: 'silent-product',
+  }] });
+  assert.deepEqual(project.warnings.filter(warning => ['READING_TIME', 'TEXT_LAYOUT'].includes(warning.code)), []);
+});
 test('concurrent writers cannot silently replace each other', async t => {
   const s = await fixture(t);
   const p = await s.store.create('demo', 'First', '#215acb');
@@ -72,6 +81,18 @@ test('invalid scenes and unimported media do not modify the saved project', asyn
   await assert.rejects(s.store.save('demo', p.revision, { ...p.project, scenes: [{ ...p.project.scenes[0], type: 'focus', focus: { x: 0, y: 0, width: 10, height: 10 }, source: { from: 0 } }] }), { code: 'INVALID_PROJECT' });
   await assert.rejects(s.store.save('demo', p.revision, { ...p.project, video: 'captures/not-imported.webm' }), { code: 'MEDIA_CHANGE_REQUIRES_IMPORT' });
   assert.equal((await s.store.get('demo')).revision, p.revision);
+});
+test('immersive camera focus must fit the visible output canvas', () => {
+  assert.throws(() => validate({
+    version: 2, title: 'Proof', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0,
+    viewport: { width: 1280, height: 800 }, scenes: [{ id: 'proof', type: 'focus', duration: 4, eyebrow: 'Proof', title: 'Visible evidence', body: '',
+      source: { from: 0, freeze: true }, focus: { x: 100, y: 20, width: 300, height: 721 }, presentation: { layout: 'full-bleed-proof', caption: 'bottom-left' } }],
+  }), /focus cannot fit the visible canvas/);
+  assert.throws(() => validate({
+    version: 2, title: 'Detail', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0,
+    viewport: { width: 1280, height: 800 }, scenes: [{ id: 'detail', type: 'focus', duration: 4, eyebrow: 'Detail', title: 'Visible detail', body: '',
+      source: { from: 0, freeze: true }, focus: { x: 0, y: 0, width: 1280, height: 800 }, zoom: 1.2, presentation: { layout: 'detail-crop', caption: 'side' } }],
+  }), /focus cannot preserve the required 1.2x zoom/);
 });
 test('source paths cannot escape the workspace or follow symlinks', async t => {
   const s = await fixture(t);
@@ -357,7 +378,67 @@ test('Direction v2 rejects incompatible recipes and gates story modes that are n
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'unknown-recipe', compatible: ['unknown-recipe', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /Unknown motion recipe/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { compatible: ['standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /current Project v2 renderer applies text-blur-slide/);
   assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 0 ? { ...entry, beat: { ...entry.beat, recipe: { selected: 'standard-scene-motion', compatible: ['text-blur-slide', 'standard-scene-motion'], fallback: 'standard-scene-motion' } } } : entry) }), /cannot render through Project v2/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { caption: 'side' } } } : entry) }), /effective full-bleed layout cannot use a side caption/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'full-bleed-proof' } } } : entry) }), /requires an evidence-linked focus rectangle/);
+  const focusScene = (entry: (typeof migrated.scenes)[number], layout: 'detail-crop' | 'full-bleed-proof', inherited: boolean) => ({
+    ...entry,
+    scene: {
+      id: entry.scene.id, type: 'focus' as const, duration: entry.scene.duration, eyebrow: entry.scene.eyebrow, title: entry.scene.title, body: entry.scene.body,
+      source: { from: 0, freeze: true }, focus: { x: 100, y: 100, width: 300, height: 120 }, zoom: 1,
+      ...(inherited ? { presentation: { layout, caption: layout === 'detail-crop' ? 'side' as const : 'bottom-left' as const } } : {}),
+    },
+    beat: {
+      ...entry.beat,
+      ...(inherited ? {} : { composition: { layout, caption: layout === 'detail-crop' ? 'side' as const : 'bottom-left' as const } }),
+      recipe: { selected: 'focus-scan-lock', compatible: ['focus-scan-lock', 'standard-scene-motion'], fallback: 'standard-scene-motion' },
+    },
+  });
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? focusScene(entry, 'detail-crop', true) : entry) }), /zoom must be at least 1.2 for the effective detail-crop layout/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? focusScene(entry, 'full-bleed-proof', false) : entry) }), /zoom must be at least 1.1 for the effective full-bleed-proof layout/);
+  const oversizedProof = focusScene(migrated.scenes[1]!, 'full-bleed-proof', false);
+  oversizedProof.scene.zoom = 1.2;
+  oversizedProof.scene.focus = { x: 100, y: 20, width: 300, height: 721 };
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? oversizedProof : entry) }), /focus cannot fit the visible canvas for the effective full-bleed-proof layout/);
+  const oversizedDetail = focusScene(migrated.scenes[1]!, 'detail-crop', false);
+  oversizedDetail.scene.zoom = 1.2;
+  oversizedDetail.scene.focus = { x: 0, y: 0, width: 1280, height: 800 };
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 1 ? oversizedDetail : entry) }), /focus cannot preserve the required 1.2x zoom for the effective detail-crop layout/);
+  assert.throws(() => directionSchema.parse({ ...migrated, scenes: migrated.scenes.map((entry, index) => index === 2 ? { ...entry, beat: { ...entry.beat, composition: { layout: 'framed' } }, scene: { ...entry.scene, comparison: { before: 1, after: 4, crop: { x: 100, y: 100, width: 300, height: 120 }, beforeLabel: 'Before', afterLabel: 'After' } } } : entry) }), /Comparison result beats cannot select product layouts or captions/);
   assert.throws(() => compileDirection({ ...migrated, storyMode: 'spotlight' }, project), /defined but is not renderable yet/);
+});
+
+test('Direction v2 persists per-beat typography, composition and chrome into Project v2', () => {
+  const migrated = directionSchema.parse(launchDirection());
+  const enhanced = {
+    ...migrated,
+    scenes: migrated.scenes.map((entry, index) => index === 1 ? {
+      ...entry,
+      beat: { ...entry.beat, typographicRole: 'metadata' as const, composition: { layout: 'product-stage' as const, caption: 'top-left' as const, chrome: 'hide' as const } },
+      scene: { ...entry.scene, typographicRole: 'metadata' as const, chrome: 'hide' as const, presentation: { layout: 'product-stage' as const, caption: 'top-left' as const } },
+    } : index === 2 ? {
+      ...entry,
+      evidence: entry.evidence.map(item => item.kind === 'capture' ? { ...item, rect: { x: 100, y: 100, width: 300, height: 120 } } : item),
+      beat: { ...entry.beat, typographicRole: 'proof' as const, composition: { layout: 'full-bleed-proof' as const, caption: 'bottom-left' as const, chrome: 'show' as const } },
+      scene: { ...entry.scene, focus: { x: 100, y: 100, width: 300, height: 120 }, typographicRole: 'proof' as const, chrome: 'show' as const, presentation: { layout: 'full-bleed-proof' as const, caption: 'bottom-left' as const } },
+    } : entry),
+  };
+  const parsed = directionSchema.parse(enhanced);
+  const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [parsed.scenes[0]!.scene] });
+  const compiled = compileDirection(parsed, project).project;
+  assert.deepEqual(compiled.scenes[1], { ...parsed.scenes[1]!.scene, transition: { type: 'slide-up', duration: 0.4 } });
+  assert.deepEqual(compiled.scenes[2], { ...parsed.scenes[2]!.scene, transition: { type: 'fade', duration: 0.3 } });
+});
+
+test('storyboard reports the effective composition after partial beat overrides', () => {
+  const migrated = directionSchema.parse(launchDirection());
+  const partial = {
+    ...migrated,
+    scenes: migrated.scenes.map((entry, index) => index === 1
+      ? { ...entry, beat: { ...entry.beat, composition: { chrome: 'show' as const } } }
+      : entry),
+  };
+  const storyboard = renderStoryboard(partial);
+  assert.match(storyboard, /Composition:\*\* layout=full-bleed · caption=bottom-right · chrome=show \(visible\)/);
 });
 
 test('saving legacy Direction v1 writes v2 while preserving the exact archived revision', async t => {

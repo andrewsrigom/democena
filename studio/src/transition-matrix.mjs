@@ -1,5 +1,5 @@
 import { transitionRegistry } from './transition-registry.mjs';
-import { buildTimeline, FPS, settledReviewFrame } from './timeline-layout.mjs';
+import { buildTimeline, chapterLifecycleFrames, FPS, settledReviewFrame } from './timeline-layout.mjs';
 
 export const transitionPhases = ['before', 'midpoint', 'after'];
 
@@ -16,8 +16,13 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
   const durationInFrames = incoming.end;
   const before = Math.max(timeline[0].from, incoming.from - 1);
   const midpoint = incoming.overlap === 0 ? incoming.from : incoming.from + Math.floor((incoming.overlap - 1) / 2);
-  const after = settledReviewFrame(incoming, undefined, undefined, fps);
-  const settledCheck = Math.min(incoming.end - 1, after + Math.max(1, Math.round(fps * .2)));
+  const requestedAfter = settledReviewFrame(incoming, undefined, undefined, fps);
+  const stableEnd = incoming.scene.type === 'chapter'
+    ? incoming.from + chapterLifecycleFrames(incoming.scene, fps, incoming.overlap).demotionStart
+    : incoming.end;
+  const settledCheck = Math.min(stableEnd - 1, requestedAfter + Math.max(1, Math.round(fps * .2)));
+  const after = Math.min(requestedAfter, settledCheck - 1);
+  if (after < incoming.from || settledCheck <= after) throw new Error(`${id}: fixture needs two frames inside the settled hold.`);
   const destinationProject = {
     ...project,
     scenes: [project.scenes[0], { ...project.scenes[1], transition: { type: 'none', duration: 0 } }],
@@ -27,6 +32,10 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
   const destinationReferenceFrame = Math.min(
     destinationIncoming.end - 1,
     destinationIncoming.from + (after - incoming.from),
+  );
+  const destinationSettledReferenceFrame = Math.min(
+    destinationIncoming.end - 1,
+    destinationIncoming.from + (settledCheck - incoming.from),
   );
   return {
     id,
@@ -39,6 +48,7 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
     frames: { before, midpoint, after, settledCheck },
     destinationProject,
     destinationReferenceFrame,
+    destinationSettledReferenceFrame,
     ...extra,
   };
 }
@@ -72,8 +82,18 @@ function withLayout(scene, layout) {
   };
 }
 
+function withChrome(scene, chrome) {
+  return { ...scene, chrome };
+}
+
+function withCaption(scene, caption) {
+  return { ...scene, presentation: { ...scene.presentation, caption } };
+}
+
 /** Exercise every presentation-chrome visibility handoff independently from the transition catalog. */
 export function chromeMatrix(source, fps = FPS) {
+  const chapter = source.scenes.find((scene) => scene.id === 'chapter');
+  if (!chapter || chapter.type !== 'chapter') throw new Error('Chrome fixture chapter scene is missing.');
   const overview = productScene(source, 'overview');
   const focus = productScene(source, 'focus');
   const camera = productScene(source, 'camera');
@@ -81,8 +101,17 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-framed-to-full-bleed', from: withLayout(overview, 'framed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: true, midpoint: false, after: false } },
     { id: 'chrome-full-bleed-to-framed', from: withLayout(focus, 'full-bleed'), to: withLayout(camera, 'framed'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-full-bleed-to-full-bleed', from: withLayout(overview, 'full-bleed'), to: withLayout(focus, 'full-bleed'), expectedChrome: { before: false, midpoint: false, after: false } },
+    { id: 'chrome-visible-framed-to-immersive', from: withLayout(overview, 'framed'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-left'),
+      expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { midpoint: true, after: true } },
+    { id: 'chrome-visible-immersive-to-framed', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withLayout(camera, 'framed'),
+      expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true, after: false } },
+    { id: 'chrome-chapter-to-product-stage', from: chapter, to: withCaption(withLayout(overview, 'product-stage'), 'top-left'), expectedChrome: { before: true, midpoint: true, after: true } },
+    { id: 'chrome-chapter-to-detail-crop', from: chapter, to: withLayout(focus, 'detail-crop'), expectedChrome: { before: true, midpoint: true, after: true } },
+    { id: 'chrome-visible-layered-product', from: chapter, to: withCaption(withLayout(focus, 'layered-product'), 'bottom-left'), expectedChrome: { before: true, midpoint: true, after: true } },
+    { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-right'), expectedChrome: { before: false, midpoint: false, after: true } },
+    { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withCaption(withChrome(withLayout(camera, 'framed'), 'hide'), 'top-left'), expectedChrome: { before: true, midpoint: false, after: false } },
   ];
   return cases.map((entry) => matrixEntry(entry.id, source, entry.from, entry.to, { type: 'fade', duration: .4 }, fps, {
-    kind: 'chrome', expectedChrome: entry.expectedChrome,
+    kind: 'chrome', expectedChrome: entry.expectedChrome, ...(entry.expectedBackdrop ? { expectedBackdrop: entry.expectedBackdrop } : {}),
   }));
 }

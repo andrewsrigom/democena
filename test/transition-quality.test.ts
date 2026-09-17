@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma, regionPsnr } from '../studio/src/transition-quality.mjs';
+import { backdropExpectationPassed, frameStats, psnr, regionMeanAbsoluteDifference, regionMeanColorDifference, regionMeanLuma, regionPsnr } from '../studio/src/transition-quality.mjs';
 
 function image(width: number, height: number, pixel: (x: number, y: number) => [number, number, number, number]) {
   const buffer = Buffer.alloc(width * height * 4);
@@ -45,5 +45,16 @@ describe('transition frame quality', () => {
     }
     expect(regionMeanAbsoluteDifference(reference, reference, { x: 0, y: 0, width: 8, height: 5 }, 8, 1)).toBe(0);
     expect(regionMeanAbsoluteDifference(branded, reference, { x: 0, y: 0, width: 8, height: 5 }, 8, 1)).toBeGreaterThan(40);
+    expect(regionMeanColorDifference(reference, { r: 245, g: 245, b: 245 }, { x: 0, y: 0, width: 8, height: 5 }, 8, 1)).toBe(0);
+    expect(regionMeanColorDifference(branded, { r: 245, g: 245, b: 245 }, { x: 0, y: 0, width: 8, height: 5 }, 8, 1)).toBeGreaterThan(40);
+  });
+
+  it('checks backed and unbacked chrome in opposite pixel-delta directions', () => {
+    const thresholds = { maximumSurfaceDelta: 4, minimumAbsencePsnrDb: 42 };
+    expect(backdropExpectationPassed(true, 0, Number.NEGATIVE_INFINITY, thresholds)).toBe(true);
+    expect(backdropExpectationPassed(true, 10, Number.NEGATIVE_INFINITY, thresholds)).toBe(false);
+    expect(backdropExpectationPassed(false, 10, Infinity, thresholds)).toBe(true);
+    expect(backdropExpectationPassed(false, 0, Infinity, thresholds)).toBe(false);
+    expect(backdropExpectationPassed(false, 10, 30, thresholds)).toBe(false);
   });
 });

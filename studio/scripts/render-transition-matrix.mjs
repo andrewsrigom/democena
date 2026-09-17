@@ -8,7 +8,8 @@ import { bundle } from '@remotion/bundler';
 import { openBrowser, renderStill, selectComposition } from '@remotion/renderer';
 import { chromium } from 'playwright';
 import { chromeMatrix, transitionMatrix, transitionPhases } from '../src/transition-matrix.mjs';
-import { frameStats, psnr, regionMeanAbsoluteDifference, regionMeanLuma, regionPsnr } from '../src/transition-quality.mjs';
+import { backdropExpectationPassed, frameStats, regionMeanAbsoluteDifference, regionMeanColorDifference, regionMeanLuma, regionPsnr } from '../src/transition-quality.mjs';
+import { resolveTheme } from '../src/theme-data.mjs';
 
 const { values } = parseArgs({ options: {
   project: { type: 'string', default: '../examples/motion-registry/project.json' },
@@ -42,7 +43,7 @@ function escapeHtml(value) {
 await mkdir(outputDir, { recursive: true });
 const serveUrl = await bundle({ entryPoint: path.join(studioRoot, 'src/index.tsx'), publicDir });
 const puppeteerInstance = await openBrowser('chrome', { browserExecutable: chromium.executablePath() });
-const report = { version: 1, status: 'passed', thresholds: { settledPsnrDb: 42, destinationPsnrDb: 42, chromeLumaRange: 8, chromePresenceDelta: .5 }, entries: [], findings: [] };
+const report = { version: 1, status: 'passed', thresholds: { settledPsnrDb: 42, destinationPsnrDb: 42, chromeLumaRange: 8, chromePresenceDelta: .5, backdropSurfaceDelta: 4, backdropAbsencePsnrDb: 42 }, entries: [], findings: [] };
 try {
   for (const entry of matrix) {
     const entryDir = path.join(outputDir, entry.id);
@@ -59,8 +60,8 @@ try {
     const stats = Object.fromEntries(transitionPhases.map((phase) => [phase, frameStats(decoded[phase])]));
     const chromeLuma = transitionPhases.map((phase) => regionMeanLuma(decoded[phase], { x: 72, y: 34, width: 1776, height: 116 }));
     const chromeLumaRange = Math.max(...chromeLuma) - Math.min(...chromeLuma);
-    const settledPsnrDb = psnr(decoded.after, decoded.settledCheck);
     const destinationFile = path.join(entryDir, 'destination.png');
+    const settledDestinationFile = path.join(entryDir, 'settled-destination.png');
     const destinationComposition = await selectComposition({ serveUrl, id: 'Democena', inputProps: entry.destinationProject, puppeteerInstance });
     await renderStill({
       composition: destinationComposition,
@@ -70,9 +71,19 @@ try {
       frame: entry.destinationReferenceFrame,
       output: destinationFile,
     });
+    await renderStill({
+      composition: destinationComposition,
+      serveUrl,
+      inputProps: entry.destinationProject,
+      puppeteerInstance,
+      frame: entry.destinationSettledReferenceFrame,
+      output: settledDestinationFile,
+    });
     // The bottom progress line depends on total composition duration, which changes when
     // overlap is removed from the destination reference. Compare the actual scene canvas.
     const destinationPsnrDb = regionPsnr(decoded.after, decodeRgba(destinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
+    const settledPsnrDb = regionPsnr(decoded.after, decoded.settledCheck, { x: 0, y: 0, width: 1920, height: 1072 });
+    const settledDestinationPsnrDb = regionPsnr(decoded.settledCheck, decodeRgba(settledDestinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
     let chromePresenceDelta;
     if (entry.expectedChrome) {
       // Remotion merges input props over the selected composition props, so an empty
@@ -88,6 +99,28 @@ try {
         );
       }
     }
+    let backdropSurfaceDelta;
+    let backdropAbsencePsnrDb;
+    let backdropFreeReferences;
+    if (entry.expectedBackdrop) {
+      const background = resolveTheme(entry.project).background;
+      const color = { r: Number.parseInt(background.slice(1, 3), 16), g: Number.parseInt(background.slice(3, 5), 16), b: Number.parseInt(background.slice(5, 7), 16) };
+      backdropSurfaceDelta = Object.fromEntries(Object.entries(entry.expectedBackdrop).map(([phase]) => [phase,
+        regionMeanColorDifference(decoded[phase], color, { x: 760, y: 986, width: 400, height: 24 })]));
+      const absentPhases = Object.entries(entry.expectedBackdrop).filter(([, visible]) => !visible).map(([phase]) => phase);
+      if (absentPhases.length) {
+        const backdropFreeProject = { ...entry.project, scenes: [{ ...entry.project.scenes[0], chrome: 'hide' }, entry.project.scenes[1]] };
+        const backdropFreeComposition = await selectComposition({ serveUrl, id: 'Democena', inputProps: backdropFreeProject, puppeteerInstance });
+        backdropAbsencePsnrDb = {};
+        backdropFreeReferences = {};
+        for (const phase of absentPhases) {
+          const referenceFile = path.join(entryDir, `reference-backdrop-free-${phase}.png`);
+          await renderStill({ composition: backdropFreeComposition, serveUrl, inputProps: backdropFreeProject, puppeteerInstance, frame: entry.frames[phase], output: referenceFile });
+          backdropAbsencePsnrDb[phase] = regionPsnr(decoded[phase], decodeRgba(referenceFile), { x: 48, y: 950, width: 1824, height: 100 });
+          backdropFreeReferences[phase] = `${entry.id}/reference-backdrop-free-${phase}.png`;
+        }
+      }
+    }
     const checks = {
       visibleContent: transitionPhases.every((phase) => !stats[phase].blank),
       opaqueCoverage: transitionPhases.every((phase) => stats[phase].alphaMinimum === 255),
@@ -96,8 +129,17 @@ try {
           ? chromePresenceDelta[phase] >= report.thresholds.chromePresenceDelta
           : chromePresenceDelta[phase] < report.thresholds.chromePresenceDelta),
       } : { stableChrome: chromeLumaRange <= report.thresholds.chromeLumaRange }),
+      ...(entry.expectedBackdrop ? {
+        backdropState: Object.entries(entry.expectedBackdrop).every(([phase, visible]) => backdropExpectationPassed(
+          visible,
+          backdropSurfaceDelta[phase],
+          backdropAbsencePsnrDb?.[phase] ?? Number.NEGATIVE_INFINITY,
+          { maximumSurfaceDelta: report.thresholds.backdropSurfaceDelta, minimumAbsencePsnrDb: report.thresholds.backdropAbsencePsnrDb },
+        )),
+      } : {}),
       settledAfter: settledPsnrDb >= report.thresholds.settledPsnrDb,
       destinationReached: destinationPsnrDb >= report.thresholds.destinationPsnrDb,
+      settledDestinationReached: settledDestinationPsnrDb >= report.thresholds.destinationPsnrDb,
     };
     for (const [name, passed] of Object.entries(checks)) if (!passed) report.findings.push({ transitionId: entry.id, check: name });
     report.entries.push({
@@ -106,16 +148,20 @@ try {
       fromSceneId: entry.fromSceneId,
       toSceneId: entry.toSceneId,
       ...(entry.expectedChrome ? { expectedChrome: entry.expectedChrome } : {}),
+      ...(entry.expectedBackdrop ? { expectedBackdrop: entry.expectedBackdrop } : {}),
       frames: entry.frames,
       images: Object.fromEntries(transitionPhases.map((phase) => [phase, `${entry.id}/${phase}.png`])),
-      references: { destination: `${entry.id}/destination.png` },
+      references: { destination: `${entry.id}/destination.png`, settledDestination: `${entry.id}/settled-destination.png`, ...(backdropFreeReferences ? { backdropFree: backdropFreeReferences } : {}) },
       metrics: {
         stats,
         chromeLuma: chromeLuma.map((value) => Number(value.toFixed(3))),
         chromeLumaRange: Number(chromeLumaRange.toFixed(3)),
         ...(chromePresenceDelta ? { chromePresenceDelta: Object.fromEntries(Object.entries(chromePresenceDelta).map(([phase, value]) => [phase, Number(value.toFixed(3))])) } : {}),
+        ...(backdropSurfaceDelta ? { backdropSurfaceDelta: Object.fromEntries(Object.entries(backdropSurfaceDelta).map(([phase, value]) => [phase, Number(value.toFixed(3))])) } : {}),
+        ...(backdropAbsencePsnrDb ? { backdropAbsencePsnrDb: Object.fromEntries(Object.entries(backdropAbsencePsnrDb).map(([phase, value]) => [phase, displayNumber(value)])) } : {}),
         settledPsnrDb: displayNumber(settledPsnrDb),
         destinationPsnrDb: displayNumber(destinationPsnrDb),
+        settledDestinationPsnrDb: displayNumber(settledDestinationPsnrDb),
       },
       checks,
     });

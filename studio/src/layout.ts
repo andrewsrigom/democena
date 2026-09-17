@@ -1,21 +1,8 @@
 import type { Focus } from './model.js';
 
-/** Keep the whole browser, including its chrome, inside the presentation stage. */
-export function browserLayout(viewport: { width: number; height: number }) {
-  const stage = { left: 664, top: 158, width: 1160, height: 780 };
-  const chromeHeight = 48;
-  const width = Math.min(stage.width, (stage.height - chromeHeight) * viewport.width / viewport.height);
-  const height = width * viewport.height / viewport.width;
-  return { width, height, left: stage.left + (stage.width - width) / 2,
-    top: stage.top + (stage.height - chromeHeight - height) / 2, chromeHeight };
-}
+export { annotationNotePlacement, browserLayout, fullBleedLayout, OUTPUT_CANVAS, productLayout } from './canvas-geometry.mjs';
 
-/** Cover the output canvas with the recorded viewport and crop only the overflow. */
-export function fullBleedLayout(viewport: { width: number; height: number }, canvas: { width: number; height: number }) {
-  const width = Math.max(canvas.width, canvas.height * viewport.width / viewport.height);
-  const height = width * viewport.height / viewport.width;
-  return { width, height, left: (canvas.width - width) / 2, top: (canvas.height - height) / 2, chromeHeight: 0 };
-}
+export type ProductLayoutBox = { width: number; height: number; left: number; top: number; chromeHeight: number };
 
 /** The clip has its own bounds: letterboxing must never reveal neighboring UI. */
 export function comparisonLayout(crop: Focus, width = 1160, maxHeight = 280) {

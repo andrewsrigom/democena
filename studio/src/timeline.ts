@@ -1,4 +1,7 @@
-import type { Project, Source } from './model.js';
+import type { Focus, Project, Source } from './model.js';
+import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from './composition-registry.mjs';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, defaultCameraZoom, minimumCameraZoom } from './camera-geometry.mjs';
+import { OUTPUT_CANVAS, productLayout } from './canvas-geometry.mjs';
 
 import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
 export { authoredEntranceOffsetFrames, buildTimeline, chapterLifecycleFrames, DEFAULT_TRANSITION, FPS, frames, settledReviewFrame, titleEntranceFrames, transitionFrames } from './timeline-layout.mjs';
@@ -88,6 +91,8 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     ids.add(scene.id);
     requireValue(finite(scene.duration) && frames(scene.duration, fps) >= 1, `${name}.duration must cover at least one frame`);
     for (const key of ['eyebrow', 'title', 'body']) requireValue(text(scene[key]), `${name}.${key} is required`);
+    requireValue(scene.chrome === undefined || chromeModes.includes(scene.chrome as typeof chromeModes[number]), `${name}.chrome is invalid`);
+    requireValue(scene.typographicRole === undefined || typographicRoles.includes(scene.typographicRole as typeof typographicRoles[number]), `${name}.typographicRole is invalid`);
     const transition = scene.transition ?? DEFAULT_TRANSITION;
     requireValue(record(transition) && ['fade', 'slide', 'slide-up', 'slide-down', 'slide-left', 'slide-right', 'none'].includes(String(transition.type)) && finite(transition.duration) && transition.duration >= 0, `${name}.transition is invalid`);
     const incoming = i === 0 || transition.type === 'none' ? 0 : frames(transition.duration, fps);
@@ -97,11 +102,37 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     requireValue(productScene || scene.presentation === undefined, `${name}.presentation is only available on product scenes`);
     if (productScene && scene.presentation !== undefined) {
       requireValue(record(scene.presentation), `${name}.presentation must be an object`);
-      requireValue(scene.presentation.layout === undefined || ['framed', 'full-bleed'].includes(String(scene.presentation.layout)), `${name}.presentation.layout is invalid`);
-      requireValue(scene.presentation.caption === undefined || ['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none'].includes(String(scene.presentation.caption)), `${name}.presentation.caption is invalid`);
-      requireValue(scene.presentation.layout !== 'full-bleed' || scene.presentation.caption !== 'side', `${name}.presentation.caption side requires the framed layout`);
+      requireValue(scene.presentation.layout === undefined || compositionLayouts.includes(scene.presentation.layout as typeof compositionLayouts[number]), `${name}.presentation.layout is invalid`);
+      requireValue(scene.presentation.caption === undefined || captionPlacements.includes(scene.presentation.caption as typeof captionPlacements[number]), `${name}.presentation.caption is invalid`);
+      requireValue(scene.presentation.caption !== 'side' || ['framed', 'detail-crop'].includes(String(scene.presentation.layout ?? 'framed')), `${name}.presentation.caption side requires the framed or detail-crop layout`);
+      const layout = String(scene.presentation.layout ?? 'framed') as keyof typeof compositionRegistry;
+      const definition = compositionRegistry[layout];
+      requireValue(definition !== undefined && (!definition.requiresFocus || (record(scene.focus) && finite(scene.focus.x))), `${name}.presentation.layout ${layout} requires an evidence-linked focus rectangle`);
+      const minimumZoom = minimumCameraZoom(layout);
+      if (scene.type === 'focus' && scene.zoom !== undefined) {
+        requireValue(finite(scene.zoom) && scene.zoom >= minimumZoom, `${name}.zoom must be at least ${minimumZoom} for the ${layout} layout`);
+      }
       requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
+      const recordedViewport = { width: Number(viewport.width), height: Number(viewport.height) };
+      const primaryWidth = productLayout(layout, recordedViewport, OUTPUT_CANVAS).primary.width;
+      const visibleViewport = definition.immersive ? OUTPUT_CANVAS : undefined;
+      const focuses: Array<{ focus: Focus; pathIndex?: number; zoom: number }> = [];
+      const usableFocus = (value: unknown): value is Focus => record(value) && finite(value.x) && finite(value.y) && finite(value.width) && finite(value.height);
+      if (scene.type === 'camera' && Array.isArray(scene.path)) scene.path.forEach((stop, pathIndex) => {
+        if (record(stop) && usableFocus(stop.focus)) focuses.push({ focus: stop.focus, pathIndex, zoom: finite(stop.zoom) ? stop.zoom : 1.8 });
+      });
+      else if (usableFocus(scene.focus) && (scene.type !== 'annotation' || definition.requiresFocus)) {
+        const defaultZoom = defaultCameraZoom(layout, scene.type === 'focus');
+        focuses.push({ focus: scene.focus, zoom: scene.type === 'focus' && finite(scene.zoom) ? scene.zoom : defaultZoom });
+      }
+      for (const candidate of focuses) {
+        const focusName = `${name}${candidate.pathIndex === undefined ? '' : `.path[${candidate.pathIndex}]`}.focus`;
+        if (visibleViewport) requireValue(cameraFocusFitsVisibleViewport(candidate.focus, recordedViewport, primaryWidth, visibleViewport), `${focusName} cannot fit the visible canvas`);
+        requireValue(cameraFocusSupportsMinimumZoom(candidate.focus, recordedViewport, primaryWidth, candidate.zoom, minimumZoom, visibleViewport), `${focusName} cannot preserve the required ${minimumZoom}x zoom for the ${layout} layout`);
+      }
     }
+    requireValue(scene.typographicRole !== 'silent-product' || productScene, `${name}.typographicRole silent-product is only available on product scenes`);
+    requireValue(scene.typographicRole !== 'silent-product' || !record(scene.presentation) || scene.presentation.caption === undefined || scene.presentation.caption === 'none', `${name}.typographicRole silent-product cannot render a caption`);
     switch (scene.type) {
       case 'text': case 'outro':
         requireValue(scene.reveal === undefined || scene.reveal === 'words' || scene.reveal === 'lines', `${name}.reveal must be words or lines`);

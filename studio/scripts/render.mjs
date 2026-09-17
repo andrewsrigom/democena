@@ -9,6 +9,7 @@ import { openBrowser, renderMedia, renderStill, selectComposition } from '@remot
 import { chromium } from 'playwright';
 import { buildTimeline, settledReviewFrame } from '../src/timeline-layout.mjs';
 import { resolveTheme } from '../src/theme-data.mjs';
+import { sceneComposition, sceneRendersFramedBrowser } from '../src/composition-registry.mjs';
 
 const { values } = parseArgs({ options: {
   project: { type: 'string', default: 'project.json' },
@@ -57,9 +58,8 @@ function readableSceneCopy(scene) {
   ].filter(Boolean).join(' ');
 }
 function sceneCopyVisible(scene) {
-  return ['text', 'chapter', 'outro'].includes(scene.type)
-    || (scene.type === 'result' && scene.comparison)
-    || scene.presentation?.caption !== 'none';
+  if (['text', 'chapter', 'outro'].includes(scene.type)) return true;
+  return sceneComposition(scene).caption !== 'none';
 }
 function luminance(hex) {
   const values = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255).map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
@@ -151,16 +151,17 @@ try {
       if (!passed) findings.push({ level: direction ? 'error' : 'warning', code: 'AUTHORED_BOUNDS', sceneId, message: `${check.field} has ${check.actual} characters; the safe authored-content limit is ${check.maximum}. Inspect and shorten the copy.` });
     }
   };
-  const fullBleedCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
+  const immersiveLayouts = new Set(['full-bleed', 'full-bleed-proof']);
+  const overlayCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
     && !(scene.type === 'result' && scene.comparison)
-    && scene.presentation?.layout === 'full-bleed'
-    && (scene.presentation?.caption ?? 'bottom-left') !== 'none');
+    && !['side', 'none'].includes(sceneComposition(scene).caption));
   const backgroundCopy = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
-    || (scene.type === 'result' && scene.comparison)
-    || scene.presentation?.layout !== 'full-bleed'
-    || scene.presentation?.caption === 'side');
+    || (scene.type === 'result' && scene.comparison && sceneComposition(scene).caption !== 'none')
+    || sceneComposition(scene).caption === 'side'
+    || sceneComposition(scene).chromeVisible);
+  const framedBrowserTitle = props.scenes.some(sceneRendersFramedBrowser);
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
-    || (!['text', 'chapter', 'outro'].includes(scene.type) && scene.presentation?.layout !== 'full-bleed'));
+    || (!['text', 'chapter', 'outro'].includes(scene.type) && !immersiveLayouts.has(scene.presentation?.layout)));
   const chapterBadge = props.scenes.some((scene) => scene.type === 'chapter') ? composite(props.accent, theme.background, 0x18 / 0xff) : undefined;
   const contrastChecks = [
     ...(backgroundCopy ? [
@@ -170,18 +171,18 @@ try {
     ] : []),
     ...(mutedOnTint ? [{ name: 'muted-on-tint', foreground: theme.muted, background: theme.tint, ratio: contrast(theme.muted, theme.tint), required: 4.5 }] : []),
     ...(chapterBadge ? [{ name: 'accent-on-chapter-badge', foreground: props.accent, background: chapterBadge, ratio: contrast(props.accent, chapterBadge), required: 4.5 }] : []),
-    ...(fullBleedCaption ? [
+    ...(overlayCaption ? [
       { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
       { name: 'muted-on-surface', foreground: theme.muted, background: theme.surface, ratio: contrast(theme.muted, theme.surface), required: 4.5 },
       { name: 'accent-on-surface', foreground: props.accent, background: theme.surface, ratio: contrast(props.accent, theme.surface), required: 4.5 },
     ] : []),
   ];
   for (const check of contrastChecks) if (check.ratio < check.required) findings.push({ level: direction ? 'error' : 'warning', code: check.name.startsWith('accent-') ? 'ACCENT_CONTRAST' : 'AUTHORED_CONTRAST', message: `${check.name} has ${check.ratio.toFixed(2)}:1 contrast; ${check.required.toFixed(1)}:1 is required.` });
-  if (backgroundCopy) checkBounds('project', [
+  if (backgroundCopy || framedBrowserTitle) checkBounds('project', [
     { field: 'title', actual: [...props.title].length, maximum: 80 },
-    ...(props.branding?.name ? [{ field: 'branding.name', actual: [...props.branding.name].length, maximum: 40 }] : []),
-    ...(props.branding?.tagline ? [{ field: 'branding.tagline', actual: [...props.branding.tagline].length, maximum: 80 }] : []),
-    ...(props.branding?.footer ? [{ field: 'branding.footer', actual: [...props.branding.footer].length, maximum: 100 }] : []),
+    ...(backgroundCopy && props.branding?.name ? [{ field: 'branding.name', actual: [...props.branding.name].length, maximum: 40 }] : []),
+    ...(backgroundCopy && props.branding?.tagline ? [{ field: 'branding.tagline', actual: [...props.branding.tagline].length, maximum: 80 }] : []),
+    ...(backgroundCopy && props.branding?.footer ? [{ field: 'branding.footer', actual: [...props.branding.footer].length, maximum: 100 }] : []),
   ]);
   for (const [index, scene] of props.scenes.entries()) {
     const entry = timeline[index];
@@ -190,8 +191,9 @@ try {
     const settledFrames = Math.max(0, readableEnd - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));
     const settledSeconds = settledFrames / composition.fps;
     const copyVisible = sceneCopyVisible(scene);
+    const supportingCopyVisible = scene.type === 'annotation' || (scene.type === 'result' && scene.comparison);
     const count = words(readableSceneCopy(scene), locale);
-    const requiredSeconds = Math.max(copyVisible && scene.body.trim() ? 2 : copyVisible && scene.title.trim() ? 1.5 : 1, count / 3);
+    const requiredSeconds = count === 0 ? 0 : Math.max((copyVisible && scene.body.trim()) || supportingCopyVisible ? 2 : copyVisible && scene.title.trim() ? 1.5 : 1, count / 3);
     if (settledSeconds < requiredSeconds) findings.push({ level: direction ? 'error' : 'warning', code: 'READING_TIME', sceneId: scene.id, message: `Needs ${requiredSeconds.toFixed(2)} settled seconds; has ${settledSeconds.toFixed(2)}.` });
     checkBounds(scene.id, [
       ...(copyVisible ? [

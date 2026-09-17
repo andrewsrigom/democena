@@ -1,9 +1,13 @@
 export type Focus = { x: number; y: number; width: number; height: number };
 export type Source = { from: number; freeze?: boolean };
 export type Transition = { type: 'fade' | 'slide' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'none'; duration: number };
+export type CompositionLayout = 'framed' | 'full-bleed' | 'product-stage' | 'detail-crop' | 'layered-product' | 'full-bleed-proof';
+export type CaptionPlacement = 'side' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none';
+export type ChromeMode = 'auto' | 'show' | 'hide';
+export type TypographicRole = 'hero' | 'statement' | 'metadata' | 'proof' | 'label' | 'silent-product';
 export type ProductPresentation = {
-  layout?: 'framed' | 'full-bleed';
-  caption?: 'side' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none';
+  layout?: CompositionLayout;
+  caption?: CaptionPlacement;
 };
 export type CameraStop = { at: number; focus?: Focus; zoom?: number };
 type BaseScene = {
@@ -13,6 +17,8 @@ type BaseScene = {
   title: string;
   body: string;
   transition?: Transition;
+  chrome?: ChromeMode;
+  typographicRole?: TypographicRole;
 };
 type TextOptions = { reveal?: 'words' | 'lines'; highlight?: string };
 type ProductOptions = { presentation?: ProductPresentation };

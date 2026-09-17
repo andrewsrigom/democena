@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from '../../studio/src/composition-registry.mjs';
+import { cameraFocusFitsVisibleViewport, cameraFocusSupportsMinimumZoom, defaultCameraZoom, minimumCameraZoom } from '../../studio/src/camera-geometry.mjs';
+import { OUTPUT_CANVAS, productLayout } from '../../studio/src/canvas-geometry.mjs';
 
 export const rectSchema = z.strictObject({
   x: z.number().nonnegative(),
@@ -18,11 +21,11 @@ export const transitionSchema = z.strictObject({
 });
 
 const presentationSchema = z.strictObject({
-  layout: z.enum(['framed', 'full-bleed']).optional(),
-  caption: z.enum(['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none']).optional(),
-}).refine((presentation) => presentation.layout !== 'full-bleed' || presentation.caption !== 'side', {
+  layout: z.enum(compositionLayouts).optional(),
+  caption: z.enum(captionPlacements).optional(),
+}).refine((presentation) => presentation.caption !== 'side' || ['framed', 'detail-crop'].includes(presentation.layout ?? 'framed'), {
   path: ['caption'],
-  message: 'Full-bleed scenes use a positioned overlay caption or none; side captions require the framed layout.',
+  message: 'Side captions require the framed or detail-crop layout.',
 });
 
 export const brandingSchema = z.strictObject({
@@ -52,6 +55,8 @@ const base = {
   title: z.string(),
   body: z.string(),
   transition: transitionSchema.optional(),
+  chrome: z.enum(chromeModes).optional(),
+  typographicRole: z.enum(typographicRoles).optional(),
 };
 const text = {
   reveal: z.enum(['words', 'lines']).optional(),
@@ -81,6 +86,44 @@ export const projectSchema = z.strictObject({
   trimBefore: z.number().nonnegative(),
   viewport: z.strictObject({ width: z.number().int().positive(), height: z.number().int().positive() }),
   scenes: z.array(sceneSchema).min(1).max(100),
+}).superRefine((project, ctx) => {
+  project.scenes.forEach((scene, index) => {
+    const productScene = !['text', 'chapter', 'outro'].includes(scene.type);
+    if (scene.typographicRole === 'silent-product' && !productScene) {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'typographicRole'], message: 'silent-product is available only on product scenes.' });
+    }
+    if (scene.typographicRole === 'silent-product' && 'presentation' in scene && scene.presentation?.caption && scene.presentation.caption !== 'none') {
+      ctx.addIssue({ code: 'custom', path: ['scenes', index, 'presentation', 'caption'], message: 'silent-product scenes cannot render a caption.' });
+    }
+    if ('presentation' in scene && scene.presentation?.layout) {
+      const layout = scene.presentation.layout;
+      const definition = compositionRegistry[layout];
+      if (definition.requiresFocus && !('focus' in scene && scene.focus)) {
+        ctx.addIssue({ code: 'custom', path: ['scenes', index, 'presentation', 'layout'], message: `${definition.id} requires an evidence-linked focus rectangle.` });
+      }
+      const minimumZoom = minimumCameraZoom(layout);
+      if (scene.type === 'focus' && scene.zoom !== undefined) {
+        if (scene.zoom < minimumZoom) {
+          ctx.addIssue({ code: 'custom', path: ['scenes', index, 'zoom'], message: `zoom must be at least ${minimumZoom} for the ${layout} layout.` });
+        }
+      }
+      const primaryWidth = productLayout(layout, project.viewport, OUTPUT_CANVAS).primary.width;
+      const visibleViewport = definition.immersive ? OUTPUT_CANVAS : undefined;
+      const focusDefaultZoom = defaultCameraZoom(layout, true);
+      const supportingDefaultZoom = defaultCameraZoom(layout, false);
+      const focuses: Array<{ focus: z.infer<typeof rectSchema>; pathIndex?: number; zoom: number }> = scene.type === 'camera'
+        ? scene.path.flatMap((stop, pathIndex) => stop.focus ? [{ focus: stop.focus, pathIndex, zoom: stop.zoom ?? 1.8 }] : [])
+        : 'focus' in scene && scene.focus && (scene.type !== 'annotation' || definition.requiresFocus) ? [{ focus: scene.focus, zoom: scene.type === 'focus' ? scene.zoom ?? focusDefaultZoom : supportingDefaultZoom }] : [];
+      focuses.forEach((candidate) => {
+        if (visibleViewport && !cameraFocusFitsVisibleViewport(candidate.focus, project.viewport, primaryWidth, visibleViewport)) {
+            ctx.addIssue({ code: 'custom', path: ['scenes', index, ...(candidate.pathIndex === undefined ? [] : ['path', candidate.pathIndex]), 'focus'], message: 'focus cannot fit the visible canvas.' });
+        }
+        if (!cameraFocusSupportsMinimumZoom(candidate.focus, project.viewport, primaryWidth, candidate.zoom, minimumZoom, visibleViewport)) {
+          ctx.addIssue({ code: 'custom', path: ['scenes', index, ...(candidate.pathIndex === undefined ? [] : ['path', candidate.pathIndex]), 'focus'], message: `focus cannot preserve the required ${minimumZoom}x zoom for the ${layout} layout.` });
+        }
+      });
+    }
+  });
 });
 
 export type ProjectInput = z.infer<typeof projectSchema>;
