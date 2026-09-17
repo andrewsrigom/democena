@@ -1,5 +1,5 @@
 import { transitionRegistry } from './transition-registry.mjs';
-import { buildTimeline, FPS, settledReviewFrame } from './timeline-layout.mjs';
+import { buildTimeline, chapterLifecycleFrames, FPS, settledReviewFrame } from './timeline-layout.mjs';
 
 export const transitionPhases = ['before', 'midpoint', 'after'];
 
@@ -16,8 +16,13 @@ function matrixEntry(id, source, from, to, transition, fps, extra = {}) {
   const durationInFrames = incoming.end;
   const before = Math.max(timeline[0].from, incoming.from - 1);
   const midpoint = incoming.overlap === 0 ? incoming.from : incoming.from + Math.floor((incoming.overlap - 1) / 2);
-  const after = settledReviewFrame(incoming, undefined, undefined, fps);
-  const settledCheck = Math.min(incoming.end - 1, after + Math.max(1, Math.round(fps * .3)));
+  const requestedAfter = settledReviewFrame(incoming, undefined, undefined, fps);
+  const stableEnd = incoming.scene.type === 'chapter'
+    ? incoming.from + chapterLifecycleFrames(incoming.scene, fps, incoming.overlap).demotionStart
+    : incoming.end;
+  const settledCheck = Math.min(stableEnd - 1, requestedAfter + Math.max(1, Math.round(fps * .2)));
+  const after = Math.min(requestedAfter, settledCheck - 1);
+  if (after < incoming.from || settledCheck <= after) throw new Error(`${id}: fixture needs two frames inside the settled hold.`);
   const destinationProject = {
     ...project,
     scenes: [project.scenes[0], { ...project.scenes[1], transition: { type: 'none', duration: 0 } }],
@@ -102,6 +107,7 @@ export function chromeMatrix(source, fps = FPS) {
       expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true, after: false } },
     { id: 'chrome-chapter-to-product-stage', from: chapter, to: withCaption(withLayout(overview, 'product-stage'), 'top-left'), expectedChrome: { before: true, midpoint: true, after: true } },
     { id: 'chrome-chapter-to-detail-crop', from: chapter, to: withLayout(focus, 'detail-crop'), expectedChrome: { before: true, midpoint: true, after: true } },
+    { id: 'chrome-visible-layered-product', from: withLayout(overview, 'framed'), to: withCaption(withLayout(focus, 'layered-product'), 'bottom-left'), expectedChrome: { before: true, midpoint: true, after: true } },
     { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-right'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withChrome(withLayout(camera, 'framed'), 'hide'), expectedChrome: { before: true, midpoint: false, after: false } },
   ];

@@ -82,7 +82,8 @@ try {
     // The bottom progress line depends on total composition duration, which changes when
     // overlap is removed from the destination reference. Compare the actual scene canvas.
     const destinationPsnrDb = regionPsnr(decoded.after, decodeRgba(destinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
-    const settledPsnrDb = regionPsnr(decoded.settledCheck, decodeRgba(settledDestinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
+    const settledPsnrDb = regionPsnr(decoded.after, decoded.settledCheck, { x: 0, y: 0, width: 1920, height: 1072 });
+    const settledDestinationPsnrDb = regionPsnr(decoded.settledCheck, decodeRgba(settledDestinationFile), { x: 0, y: 0, width: 1920, height: 1072 });
     let chromePresenceDelta;
     if (entry.expectedChrome) {
       // Remotion merges input props over the selected composition props, so an empty
@@ -138,6 +139,7 @@ try {
       } : {}),
       settledAfter: settledPsnrDb >= report.thresholds.settledPsnrDb,
       destinationReached: destinationPsnrDb >= report.thresholds.destinationPsnrDb,
+      settledDestinationReached: settledDestinationPsnrDb >= report.thresholds.destinationPsnrDb,
     };
     for (const [name, passed] of Object.entries(checks)) if (!passed) report.findings.push({ transitionId: entry.id, check: name });
     report.entries.push({
@@ -159,6 +161,7 @@ try {
         ...(backdropAbsencePsnrDb ? { backdropAbsencePsnrDb: Object.fromEntries(Object.entries(backdropAbsencePsnrDb).map(([phase, value]) => [phase, displayNumber(value)])) } : {}),
         settledPsnrDb: displayNumber(settledPsnrDb),
         destinationPsnrDb: displayNumber(destinationPsnrDb),
+        settledDestinationPsnrDb: displayNumber(settledDestinationPsnrDb),
       },
       checks,
     });

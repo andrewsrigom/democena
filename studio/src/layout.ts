@@ -32,7 +32,7 @@ export function productLayout(layout: CompositionLayout, viewport: { width: numb
   if (layout === 'detail-crop') return { primary: framedStageLayout(viewport, { left: 604, top: 122, width: 1250, height: 838 }) };
   if (layout === 'layered-product') return {
     primary: framedStageLayout(viewport, { left: 494, top: 168, width: 1300, height: 780 }),
-    secondary: framedStageLayout(viewport, { left: 690, top: 88, width: 1040, height: 724 }),
+    secondary: framedStageLayout(viewport, { left: 690, top: 140, width: 1040, height: 724 }),
   };
   return { primary: browserLayout(viewport) };
 }
