@@ -4,7 +4,7 @@ import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurren
 import type { ChapterScene, Project, Scene } from './model';
 import { authoredEntranceOffsetFrames, buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
-import { presentationChromeBackdropOpacity, presentationChromeOpacity } from './presentation-chrome';
+import { nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity } from './presentation-chrome';
 import { transitionRegistry, transitionStyleFor } from './motion-registry';
 import { sceneComposition } from './composition-registry.mjs';
 
@@ -60,6 +60,7 @@ export function Demo(project: Project) {
   const chromeOpacity = presentationChromeOpacity(activeChromeVisible, previousChromeVisible, activeEnter);
   const chromeBackdropOpacity = presentationChromeBackdropOpacity(activeComposition.chromeBackdropVisible, previousComposition.chromeBackdropVisible,
     activeChromeVisible, previousChromeVisible, activeEnter);
+  const nestedBackdropOpacity = nestedChromeBackdropOpacity(chromeOpacity, chromeBackdropOpacity);
   const usesBackedChrome = activeComposition.chromeBackdropVisible || previousComposition.chromeBackdropVisible;
   const chapter = project.scenes.slice(0, index).findLast((scene): scene is ChapterScene => scene.type === 'chapter');
   const showsChapterContext = chapter && ['overview', 'focus', 'camera', 'annotation', 'result'].includes(active.scene.type);
@@ -70,11 +71,11 @@ export function Demo(project: Project) {
     </Sequence>)}
     {usesBackedChrome ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 8, opacity: chromeBackdropOpacity, background: theme.background }} /> : null}
     <div style={{ opacity: chromeOpacity }}>
-      <BrandHeader project={project} theme={theme} backdropOpacity={usesBackedChrome ? chromeBackdropOpacity : 0} />
-      {showsChapterContext ? <ChapterLabel scene={chapter} accent={project.accent} theme={theme} backdropOpacity={usesBackedChrome ? chromeBackdropOpacity : 0} style={{ opacity: chapterEnter, transform: `translateY(${(1 - chapterEnter) * 8}px)` }} /> : null}
+      <BrandHeader project={project} theme={theme} backdropOpacity={usesBackedChrome ? nestedBackdropOpacity : 0} />
+      {showsChapterContext ? <ChapterLabel scene={chapter} accent={project.accent} theme={theme} backdropOpacity={usesBackedChrome ? nestedBackdropOpacity : 0} style={{ opacity: chapterEnter, transform: `translateY(${(1 - chapterEnter) * 8}px)` }} /> : null}
       <div style={{ position: 'absolute', left: usesBackedChrome ? 72 : 96, right: usesBackedChrome ? 72 : 96, bottom: usesBackedChrome ? 46 : 64,
         padding: usesBackedChrome ? '18px 24px' : 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, color: theme.muted }}>
-        {usesBackedChrome ? <ChromePanel theme={theme} opacity={chromeBackdropOpacity} /> : null}
+        {usesBackedChrome ? <ChromePanel theme={theme} opacity={nestedBackdropOpacity} /> : null}
         <span style={{ position: 'relative' }}>{project.title}{project.branding?.footer ? <> &nbsp; / &nbsp; {project.branding.footer}</> : null}</span>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 22 }}>
           <div style={{ display: 'flex', gap: 7 }}>{timeline.map(({ scene }, i) => <span key={scene.id} style={{ width: index === i ? 30 : 8, height: 4, borderRadius: 4, background: index === i ? project.accent : theme.border }} />)}</div>

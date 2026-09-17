@@ -19,7 +19,7 @@ export type ChromeMatrixEntry = Omit<TransitionMatrixEntry, 'id' | 'kind'> & {
   id: 'chrome-framed-to-full-bleed' | 'chrome-full-bleed-to-framed' | 'chrome-full-bleed-to-full-bleed' | 'chrome-visible-framed-to-immersive' | 'chrome-explicit-hide-to-show' | 'chrome-explicit-show-to-hide';
   kind: 'chrome';
   expectedChrome: Record<TransitionPhase, boolean>;
-  expectedBackdrop?: Record<TransitionPhase, boolean>;
+  expectedBackdrop?: Partial<Record<TransitionPhase, boolean>>;
 };
 export function transitionMatrixEntry(id: Transition['type'], source: Project, fps?: number): TransitionMatrixEntry;
 export function transitionMatrix(source: Project, fps?: number): TransitionMatrixEntry[];

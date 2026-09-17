@@ -62,6 +62,17 @@ export function regionMeanAbsoluteDifference(a, b, { x, y, width, height }, fram
   return difference / samples;
 }
 
+export function regionMeanColorDifference(rgba, color, { x, y, width, height }, frameWidth = 1920, stride = 2) {
+  let difference = 0;
+  let samples = 0;
+  for (let py = y; py < y + height; py += stride) for (let px = x; px < x + width; px += stride) {
+    const offset = (py * frameWidth + px) * 4;
+    difference += Math.abs(rgba[offset] - color.r) + Math.abs(rgba[offset + 1] - color.g) + Math.abs(rgba[offset + 2] - color.b);
+    samples += 3;
+  }
+  return difference / samples;
+}
+
 export function psnr(a, b, byteStride = 16) {
   assert.equal(a.length, b.length, 'PSNR inputs must use the same dimensions');
   let squaredError = 0;

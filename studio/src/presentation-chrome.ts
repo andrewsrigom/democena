@@ -23,3 +23,9 @@ export function presentationChromeBackdropOpacity(
   }
   return presentationChromeOpacity(activeBacked, previousBacked, activeEnter);
 }
+
+/** Compensate for the outer chrome group's opacity so the backdrop fades exactly once. */
+export function nestedChromeBackdropOpacity(chromeOpacity: number, backdropOpacity: number) {
+  if (chromeOpacity <= 0 || backdropOpacity <= 0) return 0;
+  return clamp(backdropOpacity / chromeOpacity);
+}

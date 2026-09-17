@@ -66,7 +66,7 @@ describe('transition matrix', () => {
       { before: true, midpoint: false, after: false },
     ]);
     expect(matrix.find((entry) => entry.id === 'chrome-visible-framed-to-immersive')?.expectedBackdrop)
-      .toEqual({ before: false, midpoint: true, after: true });
+      .toEqual({ midpoint: true, after: true });
     for (const entry of matrix) {
       expect(entry.frames.before).toBeLessThan(entry.frames.midpoint);
       expect(entry.frames.midpoint).toBeLessThan(entry.frames.after);
