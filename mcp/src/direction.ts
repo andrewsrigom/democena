@@ -21,6 +21,7 @@ const captureEventSchema = z.strictObject({
   timestamp: z.number().nonnegative(),
   settledUntil: z.number().nonnegative(),
   rect: rectSchema.optional(),
+  rectTimestamp: z.number().nonnegative().optional(),
   verified: z.boolean(),
 }).refine((event) => event.settledUntil >= event.timestamp, {
   path: ['settledUntil'],
@@ -148,8 +149,11 @@ function assertBoundCaptureEvidence(direction: Direction, sceneId: string, evide
   if (evidence.timestamp < captured.timestamp - 1 / FPS || evidence.timestamp > captured.settledUntil + 1 / FPS) {
     throw new Error(`Scene ${sceneId} uses a timestamp outside capture marker ${evidence.markId}.`);
   }
-  if (evidence.rect && (!captured.rect || rectKey(evidence.rect) !== rectKey(captured.rect))) {
-    throw new Error(`Scene ${sceneId} uses a rectangle that does not match capture marker ${evidence.markId}.`);
+  if (evidence.rect) {
+    if (!captured.rect || rectKey(evidence.rect) !== rectKey(captured.rect)) throw new Error(`Scene ${sceneId} uses a rectangle that does not match capture marker ${evidence.markId}.`);
+    if (captured.rectTimestamp === undefined || Math.abs(evidence.timestamp - captured.rectTimestamp) > 1 / FPS) {
+      throw new Error(`Scene ${sceneId} uses capture marker ${evidence.markId}'s rectangle outside its measurement time.`);
+    }
   }
   if (evidence.verified && !captured.verified) throw new Error(`Scene ${sceneId} cites capture marker ${evidence.markId} as verified, but the adopted take did not verify it.`);
 }

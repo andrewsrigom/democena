@@ -46,16 +46,20 @@ function words(value, locale) {
   }
 }
 function readableSceneCopy(scene) {
+  const copyVisible = sceneCopyVisible(scene);
   return [
-    scene.eyebrow,
-    scene.title,
-    scene.body,
+    ...(copyVisible ? [scene.eyebrow, scene.title, scene.body] : []),
     scene.type === 'chapter' ? scene.number : undefined,
     scene.type === 'annotation' ? scene.note.text : undefined,
     scene.type === 'outro' ? scene.cta : undefined,
     scene.type === 'result' && scene.comparison ? scene.comparison.beforeLabel : undefined,
     scene.type === 'result' && scene.comparison ? scene.comparison.afterLabel : undefined,
   ].filter(Boolean).join(' ');
+}
+function sceneCopyVisible(scene) {
+  return ['text', 'chapter', 'outro'].includes(scene.type)
+    || (scene.type === 'result' && scene.comparison)
+    || scene.presentation?.caption !== 'none';
 }
 function luminance(hex) {
   const values = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255).map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
@@ -136,20 +140,29 @@ try {
   const theme = resolveTheme(props);
   const findings = [];
   const boundsChecks = [];
+  const checkBounds = (sceneId, checks) => {
+    for (const check of checks) {
+      const passed = check.actual <= check.maximum;
+      boundsChecks.push({ sceneId, ...check, status: passed ? 'passed' : 'blocked' });
+      if (!passed) findings.push({ level: direction ? 'error' : 'warning', code: 'AUTHORED_BOUNDS', sceneId, message: `${check.field} has ${check.actual} characters; the safe authored-content limit is ${check.maximum}. Inspect and shorten the copy.` });
+    }
+  };
   const fullBleedCaption = props.scenes.some((scene) => !['text', 'chapter', 'outro'].includes(scene.type)
     && !(scene.type === 'result' && scene.comparison)
     && scene.presentation?.layout === 'full-bleed'
     && (scene.presentation?.caption ?? 'bottom-left') !== 'none');
-  const accentOnBackground = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
+  const backgroundCopy = props.scenes.some((scene) => ['text', 'chapter', 'outro'].includes(scene.type)
     || (scene.type === 'result' && scene.comparison)
     || scene.presentation?.layout !== 'full-bleed'
     || scene.presentation?.caption === 'side');
   const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
     || (!['text', 'chapter', 'outro'].includes(scene.type) && scene.presentation?.layout !== 'full-bleed'));
   const contrastChecks = [
-    { name: 'foreground-on-background', foreground: theme.foreground, background: theme.background, ratio: contrast(theme.foreground, theme.background), required: 4.5 },
-    { name: 'muted-on-background', foreground: theme.muted, background: theme.background, ratio: contrast(theme.muted, theme.background), required: 4.5 },
-    ...(accentOnBackground ? [{ name: 'accent-on-background', foreground: props.accent, background: theme.background, ratio: contrast(props.accent, theme.background), required: 4.5 }] : []),
+    ...(backgroundCopy ? [
+      { name: 'foreground-on-background', foreground: theme.foreground, background: theme.background, ratio: contrast(theme.foreground, theme.background), required: 4.5 },
+      { name: 'muted-on-background', foreground: theme.muted, background: theme.background, ratio: contrast(theme.muted, theme.background), required: 4.5 },
+      { name: 'accent-on-background', foreground: props.accent, background: theme.background, ratio: contrast(props.accent, theme.background), required: 4.5 },
+    ] : []),
     ...(mutedOnTint ? [{ name: 'muted-on-tint', foreground: theme.muted, background: theme.tint, ratio: contrast(theme.muted, theme.tint), required: 4.5 }] : []),
     ...(fullBleedCaption ? [
       { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
@@ -158,24 +171,34 @@ try {
     ] : []),
   ];
   for (const check of contrastChecks) if (check.ratio < check.required) findings.push({ level: direction ? 'error' : 'warning', code: check.name.startsWith('accent-') ? 'ACCENT_CONTRAST' : 'AUTHORED_CONTRAST', message: `${check.name} has ${check.ratio.toFixed(2)}:1 contrast; ${check.required.toFixed(1)}:1 is required.` });
+  if (backgroundCopy) checkBounds('project', [
+    { field: 'title', actual: [...props.title].length, maximum: 80 },
+    ...(props.branding?.name ? [{ field: 'branding.name', actual: [...props.branding.name].length, maximum: 40 }] : []),
+    ...(props.branding?.tagline ? [{ field: 'branding.tagline', actual: [...props.branding.tagline].length, maximum: 80 }] : []),
+    ...(props.branding?.footer ? [{ field: 'branding.footer', actual: [...props.branding.footer].length, maximum: 100 }] : []),
+  ]);
   for (const [index, scene] of props.scenes.entries()) {
     const entry = timeline[index];
     const settledFrames = Math.max(0, (timeline[index + 1]?.from ?? entry.end) - (entry.from + entry.overlap) - Math.round(composition.fps * 0.8));
     const settledSeconds = settledFrames / composition.fps;
+    const copyVisible = sceneCopyVisible(scene);
     const count = words(readableSceneCopy(scene), locale);
-    const requiredSeconds = Math.max(scene.body.trim() ? 2 : scene.title.trim() ? 1.5 : 1, count / 3);
+    const requiredSeconds = Math.max(copyVisible && scene.body.trim() ? 2 : copyVisible && scene.title.trim() ? 1.5 : 1, count / 3);
     if (settledSeconds < requiredSeconds) findings.push({ level: direction ? 'error' : 'warning', code: 'READING_TIME', sceneId: scene.id, message: `Needs ${requiredSeconds.toFixed(2)} settled seconds; has ${settledSeconds.toFixed(2)}.` });
-    const limits = [
-      { field: 'title', actual: [...scene.title].length, maximum: scene.type === 'chapter' ? 120 : 100 },
-      { field: 'body', actual: [...scene.body].length, maximum: 320 },
+    checkBounds(scene.id, [
+      ...(copyVisible ? [
+        { field: 'eyebrow', actual: [...scene.eyebrow].length, maximum: 80 },
+        { field: 'title', actual: [...scene.title].length, maximum: scene.type === 'chapter' ? 120 : 100 },
+        { field: 'body', actual: [...scene.body].length, maximum: 320 },
+      ] : []),
+      ...(scene.type === 'chapter' ? [{ field: 'number', actual: [...scene.number].length, maximum: 12 }] : []),
       ...(scene.type === 'annotation' ? [{ field: 'note.text', actual: [...scene.note.text].length, maximum: 240 }] : []),
       ...(scene.type === 'outro' && scene.cta ? [{ field: 'cta', actual: [...scene.cta].length, maximum: 100 }] : []),
-    ];
-    for (const check of limits) {
-      const passed = check.actual <= check.maximum;
-      boundsChecks.push({ sceneId: scene.id, ...check, status: passed ? 'passed' : 'blocked' });
-      if (!passed) findings.push({ level: direction ? 'error' : 'warning', code: 'AUTHORED_BOUNDS', sceneId: scene.id, message: `${check.field} has ${check.actual} characters; the safe authored-content limit is ${check.maximum}. Inspect and shorten the copy.` });
-    }
+      ...(scene.type === 'result' && scene.comparison ? [
+        { field: 'comparison.beforeLabel', actual: [...scene.comparison.beforeLabel].length, maximum: 80 },
+        { field: 'comparison.afterLabel', actual: [...scene.comparison.afterLabel].length, maximum: 80 },
+      ] : []),
+    ]);
   }
   if (props.scenes.some((scene) => scene.type === 'annotation' || (scene.type === 'outro' && scene.cta) || (scene.type === 'result' && scene.comparison))) {
     const ratio = contrast(props.accent, '#ffffff');

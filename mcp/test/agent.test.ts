@@ -212,9 +212,9 @@ function launchDirection() {
     buildIdentity: 'fixture-1',
     events: [
       { markId: 'reveal', timestamp: 0, settledUntil: 0.25, verified: false },
-      { markId: 'camera-start', timestamp: 1, settledUntil: 1.25, rect: { x: 50, y: 50, width: 100, height: 50 }, verified: false },
-      { markId: 'camera-stop', timestamp: 2, settledUntil: 2.25, rect: { x: 300, y: 200, width: 120, height: 60 }, verified: false },
-      { markId: 'result', timestamp: 4, settledUntil: 4.25, rect: { x: 100, y: 100, width: 300, height: 120 }, verified: true },
+      { markId: 'camera-start', timestamp: 1, settledUntil: 1.25, rect: { x: 50, y: 50, width: 100, height: 50 }, rectTimestamp: 1, verified: false },
+      { markId: 'camera-stop', timestamp: 2, settledUntil: 2.25, rect: { x: 300, y: 200, width: 120, height: 60 }, rectTimestamp: 2, verified: false },
+      { markId: 'result', timestamp: 4, settledUntil: 4.25, rect: { x: 100, y: 100, width: 300, height: 120 }, rectTimestamp: 4, verified: true },
     ],
   };
   const authored = (claim: string) => [{ kind: 'authored-copy' as const, claim }];
@@ -311,6 +311,8 @@ test('camera stops require matching rectangle evidence at each displayed source 
   const cameraDirection = { ...direction, scenes: direction.scenes.map((entry, index) => index === 1 ? cameraEntry : entry) };
   const project = validate({ version: 2, title: 'CatalogForge', accent: '#402c8f', video: 'captures/demo.webm', sourceDuration: 20, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [direction.scenes[0].scene] });
   assert.equal(compileDirection(cameraDirection, project).project.scenes[1]?.type, 'camera');
+  const mistimedCapture = { ...direction.capture, events: direction.capture.events.map((event) => event.markId === 'camera-start' ? { ...event, rectTimestamp: 0.8 } : event) };
+  assert.throws(() => compileDirection({ ...cameraDirection, capture: mistimedCapture, captureFingerprint: captureFingerprint(mistimedCapture) }, project), /rectangle outside its measurement time/);
   const mistimed = {
     ...cameraDirection,
     scenes: cameraDirection.scenes.map((entry, index) => index === 1 ? { ...entry, scene: { ...entry.scene, path: [{ at: 0, focus: start, zoom: 1.2 }, { at: 1, focus: start, zoom: 1.4 }] } } : entry),
@@ -411,6 +413,8 @@ test('delivery requires a matching successful final render and strict media repo
   await writeFile(artifacts.quality, JSON.stringify({ ...quality, strict: false }));
   await assert.rejects(s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId), { code: 'DELIVERY_NOT_READY' });
   await writeFile(artifacts.quality, JSON.stringify(quality));
+  await assert.rejects(s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId), { code: 'DELIVERY_NOT_READY' });
+  await promisify(execFile)('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=black:s=1920x1080:r=30:d=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-an', artifacts.video]);
   const delivered = await s.deliverDirection('delivery-demo', compiled.direction.directionRevision, compiled.project.revision, jobId);
   assert.equal(delivered.direction.status, 'delivered');
   assert.equal(delivered.delivery.jobId, jobId);

@@ -31,6 +31,21 @@ export async function probe(file: string) {
   if (!Number.isFinite(duration) || duration <= 0 || !Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) throw new AgentError('INVALID_MEDIA', 'Recording needs a video stream, positive dimensions and a known positive duration.');
   return { duration, width, height };
 }
+async function probeFinalVideo(file: string) {
+  let stdout: string;
+  try {
+    ({ stdout } = await exec('ffprobe', ['-v', 'error', '-show_entries', 'stream=index,codec_type,codec_name,width,height,pix_fmt,r_frame_rate:format=duration', '-of', 'json', file], { timeout: 30000, maxBuffer: 1024 * 1024 }));
+  } catch {
+    throw new AgentError('DELIVERY_NOT_READY', 'The final video artifact is unreadable or incomplete. Render it again before delivery.');
+  }
+  try {
+    const report = JSON.parse(stdout) as unknown;
+    if (!record(report)) throw new Error('invalid report');
+    return report;
+  } catch {
+    throw new AgentError('DELIVERY_NOT_READY', 'The final video probe returned an invalid report. Render it again before delivery.');
+  }
+}
 async function fileDigest(file: string) {
   const hash = createHash('sha256');
   await new Promise<void>((resolve, reject) => {
@@ -156,6 +171,7 @@ export class AgentService {
               timestamp: event.verified ? event.end : event.at,
               settledUntil: event.end + holdMs / 1000,
               ...(event.box ? { rect: event.box } : {}),
+              ...(event.boxAt !== undefined ? { rectTimestamp: event.boxAt } : {}),
               verified: event.verified === true,
             };
           }),
@@ -262,10 +278,10 @@ export class AgentService {
     try { quality = JSON.parse(await readFile(job.artifacts.quality, 'utf8')) as unknown; }
     catch { throw new AgentError('DELIVERY_NOT_READY', 'The final quality report is unreadable.'); }
     if (!record(quality)) throw new AgentError('DELIVERY_NOT_READY', 'The final quality report is invalid.');
-    const media = record(quality.media) ? quality.media : {};
     const projectReport = record(quality.project) ? quality.project : {};
-    const format = record(media.format) ? media.format : {};
-    const streams = Array.isArray(media.streams) ? media.streams.filter(record) : [];
+    const probedMedia = await probeFinalVideo(job.artifacts.video);
+    const format = record(probedMedia.format) ? probedMedia.format : {};
+    const streams = Array.isArray(probedMedia.streams) ? probedMedia.streams.filter(record) : [];
     const video = streams.find((stream) => stream.codec_type === 'video');
     const expectedDuration = Number(projectReport.durationInFrames) / Number(projectReport.fps);
     const actualDuration = Number(format.duration);
