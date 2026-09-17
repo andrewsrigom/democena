@@ -1,34 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
-import type { Scene, Project, Transition } from '../../src/model';
+import type { Transition } from '../../src/model';
 import { Demo } from '../../src/Demo';
-import { buildTimeline, FPS, prepareProject } from '../../src/timeline';
+import { FPS } from '../../src/timeline';
 import {
   motionRecipeIds,
   motionRecipeRegistry,
-  transitionForPreset,
-  transitionPresetIds,
   transitionPresetRegistry,
   transitionRegistry,
 } from '../../src/motion-registry';
 import type { MotionRecipeId, TransitionPresetId } from '../../src/motion-registry';
 import { fixtureIds, fixtures } from './fixtures';
 import type { FixtureId } from './fixtures';
-
-type CatalogKind = 'recipe' | 'transition' | 'preset';
-type CatalogItem = { kind: CatalogKind; id: string; label: string; summary: string; tags: readonly string[] };
-type Selected = { kind: CatalogKind; id: string };
-
-const transitionIds = Object.keys(transitionRegistry) as Transition['type'][];
-const catalog: CatalogItem[] = [
-  ...motionRecipeIds.map((id) => {
-    const recipe = motionRecipeRegistry[id];
-    return { kind: 'recipe' as const, id, label: id, summary: recipe.purpose, tags: [...recipe.sceneTypes, recipe.vibe, recipe.energy] };
-  }),
-  ...transitionIds.map((id) => ({ kind: 'transition' as const, id, label: id, summary: transitionRegistry[id].purpose, tags: ['rendered', transitionRegistry[id].implementation.kind] })),
-  ...transitionPresetIds.map((id) => ({ kind: 'preset' as const, id, label: id, summary: transitionPresetRegistry[id].purpose, tags: ['director', transitionPresetRegistry[id].implementation] })),
-];
+import { catalog, previewFor } from './preview';
+import type { CatalogKind, Selected } from './preview';
 
 function initialSelection(): Selected {
   const query = new URLSearchParams(window.location.search);
@@ -44,40 +30,6 @@ function initialFixture(): FixtureId {
 
 function selectedItem(selection: Selected) {
   return catalog.find((item) => item.kind === selection.kind && item.id === selection.id) ?? catalog[0]!;
-}
-
-function withFixtureMedia(value: unknown): Project {
-  const project = prepareProject(value);
-  return { ...project, video: 'captures/motion-registry.mp4', sourceDuration: 10, trimBefore: 0 };
-}
-
-function sceneForRecipe(recipeId: MotionRecipeId, fixtureId: FixtureId) {
-  const recipe = motionRecipeRegistry[recipeId];
-  const chosen = withFixtureMedia(fixtures[fixtureId].project);
-  const registry = withFixtureMedia(fixtures.registry.project);
-  const source = chosen.scenes.find((scene) => recipe.sceneTypes.includes(scene.type))
-    ?? registry.scenes.find((scene) => recipe.sceneTypes.includes(scene.type));
-  if (!source) throw new Error(`Fixture scene missing for ${recipeId}.`);
-  return { project: chosen, scene: { ...source, transition: { type: 'none' as const, duration: 0 } } as Scene };
-}
-
-function previewFor(selection: Selected, fixtureId: FixtureId) {
-  const fixture = withFixtureMedia(fixtures[fixtureId].project);
-  if (selection.kind === 'recipe') {
-    const { project, scene } = sceneForRecipe(selection.id as MotionRecipeId, fixtureId);
-    const preview = prepareProject({ ...project, scenes: [scene] });
-    return { project: preview, durationInFrames: Math.max(1, Math.round(scene.duration * FPS)), title: `${selection.id} · ${scene.type}` };
-  }
-  const scenes = fixture.scenes.slice(0, 2);
-  if (scenes.length < 2) throw new Error(`Fixture ${fixtureId} requires at least two scenes.`);
-  const transition = selection.kind === 'preset'
-    ? transitionForPreset(selection.id as TransitionPresetId, 'tour')
-    : { type: selection.id as Transition['type'], duration: selection.id === 'none' ? 0 : .5 };
-  const preview = prepareProject({ ...fixture, scenes: [
-    { ...scenes[0]!, transition: { type: 'none', duration: 0 } },
-    { ...scenes[1]!, transition },
-  ] });
-  return { project: preview, durationInFrames: buildTimeline(preview.scenes, FPS).at(-1)!.end, title: `${selection.id} · ${transition.type}` };
 }
 
 function metadataFor(selection: Selected) {
@@ -101,7 +53,7 @@ export function App() {
   const [copied, setCopied] = useState<'link' | 'config' | null>(null);
   const playerRef = useRef<PlayerRef>(null);
   const item = selectedItem(selection);
-  const preview = useMemo(() => previewFor(selection, fixtureId), [selection, fixtureId]);
+  const preview = useMemo(() => previewFor(selection, fixtures[fixtureId].project, fixtures.registry.project), [selection, fixtureId]);
   const metadata = useMemo(() => metadataFor(selection), [selection]);
   const phases = useMemo(() => phaseLabels(selection), [selection]);
   const filtered = useMemo(() => {
