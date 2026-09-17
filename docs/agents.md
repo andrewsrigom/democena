@@ -58,7 +58,7 @@ Launch Node directly. Do not use an npm wrapper that prints banners to the proto
 
 | Tool | Purpose |
 | --- | --- |
-| `democena_capabilities` | Discover schemas, all eight scene examples and the authoring workflow. |
+| `democena_capabilities` | Discover schemas, all eight scene examples, motion recipes and the authoring workflow. |
 | `democena_list_projects` | List project IDs, titles and current revisions. |
 | `democena_list_jobs` | Recover recent capture and render job IDs after reconnecting. |
 | `democena_create_project` | Create a new text project without overwriting an existing ID. |
@@ -83,7 +83,7 @@ Read-only resources: `democena://guide` and `democena://scenes`. Tool successes 
 ## Suggested agent workflow
 
 1. Read capabilities and the [Director skill](../skills/democena-director/SKILL.md). Explore the application and identify the outcome the demo must prove.
-2. Create a project with an ID such as `catalog-sharing`, a title and optional `branding` text. New projects contain no Democena watermark.
+2. Create a project with an ID such as `catalog-sharing`, a title, optional `branding` text and optional product-derived `appearance`. New projects contain no Democena watermark. Select a light or dark surface from the actual product instead of forcing the default palette.
 3. Call `start_capture` with an authorized URL and a plan using real locators and an outcome assertion after the final state-changing action. Poll `get_job`, inspect marker images through `read_preview`, then call `use_capture` with the current project revision. If the client reconnects, use `list_jobs` to recover the job ID. It returns measured event times and focus rectangles, plus viewport and duration from the actual file. Existing recordings can instead be copied to `assets/` and passed to `import_media`. To build another intentional variant from the same successful take, create its project and call `use_capture` with `allowCrossProjectReuse: true`; Democena verifies and imports a separate immutable copy with the same capture fingerprint.
 4. Save canonical `direction.json` using its independent revision. Generated `BRIEF.md` and `STORYBOARD.md` are review views. In collaborative mode, obtain storyboard acceptance before recording `reviewed`; in autonomous mode, record Director review after the rubric passes.
 5. Compile with the exact direction and project revisions. A launch compilation enforces 4–6 scenes, 15–25 seconds, a hook, a real product moment, a verified result and a closing scene. Resolve `diverged` state instead of overwriting manual edits.
@@ -137,7 +137,7 @@ node mcp/dist/mcp/src/cli.js create_project --workspace /absolute/path/to/demos 
 `create.json`:
 
 ```json
-{"projectId":"catalog-sharing","title":"Share your catalog","branding":{"name":"CatalogForge","tagline":"CATALOGS, READY TO SHARE"}}
+{"projectId":"catalog-sharing","title":"Share your catalog","branding":{"name":"CatalogForge","tagline":"CATALOGS, READY TO SHARE"},"appearance":{"surfaceMode":"dark","background":"#101828","foreground":"#f8fafc","muted":"#cbd5e1","surface":"#162033","border":"#344054","tint":"#1d2939","radius":18}}
 ```
 
 Use tool names without the `democena_` prefix. Pass arguments in a JSON file to avoid shell escaping. Every call writes one JSON result; failures return a nonzero exit code. `read_preview` includes base64 data in CLI JSON, plus the local image path. Capture and render workers run independently after their start command exits.

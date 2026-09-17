@@ -55,8 +55,11 @@ export class Workspace {
     }
     return { projects: result };
   }
-  async create(id: string, title: string, accent: string, branding?: { name?: string; tagline?: string; footer?: string }) {
-    const project = validate({ version: 2, title, accent, ...(branding ? { branding } : {}), video: '', sourceDuration: 0, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [{ id: 'opening', type: 'text', duration: 5, eyebrow: '', title, body: '', reveal: 'words' }] });
+  async create(id: string, title: string, accent: string, branding?: { name?: string; tagline?: string; footer?: string }, appearance?: {
+    surfaceMode?: 'light' | 'dark' | 'auto'; background?: string; foreground?: string; muted?: string;
+    surface?: string; border?: string; tint?: string; fontFamily?: string; radius?: number;
+  }) {
+    const project = validate({ version: 2, title, accent, ...(branding ? { branding } : {}), ...(appearance ? { appearance } : {}), video: '', sourceDuration: 0, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes: [{ id: 'opening', type: 'text', duration: 5, eyebrow: '', title, body: '', reveal: 'words' }] });
     const dir = await this.projectDir(id);
     await mkdir(dir).catch((e: NodeJS.ErrnoException) => { if (e.code === 'EEXIST') throw new AgentError('ALREADY_EXISTS', `Project ${id} already exists. Choose another ID.`); throw e; });
     await mkdir(path.join(dir, 'public'));

@@ -8,7 +8,7 @@ import { bundle } from '@remotion/bundler';
 import { openBrowser, renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import { chromium } from 'playwright';
 import { buildTimeline } from '../src/timeline-layout.mjs';
-import { theme } from '../src/theme-data.mjs';
+import { resolveTheme } from '../src/theme-data.mjs';
 
 const { values } = parseArgs({ options: {
   project: { type: 'string', default: 'project.json' },
@@ -125,6 +125,7 @@ try {
   await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance, frame: previewFrame, output: path.join(outputDir, 'preview.png') });
 
   const locale = direction?.locale ?? 'und';
+  const theme = resolveTheme(props);
   const findings = [];
   const boundsChecks = [];
   const contrastChecks = [

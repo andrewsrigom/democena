@@ -424,7 +424,7 @@ export class AgentService {
       case 'capabilities': inputs.capabilities.parse(value); return capabilities();
       case 'list_projects': inputs.list_projects.parse(value); return this.store.list();
       case 'list_jobs': { const a = inputs.list_jobs.parse(value); return this.listJobs(a.projectId, a.limit); }
-      case 'create_project': { const a = inputs.create_project.parse(value); return this.store.create(a.projectId, a.title, a.accent, a.branding); }
+      case 'create_project': { const a = inputs.create_project.parse(value); return this.store.create(a.projectId, a.title, a.accent, a.branding, a.appearance); }
       case 'get_project': { const a = inputs.get_project.parse(value); return this.store.get(a.projectId); }
       case 'get_direction': { const a = inputs.get_direction.parse(value); return this.store.getDirection(a.projectId); }
       case 'save_direction': { const a = inputs.save_direction.parse(value); return this.store.saveDirection(a.projectId, a.expectedDirectionRevision, a.direction); }

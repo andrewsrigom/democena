@@ -38,6 +38,9 @@ try {
       tagline: 'COLLECTIONS, IN MOTION',
       footer: 'YOUR COLLECTION, READY TO SHARE',
     },
+    appearance: {
+      surfaceMode: 'light',
+    },
     video,
     sourceDuration,
     trimBefore: 0,

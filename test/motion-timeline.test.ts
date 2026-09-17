@@ -73,6 +73,18 @@ describe('scene timeline and source clock', () => {
     expect(prepareProject(p).scenes[0]?.type).toBe('result');
   });
 
+  it('accepts product-derived appearance tokens without changing version 2 projects', () => {
+    const p = prepareProject({ ...project(), appearance: { surfaceMode: 'dark', background: '#101828', foreground: '#f8fafc', muted: '#cbd5e1', surface: '#162033', border: '#344054', tint: '#1d2939', fontFamily: 'Inter, sans-serif', radius: 22 } });
+    expect(p.appearance).toMatchObject({ surfaceMode: 'dark', background: '#101828', radius: 22 });
+    expect(p.version).toBe(2);
+  });
+
+  it('rejects invalid appearance tokens', () => {
+    for (const appearance of [{ surfaceMode: 'night' }, { background: 'black' }, { radius: 41 }, { fontFamily: '' }]) {
+      expect(() => prepareProject({ ...project(), appearance })).toThrow(/appearance/);
+    }
+  });
+
 
   it('selects previews outside both incoming and outgoing transitions', () => {
     const scenes: Scene[] = ['a', 'b', 'c'].map((id) => ({ ...base, id, type: 'text', duration: 5, transition: { type: 'fade', duration: 2.4 } }));

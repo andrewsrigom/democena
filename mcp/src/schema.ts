@@ -24,6 +24,19 @@ export const brandingSchema = z.strictObject({
   footer: z.string().min(1).max(160).optional(),
 });
 
+const colorSchema = z.string().regex(/^#[\da-f]{6}$/i);
+export const appearanceSchema = z.strictObject({
+  surfaceMode: z.enum(['light', 'dark', 'auto']).optional(),
+  background: colorSchema.optional(),
+  foreground: colorSchema.optional(),
+  muted: colorSchema.optional(),
+  surface: colorSchema.optional(),
+  border: colorSchema.optional(),
+  tint: colorSchema.optional(),
+  fontFamily: z.string().min(1).max(200).optional(),
+  radius: z.number().min(0).max(40).optional(),
+});
+
 const base = {
   id: z.string().min(1),
   duration: z.number().positive().max(600),
@@ -53,6 +66,7 @@ export const projectSchema = z.strictObject({
   title: z.string(),
   accent: z.string().regex(/^#[\da-f]{6}$/i),
   branding: brandingSchema.optional(),
+  appearance: appearanceSchema.optional(),
   video: z.string(),
   sourceDuration: z.number().nonnegative(),
   trimBefore: z.number().nonnegative(),

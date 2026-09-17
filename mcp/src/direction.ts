@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { buildTimeline, FPS, prepareProject } from '../../studio/src/timeline.js';
+import { motionRecipeFor } from '../../studio/src/motion-recipes.js';
 import { rectSchema, sceneSchema, type ProjectInput, type SceneInput } from './schema.js';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -186,7 +187,7 @@ export function renderStoryboard(directionValue: unknown) {
   const d = directionSchema.parse(directionValue);
   const rows = d.scenes.map((entry, index) => {
     const evidence = entry.evidence.map((item) => item.kind === 'capture' ? `capture @ ${item.timestamp.toFixed(2)}s${item.markId ? ` (${item.markId})` : ''}${item.verified ? ' verified' : ''}` : `authored: ${item.claim}`).join('; ');
-    return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Type:** ${entry.scene.type}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
+    return `## ${String(index + 1).padStart(2, '0')} — ${entry.scene.id}\n\n- **Role:** ${entry.narrativeRole}\n- **Reason:** ${entry.reason}\n- **Type:** ${entry.scene.type}\n- **Motion recipe:** ${motionRecipeFor(entry.scene) ?? 'standard scene motion'}\n- **Duration:** ${entry.scene.duration.toFixed(2)}s\n- **Settled preview:** ${entry.expectedSettledAt.toFixed(2)}s\n- **Title:** ${entry.scene.title.replaceAll('\n', ' / ')}\n- **Evidence:** ${evidence}\n`;
   });
   return `# Storyboard\n\nProfile: **${d.profile}** · Tone: **${d.tone}** · Status: **${d.status}**\n\n${rows.join('\n')}\n`;
 }
@@ -207,6 +208,7 @@ export function scenePackets(directionValue: unknown, directionRevision: string,
     copy: { eyebrow: entry.scene.eyebrow, title: entry.scene.title, body: entry.scene.body },
     captureEvidence: sourceEvidence(entry),
     allowedSceneType: entry.scene.type,
+    motionRecipe: motionRecipeFor(entry.scene),
     approvedScene: entry.scene,
     output: `direction/scene-drafts/${directionRevision}/${entry.scene.id}.json`,
   }));

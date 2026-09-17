@@ -24,7 +24,7 @@ export function AnimatedTitle({ text, highlight, reveal = 'words', accent, style
           const delay = reveal === 'lines' ? lineIndex * 9 : wordIndex++ * 3;
           const enter = spring({ frame: frame - delay - 4, fps, config: { damping: 24, stiffness: 140 } });
           const mark = spring({ frame: frame - delay - 17, fps, config: { damping: 30, stiffness: 90 } });
-          return <span key={i} style={{ display: 'inline-block', position: 'relative', opacity: enter, transform: `translateY(${(1 - enter) * 36}px)`, whiteSpace: 'pre' }}>
+          return <span key={i} style={{ display: 'inline-block', position: 'relative', opacity: enter, filter: `blur(${(1 - enter) * 10}px)`, transform: `translateY(${(1 - enter) * 36}px)`, whiteSpace: 'pre' }}>
             {word.marked ? <span style={{ position: 'absolute', left: -5, right: -5, bottom: '0.08em', height: '0.23em', background: accent, opacity: 0.22, borderRadius: 4, transformOrigin: 'left', transform: `scaleX(${mark})` }} /> : null}
             <span style={{ position: 'relative' }}>{word.text}</span>
           </span>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { theme } from '../studio/src/theme-data.mjs';
+import { darkTheme, lightTheme, resolveTheme } from '../studio/src/theme-data.mjs';
 
 function luminance(hex: string) {
   const channels = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255)
@@ -13,8 +13,16 @@ function contrast(foreground: string, background: string) {
 }
 
 describe('Studio presentation contrast', () => {
-  it('keeps foreground and muted copy readable on the presentation background', () => {
+  it.each([lightTheme, darkTheme])('keeps foreground and muted copy readable in $mode mode', (theme) => {
     expect(contrast(theme.foreground, theme.background)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme.muted, theme.background)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('resolves explicit and automatic surfaces while retaining product tokens', () => {
+    expect(resolveTheme({ appearance: { surfaceMode: 'dark' } }).mode).toBe('dark');
+    expect(resolveTheme({ appearance: { surfaceMode: 'auto', background: '#111827' } }).mode).toBe('dark');
+    expect(resolveTheme({ appearance: { surfaceMode: 'auto', background: '#ffffff' } }).mode).toBe('light');
+    expect(resolveTheme({ appearance: { surfaceMode: 'dark', background: '#101828', radius: 24, fontFamily: 'Geist, sans-serif' } }))
+      .toMatchObject({ mode: 'dark', background: '#101828', radius: 24, font: 'Geist, sans-serif' });
   });
 });

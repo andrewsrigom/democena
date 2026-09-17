@@ -54,6 +54,16 @@ export function prepareProject(value: unknown, fps = FPS): Project {
     const logo = p.branding.logo;
     requireValue(logo === undefined || (text(logo) && /^(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.(?:png|jpe?g|webp)$/i.test(logo)), 'branding.logo must be a relative PNG, JPEG or WebP path inside public');
   }
+  if (p.appearance !== undefined) {
+    requireValue(record(p.appearance), 'appearance must be an object');
+    requireValue(p.appearance.surfaceMode === undefined || ['light', 'dark', 'auto'].includes(String(p.appearance.surfaceMode)), 'appearance.surfaceMode must be light, dark or auto');
+    for (const key of ['background', 'foreground', 'muted', 'surface', 'border', 'tint']) {
+      const value = p.appearance[key];
+      requireValue(value === undefined || (text(value) && /^#[0-9a-f]{6}$/i.test(value)), `appearance.${key} must be a six-digit hex color`);
+    }
+    requireValue(p.appearance.fontFamily === undefined || (text(p.appearance.fontFamily) && p.appearance.fontFamily.length > 0 && p.appearance.fontFamily.length <= 200), 'appearance.fontFamily must contain 1-200 characters');
+    requireValue(p.appearance.radius === undefined || (finite(p.appearance.radius) && p.appearance.radius >= 0 && p.appearance.radius <= 40), 'appearance.radius must be between 0 and 40');
+  }
   requireValue(finite(p.sourceDuration) && p.sourceDuration >= 0 && finite(p.trimBefore) && p.trimBefore >= 0 && p.trimBefore <= p.sourceDuration, 'invalid sourceDuration or trimBefore');
   requireValue(record(p.viewport) && finite(p.viewport.width) && p.viewport.width > 0 && finite(p.viewport.height) && p.viewport.height > 0, 'viewport must be positive');
   requireValue(Array.isArray(p.scenes) && p.scenes.length > 0, 'scenes must not be empty');

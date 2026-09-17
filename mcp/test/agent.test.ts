@@ -22,8 +22,10 @@ async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
 }
 test('all eight discoverable examples pass the shared Studio validator', () => {
   assert.equal(example.branding, undefined);
-  const scenes = capabilities().examples.map((s, i) => ({ ...s, id: `scene-${i}` }));
+  const discovered = capabilities();
+  const scenes = discovered.examples.map((s, i) => ({ ...s, id: `scene-${i}` }));
   assert.equal(scenes.length, 8);
+  assert.deepEqual(discovered.motionRecipes.map(recipe => recipe.id), ['text-blur-slide', 'chapter-demote-to-label', 'focus-scan-lock', 'outro-strip-away']);
   assert.equal(validate({ version: 2, title: 'Demo', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0, viewport: { width: 1280, height: 800 }, scenes }).scenes.length, 8);
 });
 test('create, read, save and list preserve revisions and reject stale writes', async t => {
@@ -39,6 +41,14 @@ test('create, read, save and list preserve revisions and reject stale writes', a
   const history = await readFile(path.join(s.store.root, 'projects/demo/revisions', `${created.revision}.json`), 'utf8');
   assert.equal(JSON.parse(history).title, 'First');
   assert.equal((await s.store.list()).projects.length, 1);
+});
+test('project appearance can be created and edited through the shared contract', async t => {
+  const s = await fixture(t);
+  const created = await s.store.create('dark-demo', 'Dark product', '#77a6ff', undefined, { surfaceMode: 'dark', background: '#101828', radius: 22 });
+  assert.deepEqual(created.project.appearance, { surfaceMode: 'dark', background: '#101828', radius: 22 });
+  assert.equal(created.timeline[0]?.motionRecipe, 'text-blur-slide');
+  const saved = await s.store.save('dark-demo', created.revision, { ...created.project, appearance: { ...created.project.appearance, fontFamily: 'Inter, sans-serif' } });
+  assert.equal(saved.project.appearance?.fontFamily, 'Inter, sans-serif');
 });
 test('concurrent writers cannot silently replace each other', async t => {
   const s = await fixture(t);

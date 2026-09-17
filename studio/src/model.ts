@@ -27,11 +27,23 @@ export type ResultScene = BaseScene & {
 export type OutroScene = BaseScene & TextOptions & { type: 'outro'; cta?: string };
 export type Scene = TextScene | ChapterScene | OverviewScene | FocusScene | CameraScene | AnnotationScene | ResultScene | OutroScene;
 export type Branding = { logo?: string; name?: string; tagline?: string; footer?: string };
+export type Appearance = {
+  surfaceMode?: 'light' | 'dark' | 'auto';
+  background?: string;
+  foreground?: string;
+  muted?: string;
+  surface?: string;
+  border?: string;
+  tint?: string;
+  fontFamily?: string;
+  radius?: number;
+};
 export type Project = {
   version: 2;
   title: string;
   accent: string;
   branding?: Branding;
+  appearance?: Appearance;
   video: string;
   sourceDuration: number;
   trimBefore: number;

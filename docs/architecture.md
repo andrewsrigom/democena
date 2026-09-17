@@ -36,7 +36,7 @@ This is a local trusted-user tool, not a hosted service or a sandbox for hostile
 
 1. Extend the core scenario API with an explicit clean-capture mode and structured focus/cursor events.
 2. Measure residual event/video drift across browsers and navigation intervals before offering precise click effects.
-3. Validate the declarative capture plans on another real application and add selectable visual presets.
+3. Validate the declarative capture plans and the curated motion vocabulary on more real applications before making recipes explicitly selectable in project data.
 4. Offer a small scene editor only when real usage shows which controls are needed.
 
 Voice narration, a hosted multi-tenant service, and a general-purpose video editor are outside the initial scope.
