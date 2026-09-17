@@ -98,6 +98,12 @@ export const projectSchema = z.strictObject({
       if (definition.requiresFocus && !('focus' in scene && scene.focus)) {
         ctx.addIssue({ code: 'custom', path: ['scenes', index, 'presentation', 'layout'], message: `${definition.id} requires an evidence-linked focus rectangle.` });
       }
+      if (scene.type === 'focus' && scene.zoom !== undefined) {
+        const minimumZoom = scene.presentation.layout === 'detail-crop' ? 1.2 : scene.presentation.layout === 'full-bleed-proof' ? 1.1 : 1;
+        if (scene.zoom < minimumZoom) {
+          ctx.addIssue({ code: 'custom', path: ['scenes', index, 'zoom'], message: `zoom must be at least ${minimumZoom} for the ${scene.presentation.layout} layout.` });
+        }
+      }
     }
   });
 });

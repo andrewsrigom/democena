@@ -106,6 +106,10 @@ export function prepareProject(value: unknown, fps = FPS): Project {
       const layout = String(scene.presentation.layout ?? 'framed') as keyof typeof compositionRegistry;
       const definition = compositionRegistry[layout];
       requireValue(definition !== undefined && (!definition.requiresFocus || (record(scene.focus) && finite(scene.focus.x))), `${name}.presentation.layout ${layout} requires an evidence-linked focus rectangle`);
+      if (scene.type === 'focus' && scene.zoom !== undefined) {
+        const minimumZoom = layout === 'detail-crop' ? 1.2 : layout === 'full-bleed-proof' ? 1.1 : 1;
+        requireValue(finite(scene.zoom) && scene.zoom >= minimumZoom, `${name}.zoom must be at least ${minimumZoom} for the ${layout} layout`);
+      }
       requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
     }
     requireValue(scene.typographicRole !== 'silent-product' || productScene, `${name}.typographicRole silent-product is only available on product scenes`);

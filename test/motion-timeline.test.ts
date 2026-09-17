@@ -139,6 +139,13 @@ describe('scene timeline and source clock', () => {
     }
   });
 
+  it('rejects focus zoom values that neutralize evidence-led crop layouts', () => {
+    const scene = { id: 'focus', type: 'focus' as const, duration: 4, eyebrow: '', title: 'Detail', body: '', source: { from: 0, freeze: true }, focus, zoom: 1 };
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'detail-crop' as const } }] })).toThrow(/zoom must be at least 1.2/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'full-bleed-proof' as const } }] })).toThrow(/zoom must be at least 1.1/);
+    expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'framed' as const } }] })).not.toThrow();
+  });
+
   it('rejects invalid product presentation', () => {
     const scene = { ...base, id: 'product', type: 'overview', source: { from: 0, freeze: true } };
     expect(() => prepareProject({ ...project(), scenes: [{ ...scene, presentation: { layout: 'edge-to-edge' } }] })).toThrow(/presentation.layout/);
