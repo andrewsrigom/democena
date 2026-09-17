@@ -140,7 +140,7 @@ function OverlayCaption({ scene, accent, theme, position, layout }: { scene: Sce
   const compact = role === 'metadata' || role === 'label' || layout === 'product-stage';
   const proof = role === 'proof' || layout === 'full-bleed-proof';
   return <div style={{ position: 'absolute', top, bottom, left, right, width: compact ? 440 : 570, boxSizing: 'border-box', padding: compact ? '22px 26px 24px' : '28px 32px 30px',
-    borderRadius: Math.max(16, theme.radius), border: `1px solid ${theme.border}`, background: `${theme.surface}F2`,
+    borderRadius: Math.max(16, theme.radius), border: `1px solid ${theme.border}`, background: theme.surface,
     borderLeft: proof ? `5px solid ${accent}` : `1px solid ${theme.border}`, boxShadow: `0 24px 70px -28px ${theme.shadow}A0`, opacity: enter, transform: `translateY(${(1 - enter) * 24}px)` }}>
     <Eyebrow accent={accent}>{scene.eyebrow}</Eyebrow>
     <h1 style={{ color: theme.foreground, fontSize: compact ? 34 : Math.min(type.title, 48), fontWeight: type.weight, letterSpacing: compact ? -1.2 : type.tracking, lineHeight: 1.06, margin: '20px 0 16px', whiteSpace: 'pre-line' }}>{scene.title}</h1>
