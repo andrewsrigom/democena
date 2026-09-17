@@ -1,4 +1,7 @@
 import type { CameraStop, Focus } from './model.js';
+import { cameraFocusFitsVisibleViewport } from './camera-geometry.mjs';
+
+export { cameraFocusFitsVisibleViewport } from './camera-geometry.mjs';
 
 export type Camera = { scale: number; x: number; y: number };
 const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
@@ -13,9 +16,12 @@ export function cameraFor(
   if (!focus) return { scale: 1, x: 0, y: 0 };
   const ratio = width / viewport.width;
   const height = viewport.height * ratio;
-  const scale = Math.max(1, Math.min(zoom, (width - 48) / (focus.width * ratio), (height - 48) / (focus.height * ratio)));
   const visibleWidth = Math.min(width, visibleViewport?.width ?? width);
   const visibleHeight = Math.min(height, visibleViewport?.height ?? height);
+  if (visibleViewport && !cameraFocusFitsVisibleViewport(focus, viewport, width, visibleViewport)) {
+    throw new Error('Camera focus cannot fit the visible viewport without exposing empty canvas.');
+  }
+  const scale = Math.max(1, Math.min(zoom, (visibleWidth - 48) / (focus.width * ratio), (visibleHeight - 48) / (focus.height * ratio)));
   return { scale, x: clamp((width / 2 - (focus.x + focus.width / 2) * ratio) * scale, (width * scale - visibleWidth) / 2),
     y: clamp((height / 2 - (focus.y + focus.height / 2) * ratio) * scale, (height * scale - visibleHeight) / 2) };
 }

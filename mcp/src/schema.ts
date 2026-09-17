@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from '../../studio/src/composition-registry.mjs';
+import { cameraFocusFitsVisibleViewport } from '../../studio/src/camera-geometry.mjs';
+import { fullBleedLayout, OUTPUT_CANVAS } from '../../studio/src/canvas-geometry.mjs';
 
 export const rectSchema = z.strictObject({
   x: z.number().nonnegative(),
@@ -103,6 +105,17 @@ export const projectSchema = z.strictObject({
         if (scene.zoom < minimumZoom) {
           ctx.addIssue({ code: 'custom', path: ['scenes', index, 'zoom'], message: `zoom must be at least ${minimumZoom} for the ${scene.presentation.layout} layout.` });
         }
+      }
+      if (definition.immersive) {
+        const immersiveWidth = fullBleedLayout(project.viewport, OUTPUT_CANVAS).width;
+        const focuses: Array<{ focus: z.infer<typeof rectSchema>; pathIndex?: number }> = scene.type === 'camera'
+          ? scene.path.flatMap((stop, pathIndex) => stop.focus ? [{ focus: stop.focus, pathIndex }] : [])
+          : 'focus' in scene && scene.focus && (scene.type !== 'annotation' || definition.requiresFocus) ? [{ focus: scene.focus }] : [];
+        focuses.forEach((candidate) => {
+          if (!cameraFocusFitsVisibleViewport(candidate.focus, project.viewport, immersiveWidth, OUTPUT_CANVAS)) {
+            ctx.addIssue({ code: 'custom', path: ['scenes', index, ...(candidate.pathIndex === undefined ? [] : ['path', candidate.pathIndex]), 'focus'], message: 'focus cannot fit the visible canvas.' });
+          }
+        });
       }
     }
   });

@@ -1,5 +1,7 @@
-import type { Project, Source } from './model.js';
+import type { Focus, Project, Source } from './model.js';
 import { captionPlacements, chromeModes, compositionLayouts, compositionRegistry, typographicRoles } from './composition-registry.mjs';
+import { cameraFocusFitsVisibleViewport } from './camera-geometry.mjs';
+import { fullBleedLayout, OUTPUT_CANVAS } from './canvas-geometry.mjs';
 
 import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
 export { authoredEntranceOffsetFrames, buildTimeline, chapterLifecycleFrames, DEFAULT_TRANSITION, FPS, frames, settledReviewFrame, titleEntranceFrames, transitionFrames } from './timeline-layout.mjs';
@@ -111,6 +113,19 @@ export function prepareProject(value: unknown, fps = FPS): Project {
         requireValue(finite(scene.zoom) && scene.zoom >= minimumZoom, `${name}.zoom must be at least ${minimumZoom} for the ${layout} layout`);
       }
       requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
+      if (definition.immersive) {
+        const recordedViewport = { width: Number(viewport.width), height: Number(viewport.height) };
+        const immersiveWidth = fullBleedLayout(recordedViewport, OUTPUT_CANVAS).width;
+        const focuses: Array<{ focus: Focus; pathIndex?: number }> = [];
+        const usableFocus = (value: unknown): value is Focus => record(value) && finite(value.x) && finite(value.y) && finite(value.width) && finite(value.height);
+        if (scene.type === 'camera' && Array.isArray(scene.path)) scene.path.forEach((stop, pathIndex) => {
+          if (record(stop) && usableFocus(stop.focus)) focuses.push({ focus: stop.focus, pathIndex });
+        });
+        else if (usableFocus(scene.focus) && (scene.type !== 'annotation' || definition.requiresFocus)) focuses.push({ focus: scene.focus });
+        for (const candidate of focuses) {
+          requireValue(cameraFocusFitsVisibleViewport(candidate.focus, recordedViewport, immersiveWidth, OUTPUT_CANVAS), `${name}${candidate.pathIndex === undefined ? '' : `.path[${candidate.pathIndex}]`}.focus cannot fit the visible canvas`);
+        }
+      }
     }
     requireValue(scene.typographicRole !== 'silent-product' || productScene, `${name}.typographicRole silent-product is only available on product scenes`);
     requireValue(scene.typographicRole !== 'silent-product' || !record(scene.presentation) || scene.presentation.caption === undefined || scene.presentation.caption === 'none', `${name}.typographicRole silent-product cannot render a caption`);

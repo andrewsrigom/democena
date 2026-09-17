@@ -1,4 +1,7 @@
 import type { CompositionLayout, Focus } from './model.js';
+import { fullBleedLayout } from './canvas-geometry.mjs';
+
+export { fullBleedLayout, OUTPUT_CANVAS } from './canvas-geometry.mjs';
 
 export type ProductLayoutBox = { width: number; height: number; left: number; top: number; chromeHeight: number };
 
@@ -17,13 +20,6 @@ function framedStageLayout(viewport: { width: number; height: number }, stage: {
 /** Keep the whole browser, including its chrome, inside the presentation stage. */
 export function browserLayout(viewport: { width: number; height: number }) {
   return framedStageLayout(viewport, { left: 664, top: 158, width: 1160, height: 780 });
-}
-
-/** Cover the output canvas with the recorded viewport and crop only the overflow. */
-export function fullBleedLayout(viewport: { width: number; height: number }, canvas: { width: number; height: number }) {
-  const width = Math.max(canvas.width, canvas.height * viewport.width / viewport.height);
-  const height = width * viewport.height / viewport.width;
-  return { width, height, left: (canvas.width - width) / 2, top: (canvas.height - height) / 2, chromeHeight: 0 };
 }
 
 export function productLayout(layout: CompositionLayout, viewport: { width: number; height: number }, canvas: { width: number; height: number }) {

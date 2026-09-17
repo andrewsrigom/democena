@@ -82,6 +82,13 @@ test('invalid scenes and unimported media do not modify the saved project', asyn
   await assert.rejects(s.store.save('demo', p.revision, { ...p.project, video: 'captures/not-imported.webm' }), { code: 'MEDIA_CHANGE_REQUIRES_IMPORT' });
   assert.equal((await s.store.get('demo')).revision, p.revision);
 });
+test('immersive camera focus must fit the visible output canvas', () => {
+  assert.throws(() => validate({
+    version: 2, title: 'Proof', accent: '#215acb', video: 'captures/demo.webm', sourceDuration: 10, trimBefore: 0,
+    viewport: { width: 1280, height: 800 }, scenes: [{ id: 'proof', type: 'focus', duration: 4, eyebrow: 'Proof', title: 'Visible evidence', body: '',
+      source: { from: 0, freeze: true }, focus: { x: 100, y: 20, width: 300, height: 721 }, presentation: { layout: 'full-bleed-proof', caption: 'bottom-left' } }],
+  }), /focus cannot fit the visible canvas/);
+});
 test('source paths cannot escape the workspace or follow symlinks', async t => {
   const s = await fixture(t);
   await assert.rejects(s.store.safe('../outside.mp4'), { code: 'INVALID_PATH' });

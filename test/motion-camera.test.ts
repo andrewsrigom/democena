@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cameraFor, cameraPoint } from '../studio/src/camera.js';
+import { cameraFocusFitsVisibleViewport, cameraFor, cameraPoint } from '../studio/src/camera.js';
 
 const viewport = { width: 1280, height: 800 };
 const width = 1170;
@@ -52,5 +52,12 @@ describe('motion camera', () => {
       expect(top).toBeGreaterThanOrEqual(0);
       expect(bottom).toBeLessThanOrEqual(visible.height);
     }
+  });
+
+  it('rejects cover-cropped evidence that is taller than the visible canvas', () => {
+    const visible = { width: 1920, height: 1080 };
+    const focus = { x: 80, y: 20, width: 300, height: 721 };
+    expect(cameraFocusFitsVisibleViewport(focus, viewport, 1920, visible)).toBe(false);
+    expect(() => cameraFor(focus, viewport, 1920, 1.24, visible)).toThrow(/cannot fit the visible viewport/);
   });
 });
