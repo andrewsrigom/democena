@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -209,9 +210,13 @@ function launchDirection() {
     devicePixelRatio: 1,
     initialRoute: 'http://localhost:4173',
     buildIdentity: 'fixture-1',
+    events: [
+      { markId: 'reveal', timestamp: 0, settledUntil: 0.25, verified: false },
+      { markId: 'result', timestamp: 4, settledUntil: 4.25, rect: { x: 100, y: 100, width: 300, height: 120 }, verified: true },
+    ],
   };
   const authored = (claim: string) => [{ kind: 'authored-copy' as const, claim }];
-  const captured = (timestamp: number, verified = false) => [{ kind: 'capture' as const, timestamp, verified }];
+  const captured = (timestamp: number, verified = false) => [{ kind: 'capture' as const, timestamp, markId: verified ? 'result' : 'reveal', verified }];
   return {
     version: 1 as const,
     status: 'reviewed' as const,
@@ -251,6 +256,28 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.deepEqual('presentation' in compiled.project.scenes[1]! ? compiled.project.scenes[1].presentation : undefined, { layout: 'full-bleed', caption: 'bottom-right' });
   assert(compiled.duration >= 15 && compiled.duration <= 25);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, verified: false }] } : entry) }, project), /verified result/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'invented', verified: true }] } : entry) }, project), /outside the adopted take/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 5, markId: 'result', verified: true }] } : entry) }, project), /timestamp outside capture marker/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'result', rect: { x: 0, y: 0, width: 10, height: 10 }, verified: true }] } : entry) }, project), /rectangle that does not match/);
+  const unverifiedCapture = { ...direction.capture, events: direction.capture.events.map((event) => event.markId === 'result' ? { ...event, verified: false } : event) };
+  assert.throws(() => compileDirection({ ...direction, capture: unverifiedCapture, captureFingerprint: captureFingerprint(unverifiedCapture) }, project), /did not verify it/);
+});
+
+test('client saves cannot author Director-managed lifecycle states', async t => {
+  const s = await fixture(t);
+  const project = await s.store.create('managed-state', 'Managed state', '#215acb');
+  const base = {
+    ...launchDirection(),
+    profile: 'tour' as const,
+    capture: undefined,
+    captureFingerprint: undefined,
+    poster: { sceneId: 'hook', sceneLocalTime: 2 },
+    scenes: [launchDirection().scenes[0]],
+  };
+  for (const status of ['compiled', 'delivered', 'diverged'] as const) {
+    const direction = { ...base, status, ...(['compiled', 'delivered'].includes(status) ? { compiledProjectRevision: project.revision } : {}) };
+    await assert.rejects(s.store.saveDirection('managed-state', null, direction), { code: 'DIRECTION_STATE_MANAGED' });
+  }
 });
 
 test('direction revisions generate review views, compile atomically and detect divergence', async t => {
@@ -274,7 +301,12 @@ test('direction revisions generate review views, compile atomically and detect d
   assert.equal(packets.packets.length, 1);
   assert.equal(JSON.parse(await readFile(packets.packets[0].path, 'utf8')).baseDirectionRevision, compiled.direction.directionRevision);
   await s.store.save('demo', compiled.project.revision, { ...compiled.project.project, title: 'Manual edit' });
-  assert.equal((await s.store.getDirection('demo')).direction.status, 'diverged');
+  const diverged = await s.store.getDirection('demo');
+  assert.equal(diverged.direction.status, 'diverged');
+  await s.store.saveDirection('demo', diverged.directionRevision, { ...diverged.direction, status: 'draft', compiledProjectRevision: undefined });
+  const archived = await readFile(path.join(s.store.root, 'projects/demo/direction/revisions', `${compiled.direction.directionRevision}.json`), 'utf8');
+  assert.equal(createHash('sha256').update(archived).digest('hex'), compiled.direction.directionRevision);
+  assert.equal(JSON.parse(archived).status, 'compiled');
 });
 
 test('scene drafts are revision-bound and merge back into an unreviewed direction', async t => {

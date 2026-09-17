@@ -16,6 +16,16 @@ const authoredEvidenceSchema = z.strictObject({
   kind: z.literal('authored-copy'),
   claim: z.string().min(1).max(500),
 });
+const captureEventSchema = z.strictObject({
+  markId: z.string().min(1),
+  timestamp: z.number().nonnegative(),
+  settledUntil: z.number().nonnegative(),
+  rect: rectSchema.optional(),
+  verified: z.boolean(),
+}).refine((event) => event.settledUntil >= event.timestamp, {
+  path: ['settledUntil'],
+  message: 'A capture event cannot settle before it starts.',
+});
 const directionSceneSchema = z.strictObject({
   narrativeRole: z.enum(['hook', 'chapter', 'product-reveal', 'product-moment', 'explanation', 'verified-result', 'closing']),
   reason: z.string().min(1).max(500),
@@ -51,6 +61,7 @@ export const directionSchema = z.strictObject({
     devicePixelRatio: z.number().positive(),
     initialRoute: z.string().min(1),
     buildIdentity: z.string().min(1),
+    events: z.array(captureEventSchema).max(500).optional(),
   }).optional(),
   compiledProjectRevision: sha256Schema.optional(),
   poster: z.strictObject({ sceneId: z.string().min(1), sceneLocalTime: z.number().nonnegative() }).optional(),
@@ -66,6 +77,11 @@ export const directionSchema = z.strictObject({
     ctx.addIssue({ code: 'custom', path: ['captureFingerprint'], message: 'captureFingerprint does not match the canonical capture metadata.' });
   }
   const ids = new Set<string>();
+  const captureMarkIds = new Set<string>();
+  for (const [index, event] of (direction.capture?.events ?? []).entries()) {
+    if (captureMarkIds.has(event.markId)) ctx.addIssue({ code: 'custom', path: ['capture', 'events', index, 'markId'], message: 'Capture event marker IDs must be unique.' });
+    captureMarkIds.add(event.markId);
+  }
   for (const [index, entry] of direction.scenes.entries()) {
     if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(entry.scene.id)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'id'], message: 'Director scene IDs use lowercase letters, numbers and hyphens only.' });
     if (ids.has(entry.scene.id)) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'scene', 'id'], message: 'Scene IDs must be unique.' });
@@ -115,6 +131,20 @@ function sourceEvidence(entry: DirectionScene) {
   return entry.evidence.filter((e): e is z.infer<typeof captureEvidenceSchema> => e.kind === 'capture');
 }
 
+function assertBoundCaptureEvidence(direction: Direction, sceneId: string, evidence: z.infer<typeof captureEvidenceSchema>) {
+  if (!evidence.verified && !evidence.markId) return;
+  if (!evidence.markId) throw new Error(`Scene ${sceneId} marks capture evidence as verified without a captured marker ID.`);
+  const captured = direction.capture?.events?.find((event) => event.markId === evidence.markId);
+  if (!captured) throw new Error(`Scene ${sceneId} references capture marker ${evidence.markId} outside the adopted take.`);
+  if (evidence.timestamp < captured.timestamp - 1 / FPS || evidence.timestamp > captured.settledUntil + 1 / FPS) {
+    throw new Error(`Scene ${sceneId} uses a timestamp outside capture marker ${evidence.markId}.`);
+  }
+  if (evidence.rect && (!captured.rect || rectKey(evidence.rect) !== rectKey(captured.rect))) {
+    throw new Error(`Scene ${sceneId} uses a rectangle that does not match capture marker ${evidence.markId}.`);
+  }
+  if (evidence.verified && !captured.verified) throw new Error(`Scene ${sceneId} cites capture marker ${evidence.markId} as verified, but the adopted take did not verify it.`);
+}
+
 function requiredTimestamps(scene: SceneInput) {
   if (!('source' in scene)) return [];
   const values = [scene.source.from];
@@ -156,6 +186,7 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
   for (const entry of appEntries) {
     const evidence = sourceEvidence(entry);
     if (evidence.length === 0) throw new Error(`Scene ${entry.scene.id} requires capture evidence.`);
+    for (const item of evidence) assertBoundCaptureEvidence(direction, entry.scene.id, item);
     for (const timestamp of requiredTimestamps(entry.scene)) {
       if (!evidence.some((item) => Math.abs(item.timestamp - timestamp) <= 1 / FPS)) throw new Error(`Scene ${entry.scene.id} uses timestamp ${timestamp} without approved capture evidence.`);
     }

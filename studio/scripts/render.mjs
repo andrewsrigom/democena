@@ -152,7 +152,7 @@ try {
       if (!passed) findings.push({ level: direction ? 'error' : 'warning', code: 'AUTHORED_BOUNDS', sceneId: scene.id, message: `${check.field} has ${check.actual} characters; the safe authored-content limit is ${check.maximum}. Inspect and shorten the copy.` });
     }
   }
-  if (props.scenes.some((scene) => scene.type === 'annotation' || (scene.type === 'outro' && scene.cta))) {
+  if (props.scenes.some((scene) => scene.type === 'annotation' || (scene.type === 'outro' && scene.cta) || (scene.type === 'result' && scene.comparison))) {
     const ratio = contrast(props.accent, '#ffffff');
     contrastChecks.push({ name: 'white-on-project-accent', foreground: '#ffffff', background: props.accent, ratio, required: 4.5 });
     if (ratio < 4.5) findings.push({ level: direction ? 'error' : 'warning', code: 'ACCENT_CONTRAST', message: `White text on ${props.accent} has ${ratio.toFixed(2)}:1 contrast; 4.5:1 is required.` });

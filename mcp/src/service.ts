@@ -91,6 +91,7 @@ export class AgentService {
         devicePixelRatio: media.devicePixelRatio,
         initialRoute: media.initialRoute,
         buildIdentity: media.buildIdentity,
+        ...(media.events ? { events: media.events } : {}),
       },
     });
   }
@@ -120,7 +121,7 @@ export class AgentService {
       throw error;
     })) ?? undefined;
   }
-  async importMedia(id: string, expectedRevision: string, source: string, context?: { plan: unknown; initialRoute: string; buildIdentity?: string; devicePixelRatio?: number }) {
+  async importMedia(id: string, expectedRevision: string, source: string, context?: { plan: z.infer<typeof capturePlanSchema>; initialRoute: string; buildIdentity?: string; devicePixelRatio?: number; events?: CaptureResult['events'] }) {
     const ext = path.extname(source).toLowerCase();
     if (!['.mp4', '.webm'].includes(ext)) throw new AgentError('INVALID_MEDIA', 'Use an MP4 or WebM recording.');
     const input = await this.store.safe(source);
@@ -144,6 +145,18 @@ export class AgentService {
         devicePixelRatio: context?.devicePixelRatio ?? 1,
         initialRoute: context?.initialRoute ?? 'local-import',
         buildIdentity: context?.buildIdentity ?? 'unknown',
+        ...(context?.events ? {
+          events: context.events.map((event) => {
+            const holdMs = context.plan.steps.find((step) => step.id === event.id)?.holdMs ?? 200;
+            return {
+              markId: event.id,
+              timestamp: event.at,
+              settledUntil: event.end + holdMs / 1000,
+              ...(event.box ? { rect: event.box } : {}),
+              verified: event.verified === true,
+            };
+          }),
+        } : {}),
       };
       const media: MediaMetadata = { ...capture, captureFingerprint: captureFingerprint(capture) };
       sidecar = `${copied}.json`;
@@ -367,7 +380,7 @@ export class AgentService {
     if (job.mode !== 'capture' || job.status !== 'succeeded' || !job.capture || !job.artifacts?.recording) throw new AgentError('CAPTURE_NOT_READY', 'Choose a successfully completed capture job.');
     if (job.projectId !== id && !allowCrossProjectReuse) throw new AgentError('WRONG_PROJECT', 'This capture belongs to a different project. Set allowCrossProjectReuse only when intentionally creating another variant from the same take.');
     const plan = JSON.parse(await readFile(await this.store.safe(`jobs/${jobId}/capture-plan.json`), 'utf8')) as z.infer<typeof capturePlanSchema>;
-    const saved = await this.importMedia(id, expectedRevision, path.relative(this.store.root, job.artifacts.recording), { plan, initialRoute: plan.url, buildIdentity: plan.buildIdentity, devicePixelRatio: 1 });
+    const saved = await this.importMedia(id, expectedRevision, path.relative(this.store.root, job.artifacts.recording), { plan, initialRoute: plan.url, buildIdentity: plan.buildIdentity, devicePixelRatio: 1, events: job.capture.events });
     return { ...saved, capture: job.capture };
   }
   private async launchWorker(job: Job, dir: string) {

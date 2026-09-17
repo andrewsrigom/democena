@@ -287,6 +287,7 @@ export function formaLaunchDirection(capture, media) {
       devicePixelRatio: media.devicePixelRatio,
       initialRoute: media.initialRoute,
       buildIdentity: media.buildIdentity,
+      events: media.events,
     },
     poster: { sceneId: 'verified-result', sceneLocalTime: 2 },
     scenes: [

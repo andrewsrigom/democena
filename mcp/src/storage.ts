@@ -71,7 +71,7 @@ export class Workspace {
     return this.get(id);
   }
 
-  async getDirection(id: string) {
+  private async readCanonicalDirection(id: string) {
     const project = await this.get(id);
     const file = await this.safe(`projects/${idSchema.parse(id)}/direction/direction.json`);
     const raw = await readFile(file, 'utf8').catch((error: NodeJS.ErrnoException) => {
@@ -79,29 +79,39 @@ export class Workspace {
       throw error;
     });
     const saved = directionSchema.parse(JSON.parse(raw));
-    const direction = saved.compiledProjectRevision && saved.compiledProjectRevision !== project.revision && ['compiled', 'delivered'].includes(saved.status)
+    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, saved };
+  }
+
+  async getDirection(id: string) {
+    const current = await this.readCanonicalDirection(id);
+    const { saved } = current;
+    const direction = saved.compiledProjectRevision && saved.compiledProjectRevision !== current.projectRevision && ['compiled', 'delivered'].includes(saved.status)
       ? { ...saved, status: 'diverged' as const }
       : saved;
-    return { projectId: id, directionRevision: revision(raw), projectRevision: project.revision, direction };
+    const { saved: _saved, ...metadata } = current;
+    return { ...metadata, direction };
   }
 
   async saveDirection(id: string, expectedDirectionRevision: string | null, value: unknown) {
     await this.get(id);
     const direction = directionSchema.parse(value);
+    if (['compiled', 'delivered', 'diverged'].includes(direction.status)) {
+      throw new AgentError('DIRECTION_STATE_MANAGED', 'save_direction accepts draft, reviewed or stale plans. Compiled, delivered and diverged states are managed by the Director workflow.');
+    }
     const lock = await this.safe(`projects/${id}/.direction-lock`);
     await mkdir(lock).catch((error: NodeJS.ErrnoException) => {
       if (error.code === 'EEXIST') throw new AgentError('PROJECT_BUSY', 'Another writer is saving Director state. Read the direction again before retrying.');
       throw error;
     });
     try {
-      const current = await this.getDirection(id).catch((error: unknown) => {
+      const current = await this.readCanonicalDirection(id).catch((error: unknown) => {
         if (error instanceof AgentError && error.code === 'DIRECTION_NOT_FOUND') return undefined;
         throw error;
       });
       if (current ? current.directionRevision !== expectedDirectionRevision : expectedDirectionRevision !== null) {
         throw new AgentError('DIRECTION_REVISION_CONFLICT', 'The direction has changed. Read it again and reconcile your edits. Use null only for the first save.');
       }
-      await this.commitDirection(id, current?.directionRevision, current?.direction, direction);
+      await this.commitDirection(id, current?.directionRevision, current?.saved, direction);
       return this.getDirection(id);
     } finally {
       await rm(lock, { recursive: true, force: true });
