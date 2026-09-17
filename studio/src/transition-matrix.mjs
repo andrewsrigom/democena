@@ -99,7 +99,7 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-visible-framed-to-immersive', from: withLayout(overview, 'framed'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-left'),
       expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { midpoint: true, after: true } },
     { id: 'chrome-visible-immersive-to-framed', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withLayout(camera, 'framed'),
-      expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true } },
+      expectedChrome: { before: true, midpoint: true, after: true }, expectedBackdrop: { before: true, midpoint: true, after: false } },
     { id: 'chrome-chapter-to-product-stage', from: chapter, to: withCaption(withLayout(overview, 'product-stage'), 'top-left'), expectedChrome: { before: true, midpoint: true, after: true } },
     { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withChrome(withLayout(focus, 'full-bleed'), 'show'), expectedChrome: { before: false, midpoint: false, after: true } },
     { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withChrome(withLayout(camera, 'framed'), 'hide'), expectedChrome: { before: true, midpoint: false, after: false } },

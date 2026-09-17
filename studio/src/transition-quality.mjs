@@ -103,3 +103,9 @@ export function regionPsnr(a, b, { x, y, width, height }, frameWidth = 1920, str
   const mse = squaredError / samples;
   return mse === 0 ? Infinity : 10 * Math.log10((255 * 255) / mse);
 }
+
+export function backdropExpectationPassed(visible, surfaceDelta, absencePsnrDb, { maximumSurfaceDelta, minimumAbsencePsnrDb }) {
+  return visible
+    ? surfaceDelta <= maximumSurfaceDelta
+    : surfaceDelta > maximumSurfaceDelta && absencePsnrDb >= minimumAbsencePsnrDb;
+}
