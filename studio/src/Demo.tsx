@@ -4,7 +4,7 @@ import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurren
 import type { ChapterScene, Project, Scene } from './model';
 import { authoredEntranceOffsetFrames, buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
-import { compactChapterChrome, nestedChromeBackdropOpacity, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from './presentation-chrome';
+import { compactChapterChrome, nestedChromeBackdropOpacity, outgoingChromeCaptionDelayFrames, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from './presentation-chrome';
 import { transitionRegistry, transitionStyleFor } from './motion-registry';
 import { sceneComposition } from './composition-registry.mjs';
 
@@ -26,7 +26,7 @@ function BrandHeader({ project, theme, backdropOpacity = 0 }: { project: Project
     {brand.tagline ? <span style={{ position: 'relative', marginLeft: hasIdentity ? 4 : 0, paddingLeft: hasIdentity ? 22 : 0, borderLeft: hasIdentity ? `1px solid ${theme.border}` : undefined, fontSize: 18, color: theme.muted }}>{brand.tagline}</span> : null}
   </div>;
 }
-function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: Project; theme: PresentationTheme; first: boolean }) {
+function SceneLayer({ scene, project, theme, first, previousChromeVisible }: { scene: Scene; project: Project; theme: PresentationTheme; first: boolean; previousChromeVisible: boolean }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const transition = scene.transition ?? DEFAULT_TRANSITION;
@@ -38,9 +38,11 @@ function SceneLayer({ scene, project, theme, first }: { scene: Scene; project: P
   const enter = duration === 0 || first ? 1 : interpolate(frame, [0, duration], [0, 1], { ...CLAMP,
     easing: directional ? Easing.inOut(Easing.cubic) : Easing.out(Easing.cubic) });
   const transitionStyle = transitionStyleFor(transition.type, enter);
+  const captionEntranceDelayFrames = outgoingChromeCaptionDelayFrames(sceneComposition(scene).chromeVisible, previousChromeVisible, duration);
   return <AbsoluteFill style={{ background: theme.background, ...transitionStyle }}>
     <div style={{ position: 'absolute', width: 1220, height: 1080, right: 0, top: 0, background: `linear-gradient(125deg, ${theme.background}00, ${theme.tint})`, opacity: .9 }} />
-    <SceneContent scene={scene} project={project} theme={theme} entranceOffsetFrames={entranceOffsetFrames} incomingOverlapFrames={incomingOverlapFrames} />
+    <SceneContent scene={scene} project={project} theme={theme} entranceOffsetFrames={entranceOffsetFrames} incomingOverlapFrames={incomingOverlapFrames}
+      captionEntranceDelayFrames={captionEntranceDelayFrames} />
   </AbsoluteFill>;
 }
 export function Demo(project: Project) {
@@ -67,7 +69,8 @@ export function Demo(project: Project) {
   const chapterEnter = interpolate(frame - active.from, [0, Math.max(1, Math.round(fps * .28))], [0, 1], CLAMP);
   return <AbsoluteFill style={{ background: theme.background, color: theme.foreground, fontFamily: theme.font, overflow: 'hidden' }}>
     {timeline.map(({ scene, from, duration }, i) => <Sequence key={scene.id} name={`${String(i + 1).padStart(2, '0')} · ${scene.type} · ${scene.title.replaceAll('\n', ' ')}`} from={from} durationInFrames={duration}>
-      <SceneLayer scene={scene} project={project} theme={theme} first={i === 0} />
+      <SceneLayer scene={scene} project={project} theme={theme} first={i === 0}
+        previousChromeVisible={i > 0 ? sceneComposition(timeline[i - 1]!.scene).chromeVisible : false} />
     </Sequence>)}
     {usesBackedChrome ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 8, opacity: chromeBackdropOpacity, background: theme.background }} /> : null}
     <div style={{ opacity: chromeOpacity }}>

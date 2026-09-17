@@ -4,7 +4,7 @@ import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
 import { fullBleedLayout } from '../studio/src/layout.js';
-import { compactChapterChrome, nestedChromeBackdropOpacity, overlayCaptionBottom, overlayCaptionTop, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
+import { compactChapterChrome, nestedChromeBackdropOpacity, outgoingChromeCaptionDelayFrames, overlayCaptionBottom, overlayCaptionTop, presentationChromeBackdropOpacity, presentationChromeOpacity, presentationChromeUsesBackdrop } from '../studio/src/presentation-chrome.js';
 
 const focus = { x: 100, y: 500, width: 300, height: 44 };
 const base = { duration: 4, eyebrow: 'A step', title: 'A clear story', body: 'Details.' };
@@ -98,6 +98,9 @@ describe('scene timeline and source clock', () => {
     expect(overlayCaptionTop('top-right', 'full-bleed', false)).toBe(96);
     expect(overlayCaptionTop('top-left', 'product-stage', false)).toBe(150);
     expect(overlayCaptionTop('bottom-left', 'full-bleed', true)).toBeUndefined();
+    expect(outgoingChromeCaptionDelayFrames(false, true, 57)).toBe(20);
+    expect(outgoingChromeCaptionDelayFrames(false, false, 57)).toBe(0);
+    expect(outgoingChromeCaptionDelayFrames(true, true, 57)).toBe(0);
     expect(overlayCaptionBottom('bottom-left', true)).toBe(160);
     expect(overlayCaptionBottom('bottom-right', true)).toBe(160);
     expect(overlayCaptionBottom('bottom-left', false)).toBe(96);

@@ -130,10 +130,10 @@ function Caption({ scene, accent, theme }: { scene: Scene; accent: string; theme
     <div style={{ width: 42, height: 4, borderRadius: 4, background: accent, marginTop: 34 }} />
   </div>;
 }
-function OverlayCaption({ scene, accent, theme, position, layout }: { scene: Scene; accent: string; theme: PresentationTheme; position: Exclude<CaptionPlacement, 'side' | 'none'>; layout: CompositionLayout }) {
+function OverlayCaption({ scene, accent, theme, position, layout, entranceDelayFrames }: { scene: Scene; accent: string; theme: PresentationTheme; position: Exclude<CaptionPlacement, 'side' | 'none'>; layout: CompositionLayout; entranceDelayFrames: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ frame: frame - 8, fps, config: { damping: 26, stiffness: 95 } });
+  const enter = spring({ frame: frame - 8 - entranceDelayFrames, fps, config: { damping: 26, stiffness: 95 } });
   const chromeVisible = sceneComposition(scene).chromeVisible;
   const top = overlayCaptionTop(position, layout, chromeVisible);
   const bottom = overlayCaptionBottom(position, chromeVisible);
@@ -175,7 +175,7 @@ function Annotation({ scene, project, theme, width, camera }: { scene: Annotatio
   </>;
 }
 
-export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, incomingOverlapFrames = 0 }: { scene: Scene; project: Project; theme: PresentationTheme; entranceOffsetFrames?: number; incomingOverlapFrames?: number }) {
+export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, incomingOverlapFrames = 0, captionEntranceDelayFrames = 0 }: { scene: Scene; project: Project; theme: PresentationTheme; entranceOffsetFrames?: number; incomingOverlapFrames?: number; captionEntranceDelayFrames?: number }) {
   const frame = useCurrentFrame();
   const { fps, width: compositionWidth, height: compositionHeight } = useVideoConfig();
   const implementation = motionImplementationFor(scene);
@@ -220,6 +220,6 @@ export function SceneContent({ scene, project, theme, entranceOffsetFrames = 0, 
       </BrowserFrame>
     </div>
     <CompositionForeground layout={composition.id} accent={project.accent} />
-    {caption !== 'side' && caption !== 'none' ? <OverlayCaption scene={scene} accent={project.accent} theme={theme} position={caption} layout={composition.id} /> : null}
+    {caption !== 'side' && caption !== 'none' ? <OverlayCaption scene={scene} accent={project.accent} theme={theme} position={caption} layout={composition.id} entranceDelayFrames={captionEntranceDelayFrames} /> : null}
   </>;
 }

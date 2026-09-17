@@ -36,6 +36,11 @@ export function presentationChromeUsesBackdrop(activeBacked: boolean, previousBa
   return activeBacked || (previousBacked && activeEnter < 1);
 }
 
+/** Keep incoming overlay copy out of outgoing chrome until its handoff fade is complete. */
+export function outgoingChromeCaptionDelayFrames(activeVisible: boolean, previousVisible: boolean, transitionFrames: number) {
+  return !activeVisible && previousVisible ? Math.ceil(Math.max(0, transitionFrames) * .35) : 0;
+}
+
 export function overlayCaptionTop(position: CaptionPlacement, layout: CompositionLayout, chromeVisible: boolean) {
   if (!position.startsWith('top')) return undefined;
   if (chromeVisible) return 190;

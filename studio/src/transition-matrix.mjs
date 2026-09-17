@@ -109,7 +109,7 @@ export function chromeMatrix(source, fps = FPS) {
     { id: 'chrome-chapter-to-detail-crop', from: chapter, to: withLayout(focus, 'detail-crop'), expectedChrome: { before: true, midpoint: true, after: true } },
     { id: 'chrome-visible-layered-product', from: chapter, to: withCaption(withLayout(focus, 'layered-product'), 'bottom-left'), expectedChrome: { before: true, midpoint: true, after: true } },
     { id: 'chrome-explicit-hide-to-show', from: withChrome(withLayout(overview, 'framed'), 'hide'), to: withCaption(withChrome(withLayout(focus, 'full-bleed'), 'show'), 'top-right'), expectedChrome: { before: false, midpoint: false, after: true } },
-    { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withChrome(withLayout(camera, 'framed'), 'hide'), expectedChrome: { before: true, midpoint: false, after: false } },
+    { id: 'chrome-explicit-show-to-hide', from: withChrome(withLayout(focus, 'full-bleed'), 'show'), to: withCaption(withChrome(withLayout(camera, 'framed'), 'hide'), 'top-left'), expectedChrome: { before: true, midpoint: false, after: false } },
   ];
   return cases.map((entry) => matrixEntry(entry.id, source, entry.from, entry.to, { type: 'fade', duration: .4 }, fps, {
     kind: 'chrome', expectedChrome: entry.expectedChrome, ...(entry.expectedBackdrop ? { expectedBackdrop: entry.expectedBackdrop } : {}),
