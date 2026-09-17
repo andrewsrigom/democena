@@ -20,6 +20,9 @@ export const transitionSchema = z.strictObject({
 const presentationSchema = z.strictObject({
   layout: z.enum(['framed', 'full-bleed']).optional(),
   caption: z.enum(['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none']).optional(),
+}).refine((presentation) => presentation.layout !== 'full-bleed' || presentation.caption !== 'side', {
+  path: ['caption'],
+  message: 'Full-bleed scenes use a positioned overlay caption or none; side captions require the framed layout.',
 });
 
 export const brandingSchema = z.strictObject({

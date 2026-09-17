@@ -131,6 +131,12 @@ function sourceEvidence(entry: DirectionScene) {
   return entry.evidence.filter((e): e is z.infer<typeof captureEvidenceSchema> => e.kind === 'capture');
 }
 
+function hasVerifiedDisplayedResult(entry: DirectionScene) {
+  if (!('source' in entry.scene)) return false;
+  const displayedAt = entry.scene.type === 'result' && entry.scene.comparison ? entry.scene.comparison.after : entry.scene.source.from;
+  return sourceEvidence(entry).some((item) => item.verified && Math.abs(item.timestamp - displayedAt) <= 1 / FPS);
+}
+
 function assertBoundCaptureEvidence(direction: Direction, sceneId: string, evidence: z.infer<typeof captureEvidenceSchema>) {
   if (!evidence.verified && !evidence.markId) return;
   if (!evidence.markId) throw new Error(`Scene ${sceneId} marks capture evidence as verified without a captured marker ID.`);
@@ -200,14 +206,14 @@ export function compileDirection(directionValue: unknown, currentProject: Projec
   const duration = buildTimeline(project.scenes, FPS).at(-1)!.end / FPS;
   if (direction.profile === 'tour' && appEntries.length > 0) {
     if (!direction.scenes.some((entry) => ['product-reveal', 'product-moment'].includes(entry.narrativeRole) && !['text', 'chapter', 'outro'].includes(entry.scene.type))) throw new Error('A product tour requires a real product moment.');
-    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && sourceEvidence(entry).some((item) => item.verified))) throw new Error('A product tour requires a verified result.');
+    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry))) throw new Error('A product tour requires a verified result displayed from its verified capture evidence.');
   }
   if (direction.profile === 'launch') {
     if (scenes.length < 4 || scenes.length > 6) throw new Error('Launch directions require four to six scenes.');
     if (duration < 15 || duration > 25) throw new Error(`Launch duration must be 15-25 seconds; compiled duration is ${duration.toFixed(2)} seconds.`);
     if (direction.scenes[0]?.narrativeRole !== 'hook') throw new Error('A launch direction must begin with a hook.');
     if (!direction.scenes.some((entry) => ['product-reveal', 'product-moment'].includes(entry.narrativeRole) && !['text', 'chapter', 'outro'].includes(entry.scene.type))) throw new Error('A launch direction requires a real product moment.');
-    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && sourceEvidence(entry).some((item) => item.verified))) throw new Error('A launch direction requires a verified result.');
+    if (!direction.scenes.some((entry) => entry.narrativeRole === 'verified-result' && hasVerifiedDisplayedResult(entry))) throw new Error('A launch direction requires a verified result displayed from its verified capture evidence.');
     if (direction.scenes.at(-1)?.narrativeRole !== 'closing') throw new Error('A launch direction must end with a closing scene.');
   }
   return { direction, project, duration };

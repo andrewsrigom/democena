@@ -99,6 +99,7 @@ export function prepareProject(value: unknown, fps = FPS): Project {
       requireValue(record(scene.presentation), `${name}.presentation must be an object`);
       requireValue(scene.presentation.layout === undefined || ['framed', 'full-bleed'].includes(String(scene.presentation.layout)), `${name}.presentation.layout is invalid`);
       requireValue(scene.presentation.caption === undefined || ['side', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none'].includes(String(scene.presentation.caption)), `${name}.presentation.caption is invalid`);
+      requireValue(scene.presentation.layout !== 'full-bleed' || scene.presentation.caption !== 'side', `${name}.presentation.caption side requires the framed layout`);
       requireValue(scene.type !== 'result' || scene.comparison === undefined, `${name}.presentation is not available on comparison results`);
     }
     switch (scene.type) {

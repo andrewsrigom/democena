@@ -136,10 +136,13 @@ try {
     || (scene.type === 'result' && scene.comparison)
     || scene.presentation?.layout !== 'full-bleed'
     || scene.presentation?.caption === 'side');
+  const mutedOnTint = props.scenes.some((scene) => (scene.type === 'result' && scene.comparison)
+    || (!['text', 'chapter', 'outro'].includes(scene.type) && scene.presentation?.layout !== 'full-bleed'));
   const contrastChecks = [
     { name: 'foreground-on-background', foreground: theme.foreground, background: theme.background, ratio: contrast(theme.foreground, theme.background), required: 4.5 },
     { name: 'muted-on-background', foreground: theme.muted, background: theme.background, ratio: contrast(theme.muted, theme.background), required: 4.5 },
     ...(accentOnBackground ? [{ name: 'accent-on-background', foreground: props.accent, background: theme.background, ratio: contrast(props.accent, theme.background), required: 4.5 }] : []),
+    ...(mutedOnTint ? [{ name: 'muted-on-tint', foreground: theme.muted, background: theme.tint, ratio: contrast(theme.muted, theme.tint), required: 4.5 }] : []),
     ...(fullBleedCaption ? [
       { name: 'foreground-on-surface', foreground: theme.foreground, background: theme.surface, ratio: contrast(theme.foreground, theme.surface), required: 4.5 },
       { name: 'muted-on-surface', foreground: theme.muted, background: theme.surface, ratio: contrast(theme.muted, theme.surface), required: 4.5 },

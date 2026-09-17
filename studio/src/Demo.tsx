@@ -4,6 +4,7 @@ import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurren
 import type { ChapterScene, Project, Scene } from './model';
 import { buildTimeline, DEFAULT_TRANSITION, transitionFrames } from './timeline';
 import { ChapterLabel, SceneContent } from './scenes';
+import { presentationChromeOpacity } from './presentation-chrome';
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 function BrandHeader({ project, theme }: { project: Project; theme: PresentationTheme }) {
@@ -46,8 +47,7 @@ export function Demo(project: Project) {
   const previousFullBleed = previous && 'presentation' in previous.scene && previous.scene.presentation?.layout === 'full-bleed';
   const activeTransitionFrames = transitionFrames(active.scene, fps);
   const activeEnter = activeTransitionFrames === 0 || index === 0 ? 1 : interpolate(frame - active.from, [0, activeTransitionFrames], [0, 1], CLAMP);
-  const chromeOpacity = activeFullBleed ? interpolate(activeEnter, [0, .35], [1, 0], CLAMP)
-    : previousFullBleed ? interpolate(activeEnter, [.65, 1], [0, 1], CLAMP) : 1;
+  const chromeOpacity = presentationChromeOpacity(activeFullBleed, Boolean(previousFullBleed), activeEnter);
   const chapter = project.scenes.slice(0, index).findLast((scene): scene is ChapterScene => scene.type === 'chapter');
   const showsChapterContext = chapter && ['overview', 'focus', 'camera', 'annotation', 'result'].includes(active.scene.type);
   const chapterEnter = interpolate(frame - active.from, [0, Math.max(1, Math.round(fps * .28))], [0, 1], CLAMP);

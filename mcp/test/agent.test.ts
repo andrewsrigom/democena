@@ -259,6 +259,11 @@ test('launch compilation enforces shape, evidence and a 15-25 second runtime', (
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'invented', verified: true }] } : entry) }, project), /outside the adopted take/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 5, markId: 'result', verified: true }] } : entry) }, project), /timestamp outside capture marker/);
   assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [{ kind: 'capture', timestamp: 4, markId: 'result', rect: { x: 0, y: 0, width: 10, height: 10 }, verified: true }] } : entry) }, project), /rectangle that does not match/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, evidence: [
+    { kind: 'capture', timestamp: 0, markId: 'reveal', verified: false },
+    { kind: 'capture', timestamp: 4, markId: 'result', verified: true },
+  ], scene: { ...entry.scene, source: { from: 0, freeze: true } } } : entry) }, project), /verified result displayed from its verified capture evidence/);
+  assert.throws(() => compileDirection({ ...direction, scenes: direction.scenes.map((entry) => entry.narrativeRole === 'verified-result' ? { ...entry, scene: { id: 'result', type: 'text', duration: 4.1, eyebrow: 'Published', title: 'The result is visible.', body: 'Authored copy alone is not verified product evidence.' } } : entry) }, project), /verified result displayed from its verified capture evidence/);
   const unverifiedCapture = { ...direction.capture, events: direction.capture.events.map((event) => event.markId === 'result' ? { ...event, verified: false } : event) };
   assert.throws(() => compileDirection({ ...direction, capture: unverifiedCapture, captureFingerprint: captureFingerprint(unverifiedCapture) }, project), /did not verify it/);
 });

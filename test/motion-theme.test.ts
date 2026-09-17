@@ -16,6 +16,7 @@ describe('Studio presentation contrast', () => {
   it.each([lightTheme, darkTheme])('keeps foreground and muted copy readable in $mode mode', (theme) => {
     expect(contrast(theme.foreground, theme.background)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme.muted, theme.background)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(theme.muted, theme.tint)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('resolves explicit and automatic surfaces while retaining product tokens', () => {

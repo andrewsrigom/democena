@@ -6,7 +6,7 @@ export const lightTheme = {
   primary: '#215acb',
   muted: '#657286',
   border: '#e1e6ed',
-  tint: '#eff4fc',
+  tint: '#f4f7fc',
   surface: '#ffffff',
   shadow: '#142d52',
   radius: 18,
