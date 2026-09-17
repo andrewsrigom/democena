@@ -23,4 +23,4 @@ Transition presets compile to the current scene grammar:
 - `clean-slide`: restrained slide.
 - `restrained-zoom`: short fade combined with motion authored inside the product scene.
 
-Keep the settled preview after entrance and before exit. Select poster `sceneId` and scene-local time inside that interval. Camera stop times are scene-local; source timestamps use the recording clock.
+Keep the settled preview after entrance and before exit. The renderer clamps requested previews and posters past the shared 1.5-second entrance interval. Select poster `sceneId` and scene-local time inside that interval. Camera stop times are scene-local; source timestamps use the recording clock.

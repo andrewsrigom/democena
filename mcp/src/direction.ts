@@ -138,8 +138,11 @@ function hasVerifiedDisplayedResult(entry: DirectionScene, trimBefore: number) {
 }
 
 function assertBoundCaptureEvidence(direction: Direction, sceneId: string, evidence: z.infer<typeof captureEvidenceSchema>) {
-  if (!evidence.verified && !evidence.markId) return;
-  if (!evidence.markId) throw new Error(`Scene ${sceneId} marks capture evidence as verified without a captured marker ID.`);
+  if (!evidence.markId) {
+    if (direction.capture?.events?.length) throw new Error(`Scene ${sceneId} requires a captured marker ID for evidence from an adopted take.`);
+    if (evidence.verified) throw new Error(`Scene ${sceneId} marks capture evidence as verified without a captured marker ID.`);
+    return;
+  }
   const captured = direction.capture?.events?.find((event) => event.markId === evidence.markId);
   if (!captured) throw new Error(`Scene ${sceneId} references capture marker ${evidence.markId} outside the adopted take.`);
   if (evidence.timestamp < captured.timestamp - 1 / FPS || evidence.timestamp > captured.settledUntil + 1 / FPS) {

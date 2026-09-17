@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimeline, FPS, prepareProject, sourceFrame } from '../studio/src/timeline.js';
+import { buildTimeline, FPS, prepareProject, settledReviewFrame, sourceFrame } from '../studio/src/timeline.js';
 import { example } from '../studio/src/model.js';
 import type { Project, Scene } from '../studio/src/model.js';
 import { cameraAt, cameraFor } from '../studio/src/camera.js';
@@ -125,6 +125,14 @@ describe('scene timeline and source clock', () => {
     expect(middle.previewFrame).toBeGreaterThanOrEqual(middle.from + middle.overlap);
     expect(middle.previewFrame).toBeLessThan(timeline[2]!.from);
     expect(middle.from + Math.round(middle.duration * .65)).toBeGreaterThanOrEqual(timeline[2]!.from);
+  });
+
+  it('clamps requested review frames after delayed scene entrances', () => {
+    const scenes: Scene[] = ['a', 'b', 'c'].map((id) => ({ ...base, id, type: 'text', duration: 5, transition: { type: 'fade', duration: .4 } }));
+    const timeline = buildTimeline(prepareProject({ ...project(), scenes }).scenes, FPS);
+    const middle = timeline[1]!;
+    expect(settledReviewFrame(middle, timeline[2]!.from, 0, FPS)).toBe(middle.from + 45);
+    expect(settledReviewFrame(middle, timeline[2]!.from, 2, FPS)).toBe(middle.from + 60);
   });
 
   it('does not apply an incoming transition to a single short opening', () => {

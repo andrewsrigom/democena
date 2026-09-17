@@ -1,7 +1,7 @@
 import type { Project, Source } from './model.js';
 
 import { DEFAULT_TRANSITION, FPS, frames } from './timeline-layout.mjs';
-export { DEFAULT_TRANSITION, FPS, frames, transitionFrames, buildTimeline } from './timeline-layout.mjs';
+export { DEFAULT_TRANSITION, FPS, frames, transitionFrames, buildTimeline, settledReviewFrame } from './timeline-layout.mjs';
 
 export function sourceFrame(source: Source, localFrame: number, trimBefore: number, fps: number) {
   return frames(trimBefore + source.from, fps) + (source.freeze ? 0 : localFrame);

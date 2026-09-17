@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { bundle } from '@remotion/bundler';
 import { openBrowser, renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import { chromium } from 'playwright';
-import { buildTimeline } from '../src/timeline-layout.mjs';
+import { buildTimeline, settledReviewFrame } from '../src/timeline-layout.mjs';
 import { resolveTheme } from '../src/theme-data.mjs';
 
 const { values } = parseArgs({ options: {
@@ -96,10 +96,7 @@ try {
   const timeline = buildTimeline(props.scenes, composition.fps);
   for (const [i, { scene, from, duration, overlap, end, previewFrame }] of timeline.entries()) {
     const requested = direction?.scenes?.find((entry) => entry.scene?.id === scene.id)?.expectedSettledAt;
-    const settledStart = from + overlap;
-    const settledEnd = timeline[i + 1]?.from ?? end;
-    const requestedFrame = requested === undefined ? previewFrame : from + Math.round(requested * composition.fps);
-    const frame = Math.max(settledStart, Math.min(settledEnd - 1, requestedFrame));
+    const frame = settledReviewFrame({ from, duration, overlap, end, previewFrame }, timeline[i + 1]?.from, requested, composition.fps);
     const output = path.join(outputDir, 'scenes', `${String(i + 1).padStart(2, '0')}-${scene.type}.png`);
     await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance, frame, output });
     stills.push({ index: i + 1, id: scene.id, type: scene.type, from, duration, overlap, frame, output });
@@ -125,9 +122,8 @@ try {
   const requestedPoster = direction?.poster;
   const posterEntry = requestedPoster ? timeline.find((entry) => entry.scene.id === requestedPoster.sceneId) : timeline.find((entry) => entry.scene.type === 'focus') ?? timeline[0];
   assert(posterEntry, 'poster scene does not exist');
-  const posterLocalFrame = requestedPoster ? Math.round(requestedPoster.sceneLocalTime * composition.fps) : posterEntry.previewFrame - posterEntry.from;
   const posterIndex = timeline.indexOf(posterEntry);
-  const posterFrame = Math.max(posterEntry.from + posterEntry.overlap, Math.min((timeline[posterIndex + 1]?.from ?? posterEntry.end) - 1, posterEntry.from + posterLocalFrame));
+  const posterFrame = settledReviewFrame(posterEntry, timeline[posterIndex + 1]?.from, requestedPoster?.sceneLocalTime, composition.fps);
   const poster = path.join(outputDir, 'review', 'poster.jpg');
   await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance, frame: posterFrame, output: poster, imageFormat: 'jpeg', jpegQuality: 90 });
   const contact = path.join(outputDir, 'review', 'contact-sheet.jpg');

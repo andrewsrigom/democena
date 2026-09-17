@@ -25,3 +25,11 @@ export function buildTimeline(scenes, fps) {
     return { ...entry, previewFrame };
   });
 }
+
+/** Keep review artifacts beyond transitions and the latest delayed content entrance. */
+export function settledReviewFrame(entry, nextFrom, requestedLocalSeconds, fps) {
+  const settledEnd = nextFrom ?? entry.end;
+  const requested = requestedLocalSeconds === undefined ? entry.previewFrame : entry.from + frames(requestedLocalSeconds, fps);
+  const entranceEnd = entry.from + Math.max(entry.overlap, frames(1.5, fps));
+  return Math.min(settledEnd - 1, Math.max(entranceEnd, requested));
+}

@@ -6,3 +6,9 @@ export function transitionFrames(scene: Scene, fps: number): number;
 export function buildTimeline(scenes: Scene[], fps: number): Array<{
   scene: Scene; from: number; duration: number; overlap: number; end: number; previewFrame: number;
 }>;
+export function settledReviewFrame(
+  entry: { from: number; duration: number; overlap: number; end: number; previewFrame: number },
+  nextFrom: number | undefined,
+  requestedLocalSeconds: number | undefined,
+  fps: number,
+): number;
